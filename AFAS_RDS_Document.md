@@ -510,94 +510,94 @@ flowchart TD
 ```mermaid
 classDiagram
     class Account {
-        +string Id
-        +string Email
-        +string PasswordHash
-        +string FullName
-        +string Role
-        +DateTime CreatedAt
+        -Id: string
+        -Email: string
+        -PasswordHash: string
+        -FullName: string
+        -Role: string
+        -CreatedAt: DateTime
     }
 
     class Student {
-        +string StudentId
-        +string AccountId
-        +string DeviceUUID
-        +string RegisteredFaceTemplate
+        -StudentId: string
+        -AccountId: string
+        -DeviceUUID: string
+        -RegisteredFaceTemplate: string
     }
 
     class Lecturer {
-        +string LecturerId
-        +string AccountId
-        +string Department
+        -LecturerId: string
+        -AccountId: string
+        -Department: string
     }
 
     class Room {
-        +string RoomId
-        +string RoomName
-        +double Latitude
-        +double Longitude
-        +double AllowedRadius
+        -RoomId: string
+        -RoomName: string
+        -Latitude: double
+        -Longitude: double
+        -AllowedRadius: double
     }
 
     class Subject {
-        +string SubjectCode
-        +string SubjectName
-        +int Credits
+        -SubjectCode: string
+        -SubjectName: string
+        -Credits: int
     }
 
     class ClassSection {
-        +string ClassSectionId
-        +string ClassSectionName
-        +string SubjectCode
-        +string LecturerId
-        +string Semester
+        -ClassSectionId: string
+        -ClassSectionName: string
+        -SubjectCode: string
+        -LecturerId: string
+        -Semester: string
     }
 
     class ClassSectionStudent {
-        +string ClassSectionId
-        +string StudentId
+        -ClassSectionId: string
+        -StudentId: string
     }
 
     class Session {
-        +string SessionId
-        +string ClassSectionId
-        +string RoomId
-        +DateTime SessionDate
-        +TimeSpan StartTime
-        +TimeSpan EndTime
+        -SessionId: string
+        -ClassSectionId: string
+        -RoomId: string
+        -SessionDate: DateTime
+        -StartTime: TimeSpan
+        -EndTime: TimeSpan
     }
 
     class AttendanceVersion {
-        +string SessionId
-        +string DynamicToken
-        +DateTime QRRefreshedAt
-        +string PINCode
-        +DateTime PINRefreshedAt
-        +bool IsActive
+        -SessionId: string
+        -DynamicToken: string
+        -QRRefreshedAt: DateTime
+        -PINCode: string
+        -PINRefreshedAt: DateTime
+        -IsActive: bool
     }
 
     class AttendanceRecord {
-        +string RecordId
-        +string StudentId
-        +string SessionId
-        +DateTime CheckedInAt
-        +double CheckedInLat
-        +double CheckedInLong
-        +double Distance
-        +string WifiSSID
-        +string PublicIP
-        +string DeviceUUID
-        +string SelfiePath
-        +string Status
-        +string VerificationMode
+        -RecordId: string
+        -StudentId: string
+        -SessionId: string
+        -CheckedInAt: DateTime
+        -CheckedInLat: double
+        -CheckedInLong: double
+        -Distance: double
+        -WifiSSID: string
+        -PublicIP: string
+        -DeviceUUID: string
+        -SelfiePath: string
+        -Status: string
+        -VerificationMode: string
     }
 
     class SystemLog {
-        +string LogId
-        +string AccountId
-        +DateTime Timestamp
-        +string Action
-        +string Description
+        -LogId: string
+        -AccountId: string
+        -Timestamp: DateTime
+        -Action: string
+        -Description: string
     }
 
     Account "1" -- "0..1" Student
