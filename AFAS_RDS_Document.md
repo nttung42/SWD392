@@ -65,15 +65,15 @@
 The core requirements are described as follows:
 
 1.  **Authentication:** Students must log into the system using their personal student accounts (MSSV and assigned password) or via Google OAuth using their official school email (`@fpt.edu.vn`). All university staff and lecturers must also log in before performing any action.
-2.  **Device Binding:** To prevent students from checking in for their friends using multiple devices or accounts, each student account is bound to a single physical device. Upon first login, the student's unique Device UUID is registered. If the student changes their device (e.g., purchasing a new phone), they can request a device reset through a secure self-service OTP verification sent to their school email.
+2.  **Device Binding:** To prevent students from checking in for their friends using multiple devices or accounts, each student account is bound to a single physical device. Upon first login, the student's device identifier (a UUID collected by the mobile app) is registered. If the student changes their device (e.g., purchasing a new phone), they can request a device reset through a secure self-service OTP verification sent to their school email.
 3.  **Dynamic QR Code Attendance:** To prevent students from taking photos of the QR code and sharing it with absent peers, the lecturer initiates an attendance session which displays a large dynamic QR code on the projector screen. This QR code dynamically refreshes its encoded token every 10 seconds. The server only validates check-ins matching the currently active token within a strict 15-second grace window.
-4.  **Geofencing (Location Verification):** To prevent off-campus check-ins, the mobile client automatically attaches the student's hardware GPS coordinates during the QR scan. The server calculates the straight-line distance to the classroom's coordinates using the Haversine formula. If the student is outside the dynamic radius configured for the classroom (e.g., > 20 meters), the check-in is rejected and flagged as fraud.
-5.  **Campus Wi-Fi Network Matching:** As a secondary defense layer against GPS spoofing apps, the client attaches network telemetry (Public IP Gateway and Wi-Fi SSID). The server cross-references the public IP against the university's static IP range.
-6.  **Biometric Verification (Face ID):** To prevent students from handing their registered phones to classmates to check in for them, the application requires local biometric verification (Face ID / Fingerprint) and captures a temporary face selfie. The selfie is processed locally or sent as a temporary proof, which is validated and deleted immediately on the server after verification to preserve privacy and optimize storage.
+4.  **Geofencing (Location Verification):** To prevent off-campus check-ins, the mobile client automatically attaches the student's device GPS coordinates during the QR scan. The server calculates the straight-line distance to the classroom's coordinates using the Haversine formula. If the student is outside the configured radius for the classroom (e.g., > 20 meters), the check-in is rejected and flagged as fraud.
+5.  **Campus Wi-Fi Network Matching:** As a supporting verification signal, the client attaches network telemetry (Public IP Gateway and Wi-Fi SSID). The server cross-references the public IP against the university's known IP range. A mismatch is flagged as a warning but does not alone reject a check-in; it is used alongside other verification layers.
+6.  **Biometric Verification (Face ID):** To prevent students from handing their registered phones to classmates to check in for them, the application requires local biometric verification (Face ID / Fingerprint) as the primary check. If local biometric is unavailable or fails, the app falls back to capturing a temporary face selfie, which is transmitted to the server as a temporary proof, validated, and deleted immediately after verification to preserve privacy.
 7.  **Real-time Monitoring:** As students scan and successfully check in, the lecturer's Web Portal interface dynamically highlights the student's name in green in real-time via WebSockets (SignalR), enabling immediate visual auditing.
 8.  **Doubtful/Manual Adjustments:** Lecturers can override attendance records manually on the web portal to mark a student present, late, or absent if they have a legitimate excuse or if there is a network outage.
 9.  **Reporting:** Lecturers can export the finalized attendance sheets to Excel formats at the end of a session.
-10. **System Configurations:** Administrators manage system catalogs (users, subjects, class sections) and configure the exact GPS coordinates and allowed allowed radius for each physical classroom on campus.
+10. **System Configurations:** Administrators manage system catalogs (users, subjects, class sections) and configure the exact GPS coordinates and allowed radius for each physical classroom on campus.
 11. **Internet Fallback:** In the case of an internet outage at the lecture hall, the lecturer can suspend the dynamic session and reopen a short check-in session at the end of the class, or manually check in students.
 
 ---
@@ -85,8 +85,8 @@ The system comprises three main portals: Student Mobile App, Lecturer Web Portal
 ### **Features for Students (Mobile & Web):**
 *   **F01: Personal Authentication:** Login using MSSV/Password or Google OAuth, manage profile.
 *   **F02: Device Binding:** Link device UUID upon first login, request self-service reset via email OTP.
-*   **F03: Scan QR Code:** Open camera, verify local Face ID, capture selfie, scan dynamic QR, collect GPS and Wi-Fi network gateway telemetry.
-*   **F04: PIN Fallback:** Enter the 6-digit PIN code displayed on the lecturer screen if the camera is broken.
+*   **F03: Scan QR Code:** Open camera, verify local Face ID (with selfie fallback if biometric unavailable), scan dynamic QR, collect GPS and Wi-Fi network gateway telemetry.
+*   **F04: PIN Fallback:** Enter the 6-digit PIN code displayed on the lecturer screen if the camera is broken. GPS geofencing and device UUID checks still apply.
 *   **F05: View Attendance History:** Track attended, late, and absent sessions with visual statistics.
 
 ### **Features for Lecturers (Web Portal):**
@@ -280,15 +280,15 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **ID and Name:** | **UC03: Scan Dynamic QR Check-in** |
 | **Created By:** | SWD392 Team |
 | **Primary Actor:** | Student |
-| **Description:** | Student scans the active dynamic QR code on the projector screen, providing hardware GPS, Device UUID, Wi-Fi IP, and Face ID biometrics to log attendance. |
+| **Description:** | Student scans the active dynamic QR code on the projector screen, providing device GPS, Device UUID, Wi-Fi IP, and Face ID biometrics to log attendance. |
 | **Trigger:** | The student selects "Scan QR" from the dashboard. |
 | **Preconditions:** | - Student is logged in (UC01) and device is bound (UC02).<br>- Dynamic QR session is active (UC06). |
-| **Postconditions:** | **POST-1 Success:** An `AttendanceRecord` is created with status `Present` or `Late`, and the lecturer screen is updated in real-time.<br>**POST-2 Failure:** Check-in is rejected, flagged as `Fraud_Declined` or ignored, and a warning is displayed. |
-| **Normal Flow:** | 1. Student taps "Scan QR Check-in".<br>2. App prompts for local Face ID authentication.<br>3. Student successfully unlocks using Face ID (Local Biometric Reader).<br>4. App displays the camera view.<br>5. Student scans the active QR code on the screen, extracting the `DynamicToken`.<br>6. App silently collects GPS coordinates, Device UUID, Wi-Fi SSID, and Public IP Gateway.<br>7. App packages the payload and sends an HTTPS POST request to `/api/attendance/submit`.<br>8. Server verifies Lớp 1 (QR Token is active and under 15s old). (See E8.1)<br>9. Server verifies Lớp 2 (calculates Haversine distance < classroom allowed radius). (See E9.1)<br>10. Server verifies Lớp 3 (matches Device UUID). (See E10.1)<br>11. Server validates Wi-Fi Public IP Gateway matching. (See E11.1)<br>12. Server registers status `Present` or `Late` in `attendance_records` and deletes temporary selfie data.<br>13. Server pushes a real-time WebSocket update to the Lecturer portal. |
-| **Alternative Flows:** | **A3.1 Face ID fails/not supported:** If local Face ID fails or is not supported by the hardware, the student is prompted to capture a quick selfie image, which is processed locally using device biometrics or pin security. |
-| **Exceptions:** | **E8.1 Token Expired:** If QR token is older than 15s, server rejects check-in and returns "QR expired".<br>**E9.1 Out of Geofence:** If distance > AllowedRadius, server saves record as `Fraud_Declined` and alerts the user.<br>**E10.1 UUID Mismatch:** If DeviceUUID does not match registered UUID, server rejects check-in.<br>**E11.1 Non-campus Wi-Fi:** If Public IP does not match campus gateway, server flags a warning. |
+| **Postconditions:** | **POST-1 Success:** An `AttendanceRecord` is created with status `Present` or `Late`, and the lecturer screen is updated in real-time.<br>**POST-2 Failure:** Check-in is rejected. If geofence is violated, record is saved as `Fraud_Declined`. For other failures (expired token, UUID mismatch, GPS unavailable), the submission is rejected with no attendance record created. |
+| **Normal Flow:** | 1. Student taps "Scan QR Check-in".<br>2. App prompts for local Face ID authentication.<br>3. Student successfully unlocks using Face ID (Local Biometric Reader).<br>4. App displays the camera view.<br>5. Student scans the active QR code on the screen, extracting the `DynamicToken`.<br>6. App silently collects GPS coordinates, Device UUID, Wi-Fi SSID, and Public IP Gateway.<br>7. App packages the payload and sends an HTTPS POST request to `/api/attendance/submit`.<br>8. Server verifies Layer 1 (QR Token is active and under 15s old). (See E8.1)<br>9. Server verifies Layer 2 (calculates Haversine distance < classroom allowed radius). (See E9.1)<br>10. Server verifies Layer 3 (matches Device UUID). (See E10.1)<br>11. Server records Wi-Fi Public IP Gateway as a supporting signal. (See E11.1)<br>12. Server registers status `Present` or `Late` in `attendance_records` and deletes temporary selfie data if any.<br>13. Server pushes a real-time WebSocket update to the Lecturer portal. |
+| **Alternative Flows:** | **A3.1 Face ID fails/not supported:** If local Face ID fails or is not supported by the hardware, the student is prompted to capture a quick selfie image as a fallback proof. The selfie is transmitted to the server, validated, and deleted immediately after verification. |
+| **Exceptions:** | **E8.1 Token Expired:** If QR token is older than 15s, server rejects check-in and returns "QR expired". No attendance record is created.<br>**E9.1 Out of Geofence:** If distance > AllowedRadius, server saves record as `Fraud_Declined` and alerts the user.<br>**E10.1 UUID Mismatch:** If DeviceUUID does not match registered UUID, server rejects check-in and logs a warning to `SystemLogs`. No attendance record is created.<br>**E11.1 Non-campus Wi-Fi:** If Public IP does not match campus gateway, server flags a warning in the record but does not reject the check-in.<br>**E12.1 GPS Unavailable:** If the app cannot obtain GPS coordinates (permission denied or hardware unavailable), the submission is blocked and the student is prompted to enable location services.<br>**E13.1 Duplicate Check-in:** If an `AttendanceRecord` already exists for this student and session, the server returns the existing result without creating a duplicate record. |
 | **Priority:** | High |
-| **Business Rules:** | **BR-01:** Geofence formula must use the Haversine method on the server.<br>**BR-02:** Face selfies captured during check-in must be deleted immediately after verification. |
+| **Business Rules:** | **BR-01:** Geofence formula must use the Haversine method on the server.<br>**BR-02:** Face selfies captured during check-in must be deleted immediately after verification.<br>**BR-03:** A student is marked `Present` if check-in occurs within 15 minutes of the session start time; `Late` if after that threshold but before session end.<br>**BR-04:** Only one `AttendanceRecord` per student per session is allowed. Duplicate submissions return the existing result. |
 
 ---
 
@@ -322,7 +322,7 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Postconditions:** | Student is marked present, and a manual PIN log is recorded in DB. |
 | **Normal Flow:** | 1. Student selects "PIN Check-in" on the App.<br>2. App prompts for local Face ID authentication.<br>3. Student successfully unlocks via Face ID.<br>4. App displays an input screen with 6 digit slots.<br>5. Student types the active 6-digit PIN displayed on the corner of the projector screen.<br>6. App silently collects GPS, IP, and Device UUID.<br>7. Server verifies that the PIN code is active (refreshed every 30s) and runs GPS geofencing and UUID matching.<br>8. Server records attendance with status `Present` and verification mode `PIN`. |
 | **Alternative Flows:** | None. |
-| **Exceptions:** | **E7.1 PIN Expired:** If the student enters a PIN that was generated more than 30s ago, server rejects it.<br>**E7.2 GPS out of range:** Geofencing checks still apply; if student enters PIN from home, check-in is rejected as fraud. |
+| **Exceptions:** | **E7.1 PIN Expired:** If the student enters a PIN that was generated more than 30s ago, server rejects it. No attendance record is created.<br>**E7.2 GPS out of range:** Geofencing checks still apply; if student enters PIN from outside the classroom radius, check-in is saved as `Fraud_Declined`.<br>**E7.3 GPS Unavailable:** If the app cannot obtain GPS coordinates, the submission is blocked and the student is prompted to enable location services.<br>**E7.4 Duplicate Check-in:** If an `AttendanceRecord` already exists for this student and session, the server returns the existing result without creating a duplicate. |
 | **Priority:** | High |
 | **Business Rules:** | **BR-01:** The PIN code must automatically expire and refresh every 30 seconds. |
 
@@ -342,7 +342,7 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Alternative Flows:** | **A8.1 Lecturer stops session early:** Lecturer clicks "Stop Attendance" before class ends. Server sets `is_active = False` and closes connection. |
 | **Exceptions:** | **E4.1 Outside scheduled hours:** If lecturer tries to start session outside the class time slot, system denies activation. |
 | **Priority:** | High |
-| **Business Rules:** | **BR-01:** Only one session per lecturer can be active at any given moment. |
+| **Business Rules:** | **BR-01:** Only one `AttendanceVersion` per class session (`SessionId`) can be active (`IsActive = True`) at any given moment. |
 
 ---
 
@@ -356,7 +356,7 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Trigger:** | The lecturer initiates a dynamic QR session (UC06). |
 | **Preconditions:** | Session must be active (`is_active = True`). |
 | **Postconditions:** | Lecturer has real-time visualization of class attendance. |
-| **Normal Flow:** | 1. Lecturer opens the dynamic presentation view on the projector screen.<br>2. System displays a grid representing all students enrolled in the class section.<br>3. As a student successfully submits their check-in (UC03), Server processes and validates it.<br>4. Server broadcasts a WebSocket event containing the student's ID and status.<br>5. The lecturer's web interface receives the event and instantly changes the student's tile to green (Present) or orange (Late) with a chime sound.<br>6. Sĩ số (Attendance count) updates dynamically. |
+| **Normal Flow:** | 1. Lecturer opens the dynamic presentation view on the projector screen.<br>2. System displays a grid representing all students enrolled in the class section.<br>3. As a student successfully submits their check-in (UC03), Server processes and validates it.<br>4. Server broadcasts a WebSocket event containing the student's ID and status.<br>5. The lecturer's web interface receives the event and instantly changes the student's tile to green (Present) or orange (Late) with a chime sound.<br>6. Attendance count updates dynamically. |
 | **Alternative Flows:** | None. |
 | **Exceptions:** | **E5.1 WebSocket Disconnect:** If connection drops, Web Portal displays a red warning icon and attempts to reconnect. |
 | **Priority:** | High |
@@ -372,7 +372,7 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Primary Actor:** | Lecturer |
 | **Description:** | Allows the lecturer to manually change a student's check-in status (e.g., overriding a fake GPS fraud flag if there is a hardware error, or marking an absent student manually). |
 | **Trigger:** | Lecturer selects a student name from the list and clicks "Adjust Status". |
-| **Preconditions:** | Lecturer is authenticated (UC01). |
+| **Preconditions:** | Lecturer is authenticated (UC01) and an `AttendanceRecord` or session roster exists for the target student and session. |
 | **Postconditions:** | Student status is updated in the database and audit logged. |
 | **Normal Flow:** | 1. Lecturer views the student roster for the active/past session.<br>2. Lecturer clicks on a specific student tile and selects "Adjust Status".<br>3. System displays a modal with status options: `Present`, `Late`, `Absent`, `Fraud_Declined`.<br>4. Lecturer selects the new status and enters a reason (e.g., "GPS device hardware error").<br>5. Lecturer clicks "Save".<br>6. Server updates `AttendanceRecord.status` and `verification_mode = 'Manual'`.<br>7. Server logs the lecturer's action in `SystemLogs`. |
 | **Alternative Flows:** | None. |
@@ -394,7 +394,7 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Postconditions:** | Excel file is downloaded to the lecturer's local computer. |
 | **Normal Flow:** | 1. Lecturer navigates to class detail view.<br>2. Lecturer clicks "Export Excel".<br>3. System compiles all session records of that class from `attendance_records` and `class_section_students`.<br>4. System formats the data into a grid containing student info, date of sessions, check-in mode, and aggregate attendance percentage.<br>5. System generates a `.xlsx` spreadsheet download stream.<br>6. Lecturer saves the spreadsheet locally. |
 | **Alternative Flows:** | None. |
-| **Exceptions:** | None. |
+| **Exceptions:** | **E3.1 No records exist:** If no attendance sessions have been run for the class, system displays an empty-state message and disables the export button. |
 | **Priority:** | Medium |
 | **Business Rules:** | None. |
 
@@ -452,17 +452,17 @@ flowchart TD
     GetTelemetry --> Submit[6. Send HTTPS POST to Server]
     
     %% Server verification steps
-    Submit --> CheckToken{7. Lớp 1: QR Token\nValid and < 15s old?}
+    Submit --> CheckToken{7. Layer 1: QR Token\nValid and < 15s old?}
     CheckToken -- Expired --> ErrToken[8. Return QR Expired Error]
     ErrToken --> AlertStudent[9. Display Error Alert on App]
     AlertStudent --> End
     
-    CheckToken -- Valid --> CheckGPS{10. Lớp 2: Geofence\nDistance < AllowedRadius?}
+    CheckToken -- Valid --> CheckGPS{10. Layer 2: Geofence\nDistance < AllowedRadius?}
     CheckGPS -- Out of Range --> SetFraud[11. Save record as Fraud_Declined]
     SetFraud --> AlertGPS[12. Display Geo-error Alert]
     AlertGPS --> End
     
-    CheckGPS -- Within Range --> CheckUUID{13. Lớp 3: UUID\nMatches Bound Device?}
+    CheckGPS -- Within Range --> CheckUUID{13. Layer 3: UUID\nMatches Bound Device?}
     CheckUUID -- Mismatch --> ErrUUID[14. Return UUID Mismatch Error]
     ErrUUID --> AlertUUID[15. Display Device Alert]
     AlertUUID --> End
@@ -572,6 +572,7 @@ classDiagram
         +string DynamicToken
         +DateTime QRRefreshedAt
         +string PINCode
+        +DateTime PINRefreshedAt
         +bool IsActive
     }
 
@@ -633,7 +634,7 @@ classDiagram
 | **Student** | | | **Student profile mapping** |
 | StudentId | String | 20, PK | Unique student roll number (e.g. `SE170123`). |
 | AccountId | String | 36, FK (Account.Id), Unique | Linking 1-1 to credential account. |
-| DeviceUUID | String | 100, Nullable | Tied hardware unique phone identifier. |
+| DeviceUUID | String | 100, Nullable | Device identifier (UUID collected by mobile app) linked to this student account. |
 | RegisteredFaceTemplate | Text | Nullable | Encoded 128-dimensional biometric face vector. |
 | **Lecturer** | | | **Lecturer profile mapping** |
 | LecturerId | String | 20, PK | Assigned school lecturer ID (e.g. `HueCTM`). |
@@ -670,6 +671,7 @@ classDiagram
 | DynamicToken | String | 255, Nullable | Dynamic active token encrypted inside QR. |
 | QRRefreshedAt | DateTime | Nullable | Exact timestamp the token was refreshed on server. |
 | PINCode | String | 6, Nullable | 6-digit backup fallback validation PIN. |
+| PINRefreshedAt | DateTime | Nullable | Exact timestamp the PIN was last refreshed on server. Used to validate 30s expiry window. |
 | IsActive | Boolean | Not Null, Default False | Active attendance check status flag. |
 | **AttendanceRecord** | | | **Check-in telemetry audit result** |
 | RecordId | String | 36, PK | Unique record ID (UUID v4). |
@@ -681,8 +683,8 @@ classDiagram
 | Distance | Double | Not Null | Haversine calculated distance from classroom center. |
 | WifiSSID | String | 100, Nullable | SSID of Wi-Fi router device was connected to. |
 | PublicIP | String | 45, Nullable | Public IP gateway address during check-in. |
-| DeviceUUID | String | 100, Not Null | Hardware phone unique ID during check-in. |
-| SelfiePath | String | 255, Nullable | Path to the temporary face audit image. |
+| DeviceUUID | String | 100, Not Null | Device identifier (UUID collected by mobile app) submitted during check-in. |
+| SelfiePath | String | 255, Nullable | Temporary path to face audit image used as fallback proof. Deleted immediately after server verification; null in normal Face ID flow. |
 | Status | String | 20, Not Null | Final checked status: `Present`, `Late`, `Absent`, `Fraud_Declined`. |
 | VerificationMode | String | 20, Not Null | Selected check-in method: `QR`, `PIN`, `Offline_Cached`, `Manual`. |
 | **SystemLog** | | | **Administrative audit history log** |
