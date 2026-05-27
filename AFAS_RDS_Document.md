@@ -15,6 +15,8 @@
 | **Version** | **Date** | **A/M/D*** | **In charge** | **Change Description** |
 | :--- | :--- | :--- | :--- | :--- |
 | V1.0 | 26/05/2026 | A | SWD392 Team | Initial release of Requirement Specification (Section I) for AFAS including Problem Description, Features, Context, NFRs, Use Cases, Activity Diagrams, and Data Dictionary. |
+| V1.1 | 27/05/2026 | A | SWD392 Team | Added Analysis Models (Section II): Interaction Diagrams (Sequence & Communication) for UC01, UC03, UC05, UC06, UC07, UC08, UC11; State Diagrams for AttendanceVersion, AttendanceRecord, DeviceBinding; Static Analysis (Contextual Boundary Class Diagram, Object Structuring Criteria, UI Wireframes). |
+| V1.2 | 27/05/2026 | A | SWD392 Team | Added Design Specification (Section III): Integrated Communication Diagram, 3-View Architecture, Component/Package Diagrams, Detailed Class Design, Database Schema. Added Implementation Mapping (Section IV) and Verification/Testing (Section V). |
 
 *\*A - Added, M - Modified, D - Deleted*
 
@@ -32,6 +34,25 @@
         *   [I.5.2 Use case descriptions](#i52-use-case-descriptions)
         *   [I.5.3 Activity diagrams](#i53-activity-diagrams)
     *   [I.6 Data Requirements](#i6-data-requirements)
+*   [II. Analysis Models](#ii-analysis-models)
+    *   [II.0 Static Analysis](#ii0-static-analysis)
+        *   [II.0.1 Contextual Boundary Class Diagram](#ii01-contextual-boundary-class-diagram)
+        *   [II.0.2 Object Structuring Criteria](#ii02-object-structuring-criteria)
+        *   [II.0.3 UI Wireframes](#ii03-ui-wireframes)
+    *   [II.1 Interaction diagrams](#ii1-interaction-diagrams)
+    *   [II.2 State diagrams](#ii2-state-diagram)
+*   [III. Design Specification](#iii-design-specification)
+    *   [III.1 Integrated Communication Diagrams](#iii1-integrated-communication-diagrams)
+    *   [III.2 System High-Level Design](#iii2-system-high-level-design)
+    *   [III.3 Component and Package Diagram](#iii3-component-and-package-diagram)
+    *   [III.4 Detail Design](#iii4-detail-design)
+    *   [III.5 Database Design](#iii5-database-design)
+*   [IV. Implementation](#iv-implementation)
+    *   [IV.1 Map architecture to the structure of the project](#iv1-map-architecture-to-the-structure-of-the-project)
+    *   [IV.2 Map Class Diagram and Interaction Diagram to Code](#iv2-map-class-diagram-and-interaction-diagram-to-code)
+*   [V. Verification and Testing](#v-verification-and-testing)
+    *   [V.1 Integration Testing & Test Specs](#v1-integration-testing--test-specs)
+    *   [V.2 Unit Test Specifications](#v2-unit-test-specifications)
 
 ---
 
@@ -96,7 +117,7 @@ classDiagram
     }
 
     class Student {
-        <<External Actor>>
+        <<external user>>
         +Login()
         +ScanDynamicQR()
         +SubmitBiometrics()
@@ -104,7 +125,7 @@ classDiagram
     }
 
     class Lecturer {
-        <<External Actor>>
+        <<external user>>
         +ManageClassSections()
         +GenerateDynamicQR()
         +ViewRealtimeAttendance()
@@ -113,25 +134,25 @@ classDiagram
     }
 
     class Admin {
-        <<External Actor>>
+        <<external user>>
         +ManageUsers()
         +ConfigureRoomCoordinates()
     }
 
     class MobileDeviceHardware {
-        <<External Hardware>>
+        <<external I/O device>>
         +GetGPSCoordinates()
         +GetDeviceUUID()
         +TriggerNativeFaceID()
     }
 
     class Google_OAuth_Service {
-        <<External System>>
+        <<external system>>
         +AuthenticateFPTUser()
     }
 
     class School_Network_Gateway {
-        <<External System>>
+        <<external system>>
         +VerifyPublicIP()
     }
 
@@ -207,6 +228,7 @@ flowchart LR
     Admin --> UC11
 
     UC03 -.-> |include| UC02
+    UC05 -.-> |extend| UC03
     UC07 -.-> |include| UC06
 ```
 
@@ -674,6 +696,396 @@ classDiagram
 
 ## **II. Analysis models**
 
+## **II.0 Static Analysis**
+
+### **II.0.1 Contextual Boundary Class Diagram**
+
+The Contextual Boundary Class Diagram identifies the direct connections between external Actors and the `«boundary»` interface classes they interact with to send/receive data from the system. This diagram follows the COMET BCE (Boundary-Control-Entity) classification model.
+
+#### **Figure II-0A: Contextual Boundary Class Diagram**
+```mermaid
+classDiagram
+    %% External Actors (Human Users)
+    class Student {
+        <<external user>>
+    }
+    class Lecturer {
+        <<external user>>
+    }
+    class Admin {
+        <<external user>>
+    }
+
+    %% User Interaction Boundary Classes
+    class StudentAppForm {
+        <<user interaction>>
+        +DisplayDashboard()
+        +OpenQRScanner()
+        +DisplayAttendanceResult()
+        +ViewHistory()
+        +DisplayPINInput()
+    }
+
+    class LecturerWebPortal {
+        <<user interaction>>
+        +DisplayClassList()
+        +DisplayAttendanceQR()
+        +ShowRealtimeDashboard()
+        +ModifyRecordStatus()
+        +ExportExcelReport()
+    }
+
+    class AdminWebPortal {
+        <<user interaction>>
+        +DisplayAdminDashboard()
+        +ShowRoomConfigForm()
+        +DisplayUserManagementTable()
+    }
+
+    %% External System Proxy Boundary Classes
+    class GoogleAuthGateway {
+        <<proxy>>
+        +RedirectToGoogle()
+        +ReceiveOAuthToken()
+    }
+
+    class SchoolWifiGateway {
+        <<proxy>>
+        +GetPublicIP()
+        +CheckBSSID()
+    }
+
+    %% External Device I/O Boundary Classes
+    class MobileDeviceHardware {
+        <<device I/O>>
+        +GetGPSCoordinates()
+        +GetDeviceUUID()
+        +TriggerNativeFaceID()
+        +ActivateCamera()
+    }
+
+    %% Actor-to-Boundary Associations
+    Student --> StudentAppForm : Interact via mobile app
+    Lecturer --> LecturerWebPortal : Interact via web portal
+    Admin --> AdminWebPortal : Interact via admin panel
+
+    StudentAppForm ..> GoogleAuthGateway : OAuth authentication API
+    LecturerWebPortal ..> GoogleAuthGateway : OAuth authentication API
+    AdminWebPortal ..> GoogleAuthGateway : OAuth authentication API
+
+    StudentAppForm ..> MobileDeviceHardware : GPS, Camera, Face ID sensors
+    StudentAppForm ..> SchoolWifiGateway : Extract campus IP gateway
+```
+
+**Boundary Communication Description:**
+1.  **StudentAppForm (`«user interaction»`):** Provides a minimal mobile interface optimized for NFR **NF-03 (Usability)**. Directly invokes hardware sensors on the mobile device (`MobileDeviceHardware`) via React Native Bridge to collect GPS coordinates, trigger Face ID verification, and activate the QR camera scanner.
+2.  **LecturerWebPortal (`«user interaction»`):** Web portal featuring a large-screen projector QR display with integrated WebSocket channel. The screen automatically updates the student attendance list in real-time without manual page refresh.
+3.  **GoogleAuthGateway (`«proxy»`):** Proxy boundary connecting to Google's OAuth 2.0 service for authenticating `@fpt.edu.vn` email accounts. All three user-facing boundaries delegate authentication through this shared proxy.
+4.  **SchoolWifiGateway (`«proxy»`):** Network proxy boundary that sends a hidden request to the campus network infrastructure to retrieve the Public IP address and verify whether the student is physically connected to the university's internal Wi-Fi.
+5.  **MobileDeviceHardware (`«device I/O»`):** Hardware abstraction boundary wrapping the phone's physical sensors: high-precision GPS chip, native biometric reader (Face ID / TouchID), camera module, and device UUID extraction.
+
+---
+
+### **II.0.2 Object Structuring Criteria**
+
+The Object Structuring Criteria classify all system objects into hierarchical groups based on their processing roles, following the COMET BCE (Boundary-Control-Entity) stereotyping method. This tree structure guides the transition from analysis to design.
+
+#### **Figure II-0B: Object Structuring Criteria Tree**
+```mermaid
+graph TD
+    Root[AFAS System Objects] --> Boundary["1. Boundary Objects<br>«boundary»"]
+    Root --> Control["2. Control Objects<br>«control»"]
+    Root --> Entity["3. Entity Objects<br>«entity»"]
+
+    %% Boundary hierarchy
+    Boundary --> UI["1.1 User Interface<br>«user interaction»"]
+    Boundary --> Device["1.2 Device Interface<br>«device I/O»"]
+    Boundary --> Sys["1.3 System Interface<br>«proxy»"]
+    
+    UI --> StudentAppForm["StudentAppForm"]
+    UI --> LecturerWebPortal["LecturerWebPortal"]
+    UI --> AdminWebPortal["AdminWebPortal"]
+    
+    Device --> GPSReceiver["GPSReceiver"]
+    Device --> CameraScanner["CameraScanner"]
+    Device --> NativeBiometricReader["NativeBiometricReader"]
+    
+    Sys --> GoogleOAuthGateway["GoogleOAuthGateway"]
+    Sys --> SchoolWifiGateway["SchoolWifiGateway"]
+
+    %% Control hierarchy
+    Control --> Coord["2.1 Coordinator<br>«coordinator»"]
+    Control --> StateDep["2.2 State-Dependent<br>«state dependent control»"]
+    Control --> Timers["2.3 Timer<br>«timer»"]
+    
+    Coord --> AttendanceController["AttendanceController"]
+    Coord --> DeviceBindingController["DeviceBindingController"]
+    Coord --> AuthenticationController["AuthenticationController"]
+    
+    StateDep --> SessionController["SessionController"]
+    StateDep --> RoomConfigurationController["RoomConfigController"]
+    
+    Timers --> QRRefreshTimer["QRRefreshTimer"]
+    Timers --> PINRefreshTimer["PINRefreshTimer"]
+
+    %% Entity hierarchy
+    Entity --> Data["3.1 Data Abstraction<br>«data abstraction»"]
+    Entity --> DBWrap["3.2 Database Wrapper<br>«database wrapper»"]
+    
+    Data --> StudentEntity["Student"]
+    Data --> LecturerEntity["Lecturer"]
+    Data --> RoomEntity["Room"]
+    Data --> SessionEntity["Session"]
+    Data --> AttendanceRecordEntity["AttendanceRecord"]
+    
+    DBWrap --> StudentRepository["StudentRepository"]
+    DBWrap --> AttendanceRepository["AttendanceRepository"]
+    DBWrap --> RedisCacheManager["RedisCacheManager"]
+```
+
+**Structuring Criteria Description:**
+
+1.  **Boundary Objects — Structuring by Interface Type:**
+    *   **User Interface Objects (`«user interaction»`):** Objects responsible for rendering graphical screens directly to end users (StudentAppForm, LecturerWebPortal, AdminWebPortal).
+    *   **Device Interface Objects (`«device I/O»`):** Objects connecting directly to physical hardware sensors on the mobile phone. These form the evidence-collection layer for GPS, Camera, and Face ID verification.
+    *   **System Interface Objects (`«proxy»`):** Integration gateways connecting to external authentication and network verification services (Google OAuth, campus Wi-Fi gateway).
+
+2.  **Control Objects — Structuring by Coordination Complexity:**
+    *   **Coordinator Objects (`«coordinator»`):** Orchestrate the complete event flow of primary use cases. Example: `AttendanceController` coordinates GPS verification, IP matching, and Face ID validation before recording attendance status.
+    *   **State-Dependent Objects (`«state dependent control»`):** Objects whose behavior changes based on the current state of an associated entity. Example: `SessionController` manages session lifecycle (`Active`, `Paused`, `Completed`).
+    *   **Timer Control Objects (`«timer»`):** Background-running synchronization objects responsible for triggering periodic events. These form the backbone of Anti-Fraud Layer 1. Example: `QRRefreshTimer` triggers a new dynamic QR token every 10 seconds; `PINRefreshTimer` refreshes the PIN every 30 seconds.
+
+3.  **Entity Objects — Structuring by Persistence Responsibility (COMET Split Entity Rule):**
+    *   **Data Abstraction Objects (`«data abstraction»`):** Pure in-memory business model objects encapsulating attributes and domain logic. Located in the Domain layer.
+    *   **Database Wrapper Objects (`«database wrapper»`):** Objects encapsulating physical database access logic (PostgreSQL via EF Core) and high-speed cache management (Redis) to support NFR **NF-01 (Concurrency)** peak-hour load handling. Located in the Infrastructure layer.
+
+---
+
+### **II.0.3 UI Wireframes**
+
+The following wireframes describe the key user interface screens for the three system portals: Student Mobile App, Lecturer Web Portal, and Admin Web Portal.
+
+#### **Wireframe WF-01: Student Mobile App — Login Screen**
+```
+┌─────────────────────────────┐
+│         AFAS Login          │
+│                             │
+│  ┌───────────────────────┐  │
+│  │ MSSV / Username       │  │
+│  └───────────────────────┘  │
+│  ┌───────────────────────┐  │
+│  │ Password              │  │
+│  └───────────────────────┘  │
+│                             │
+│  ┌───────────────────────┐  │
+│  │    🔑 LOGIN           │  │
+│  └───────────────────────┘  │
+│                             │
+│  ──── OR ────               │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  G  Login with Google │  │
+│  │     (@fpt.edu.vn)     │  │
+│  └───────────────────────┘  │
+│                             │
+│  Forgot Password?           │
+└─────────────────────────────┘
+```
+
+#### **Wireframe WF-02: Student Mobile App — Dashboard & QR Scanner**
+```
+┌─────────────────────────────┐
+│ ☰  AFAS Dashboard     👤   │
+├─────────────────────────────┤
+│                             │
+│  Welcome, Nguyen Van A      │
+│  MSSV: SE170123             │
+│  Device: ✅ Bound           │
+│                             │
+│  ┌───────────────────────┐  │
+│  │                       │  │
+│  │   📷 SCAN QR CODE     │  │
+│  │   (Tap to check-in)   │  │
+│  │                       │  │
+│  └───────────────────────┘  │
+│                             │
+│  ┌───────────────────────┐  │
+│  │   🔢 PIN CHECK-IN     │  │
+│  └───────────────────────┘  │
+│                             │
+├──────┬──────┬──────┬────────┤
+│ 🏠   │ 📷  │ 📋  │  👤    │
+│ Home │ Scan │ Hist │ Profile│
+└──────┴──────┴──────┴────────┘
+```
+
+#### **Wireframe WF-03: Student Mobile App — QR Camera View**
+```
+┌─────────────────────────────┐
+│  ← Back        QR Scanner   │
+├─────────────────────────────┤
+│                             │
+│  Face ID: ✅ Verified       │
+│                             │
+│  ┌───────────────────────┐  │
+│  │                       │  │
+│  │    ┌─────────────┐    │  │
+│  │    │             │    │  │
+│  │    │  [QR CODE]  │    │  │
+│  │    │   TARGET    │    │  │
+│  │    │             │    │  │
+│  │    └─────────────┘    │  │
+│  │                       │  │
+│  │   📍 Camera Viewfinder│  │
+│  └───────────────────────┘  │
+│                             │
+│  GPS: 21.0128, 105.5246     │
+│  Wi-Fi: FPT_University_5G  │
+│  UUID: A1B2C3...            │
+└─────────────────────────────┘
+```
+
+#### **Wireframe WF-04: Student Mobile App — Attendance History**
+```
+┌─────────────────────────────┐
+│  ← Back    Attendance History│
+├─────────────────────────────┤
+│                             │
+│  SWD392 - Software Design   │
+│  Semester: Summer 2026      │
+│                             │
+│  ┌──────────────────────┐   │
+│  │ Present: 12 │ 🟢 80% │   │
+│  │ Late:     2 │ 🟡 13% │   │
+│  │ Absent:   1 │ 🔴  7% │   │
+│  └──────────────────────┘   │
+│                             │
+│  ┌─ May 2026 Calendar ───┐  │
+│  │ Mo Tu We Th Fr Sa Su  │  │
+│  │        1🟢 2   3  4   │  │
+│  │  5  6  7  8🟢 9 10 11 │  │
+│  │ 12 13 14 15🟡16 17 18 │  │
+│  │ 19 20 21 22🔴23 24 25 │  │
+│  │ 26 27                 │  │
+│  └───────────────────────┘  │
+└─────────────────────────────┘
+```
+
+#### **Wireframe WF-05: Lecturer Web Portal — Dynamic QR Projector View**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  AFAS Lecturer Portal  │ SWD392 - SE1701 │ Session: 27/05/2026 │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│    ┌──────────────────┐        ┌───────────────────────────┐    │
+│    │                  │        │  Real-time Attendance Grid │    │
+│    │                  │        ├───────────────────────────┤    │
+│    │   ███████████    │        │ 🟢 SE170123 Nguyen Van A  │    │
+│    │   █ QR CODE █    │        │ 🟢 SE170456 Tran Thi B    │    │
+│    │   █ DYNAMIC █    │        │ ⬜ SE170789 Le Van C       │    │
+│    │   ███████████    │        │ ⬜ SE170012 Pham Thi D     │    │
+│    │                  │        │ 🟡 SE170345 Hoang Van E   │    │
+│    │  Refreshes: 10s  │        │ ⬜ SE170678 Vo Thi F       │    │
+│    └──────────────────┘        │ ...                        │    │
+│                                └───────────────────────────┘    │
+│    PIN: 847291                  Checked-in: 12 / 35 (34%)       │
+│    PIN Refreshes: 30s           ⏱ Session active: 04:32         │
+│                                                                 │
+│    [ 🛑 Stop Attendance ]     [ 📊 Export Excel ]               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### **Wireframe WF-06: Lecturer Web Portal — Manual Adjustment Modal**
+```
+┌───────────────────────────────────────────┐
+│  Adjust Attendance Status                 │
+├───────────────────────────────────────────┤
+│                                           │
+│  Student: SE170789 - Le Van C             │
+│  Session: SWD392 - 27/05/2026             │
+│  Current Status: ⬜ Absent                │
+│                                           │
+│  New Status:                              │
+│  ┌─────────────────────────────────────┐  │
+│  │ ○ Present  ○ Late  ● Absent        │  │
+│  │ ○ Fraud_Declined                   │  │
+│  └─────────────────────────────────────┘  │
+│                                           │
+│  Reason (required):                       │
+│  ┌─────────────────────────────────────┐  │
+│  │ Student showed medical certificate  │  │
+│  │ for being late. Verified by lectu.. │  │
+│  └─────────────────────────────────────┘  │
+│                                           │
+│  [ Cancel ]              [ 💾 Save ]      │
+└───────────────────────────────────────────┘
+```
+
+#### **Wireframe WF-07: Admin Web Portal — Room GPS Configuration**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  AFAS Admin Portal  │  Room Management                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │ Room ID │ Room Name    │ Latitude   │ Longitude  │ Radius │  │
+│  ├─────────┼──────────────┼────────────┼────────────┼────────┤  │
+│  │ AL-L301 │ Alpha 301    │ 21.01282   │ 105.52461  │ 20m    │  │
+│  │ AL-L402 │ Alpha 402    │ 21.01305   │ 105.52489  │ 20m    │  │
+│  │ BE-202  │ Beta 202     │ 21.01198   │ 105.52378  │ 25m    │  │
+│  │ [+ Add New Room]                                          │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  ┌─ Configure Room: AL-L402 ─────────────────────────────────┐  │
+│  │                                                           │  │
+│  │  ┌──────────────────────────────┐  Latitude:              │  │
+│  │  │                              │  ┌──────────────────┐   │  │
+│  │  │     🗺️ SATELLITE MAP        │  │ 21.01305         │   │  │
+│  │  │                              │  └──────────────────┘   │  │
+│  │  │        📍 (click to set)     │  Longitude:             │  │
+│  │  │                              │  ┌──────────────────┐   │  │
+│  │  │                              │  │ 105.52489        │   │  │
+│  │  └──────────────────────────────┘  └──────────────────┘   │  │
+│  │                                    Allowed Radius (m):     │  │
+│  │  [ 📡 Capture Current GPS ]       ┌──────────────────┐   │  │
+│  │                                    │ 20               │   │  │
+│  │                                    └──────────────────┘   │  │
+│  │                                                           │  │
+│  │              [ Cancel ]      [ 💾 Save Configuration ]    │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### **Wireframe WF-08: Student Mobile App — PIN Fallback Input**
+```
+┌─────────────────────────────┐
+│  ← Back      PIN Check-in   │
+├─────────────────────────────┤
+│                             │
+│  Face ID: ✅ Verified       │
+│                             │
+│  Enter the 6-digit PIN      │
+│  displayed on the projector │
+│                             │
+│  ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐│
+│  │8 │ │4 │ │7 │ │2 │ │9 │ │1 ││
+│  └──┘ └──┘ └──┘ └──┘ └──┘ └──┘│
+│                             │
+│  GPS: 21.0128, 105.5246     │
+│  UUID: A1B2C3...            │
+│                             │
+│  ┌───────────────────────┐  │
+│  │    ✅ SUBMIT PIN       │  │
+│  └───────────────────────┘  │
+│                             │
+│  PIN refreshes every 30s.   │
+│  Make sure to enter the     │
+│  current PIN on screen.     │
+└─────────────────────────────┘
+```
+
+---
+
 ## **II.1 Interaction diagrams**
 
 In this section, we analyze the objects and their interactions to realize the core use cases of the AFAS system based on Gomaa's MVC analysis pattern. For each key use case, we construct both a **Sequence Diagram** (representing time-sequence interactions) and a **Communication Diagram** (representing structural links and message sequence numbers).
@@ -733,15 +1145,15 @@ graph TD
     ACC[(«entity»<br>Account)]
 
     %% Connections and Messages
-    User -->|1a: Login via Google / 1a.1: Authenticate| LGG
-    User -->|1b: Enter Credentials| LAF
+    User -->|"1a: Login via Google"| LGG
+    User -->|"1b: Enter Credentials"| LAF
     
-    LGG -->|2a: AuthenticateFPTUser| AC
-    LAF -->|2b: AuthenticateCredentials| AC
+    LGG -->|"1a.1: AuthenticateFPTUser()"| AC
+    LAF -->|"1b.1: AuthenticateCredentials()"| AC
     
-    AC -->|3: VerifyAccount| ACC
-    ACC -->|4: AccountExists| AC
-    AC -->|5: Return JWT / Redirect| User
+    AC -->|"2: VerifyAccount()"| ACC
+    ACC -->|"2.1: AccountExists()"| AC
+    AC -->|"3: Return JWT / Redirect"| User
 ```
 
 ---
@@ -846,15 +1258,16 @@ graph TD
     V[(«entity»<br>AttendanceVersion)]
     AR[(«entity»<br>AttendanceRecord)]
 
-    SV -->|1: Scan QR Check-in| SAF
-    SAF -->|2: Verify Face ID / 3: GPS & UUID Telemetry| MD
-    SAF -->|4: Get network gateway IP| WG
+    SV -->|"1: Scan QR Check-in"| SAF
+    SAF -->|"1.1: Verify Face ID"| MD
+    SAF -->|"1.2: GPS & UUID Telemetry"| MD
+    SAF -->|"1.3: Get network gateway IP"| WG
     
-    SAF -->|5: SubmitAttendance| AC
-    AC -->|6: GetActiveTokenForSession| V
-    AC -->|7: GetRoomGeoConfig| R
-    AC -->|8: CreateRecord| AR
-    AC -->|9: Return Success / Display| SAF
+    SAF -->|"2: SubmitAttendance()"| AC
+    AC -->|"2.1: GetActiveTokenForSession()"| V
+    AC -->|"2.2: GetRoomGeoConfig()"| R
+    AC -->|"2.3: CreateRecord()"| AR
+    AC -->|"3: Return Success / Display"| SAF
 ```
 
 ---
@@ -945,16 +1358,17 @@ graph TD
     QT[«control»<br>QRRefreshTimer]
     PT[«control»<br>PINRefreshTimer]
 
-    GV -->|1: Click Start Attendance| LWP
-    LWP -->|2: GetSessionDetails / 3: ActivateAttendanceSession| SC
+    GV -->|"1: Click Start Attendance"| LWP
+    LWP -->|"1.1: GetSessionDetails()"| SC
+    LWP -->|"1.2: ActivateAttendanceSession()"| SC
     
-    SC -->|4: ReadSessionInfo| S
-    SC -->|5: InitializeVersion| V
-    SC -->|6: StartTimer 10s| QT
-    SC -->|7: StartTimer 30s| PT
+    SC -->|"1.1.1: ReadSessionInfo()"| S
+    SC -->|"1.2.1: InitializeVersion()"| V
+    SC -->|"1.2.2: StartTimer(10s)"| QT
+    SC -->|"1.2.3: StartTimer(30s)"| PT
     
-    QT -->|8: OnTimerTick / PushQR| LWP
-    PT -->|9: OnTimerTick / PushPIN| LWP
+    QT -->|"2: OnTimerTick() / PushQR()"| LWP
+    PT -->|"3: OnTimerTick() / PushPIN()"| LWP
 ```
 
 ---
@@ -1038,12 +1452,240 @@ graph TD
     R[(«entity»<br>Room)]
     SL[(«entity»<br>SystemLog)]
 
-    AD -->|1: Edit Coordinates / 3: Click Save Config| AWP
-    AWP -->|2: GetRoomsList / 4: SaveGeoConfiguration| RCC
+    AD -->|"1: Edit Coordinates"| AWP
+    AD -->|"2: Click Save Config"| AWP
+    AWP -->|"1.1: GetRoomsList()"| RCC
+    AWP -->|"2.1: SaveGeoConfiguration()"| RCC
     
-    RCC -->|5: UpdateGeoConfig| R
-    RCC -->|6: WriteLog| SL
-    RCC -->|7: Return Success popup| AWP
+    RCC -->|"2.1.1: UpdateGeoConfig()"| R
+    RCC -->|"2.1.2: WriteLog()"| SL
+    RCC -->|"3: Return Success popup"| AWP
+```
+
+---
+
+### **5. UC05: PIN Fallback Check-in**
+
+#### **Figure II-9: Sequence Diagram for UC05 - PIN Fallback Check-in**
+```mermaid
+sequenceDiagram
+    autonumber
+    actor SV as Student
+    participant SAF as «user interaction»<br>StudentAppForm
+    participant MD as «device I/O»<br>MobileDeviceHardware
+    participant AC as «coordinator»<br>AttendanceController
+    participant V as «entity»<br>AttendanceVersion
+    participant R as «entity»<br>Room
+    participant AR as «entity»<br>AttendanceRecord
+
+    SV->>SAF: Tap "PIN Check-in"
+    activate SAF
+    
+    SAF->>MD: RequestFaceIDVerification()
+    activate MD
+    MD-->>SAF: Face matched successfully
+    deactivate MD
+    
+    SAF-->>SV: Display 6-digit PIN input screen
+    SV->>SAF: Enter PIN code "847291"
+    
+    SAF->>MD: GetGPSCoordinates()
+    activate MD
+    MD-->>SAF: GPS: CheckedInLat, CheckedInLong
+    deactivate MD
+    
+    SAF->>MD: GetDeviceUUID()
+    activate MD
+    MD-->>SAF: DeviceUUID
+    deactivate MD
+    
+    SAF->>AC: SubmitPINAttendance(StudentId, PINCode, Lat, Long, UUID)
+    activate AC
+    
+    AC->>V: GetActivePINForSession()
+    activate V
+    V-->>AC: ActivePIN, PINRefreshedAt
+    deactivate V
+    AC->>AC: VerifyPINTimeWindow(PINCode, PINRefreshedAt)
+    
+    alt If PIN is Expired (> 30 seconds)
+        AC-->>SAF: Return Error: PIN Expired
+        SAF-->>SV: Show error "PIN has expired. Please enter the new PIN."
+    else If PIN is Valid
+        AC->>R: GetRoomGeoConfig()
+        activate R
+        R-->>AC: RoomLat, RoomLong, AllowedRadius
+        deactivate R
+        AC->>AC: CalculateHaversineDistance(Lat, Long, RoomLat, RoomLong)
+        
+        alt If Distance > AllowedRadius
+            AC->>AR: CreateRecord(StudentId, Status="Fraud_Declined", VerificationMode="PIN")
+            AC-->>SAF: Return Error: Out of Allowed Radius
+            SAF-->>SV: Show error "Location verification failed."
+        else If Distance <= AllowedRadius
+            AC->>AC: VerifyDeviceUUID(StudentId, UUID)
+            AC->>AR: CreateRecord(StudentId, Status="Present", VerificationMode="PIN")
+            activate AR
+            AR-->>AC: Success Record
+            deactivate AR
+            AC-->>SAF: Return Success: Checked In via PIN
+            SAF-->>SV: Display "Checked-in successfully via PIN at HH:mm"
+        end
+    end
+    deactivate AC
+    deactivate SAF
+```
+
+#### **Figure II-10: Communication Diagram for UC05 - PIN Fallback Check-in**
+```mermaid
+graph TD
+    SV((Student))
+    SAF["«user interaction»<br>StudentAppForm"]
+    MD["«device I/O»<br>MobileDeviceHardware"]
+    AC["«coordinator»<br>AttendanceController"]
+    V[("«entity»<br>AttendanceVersion")]
+    R[("«entity»<br>Room")]
+    AR[("«entity»<br>AttendanceRecord")]
+
+    SV -->|"1: Tap PIN Check-in"| SAF
+    SAF -->|"1.1: RequestFaceIDVerification()"| MD
+    SAF -->|"1.2: GetGPSCoordinates() / GetDeviceUUID()"| MD
+    
+    SAF -->|"2: SubmitPINAttendance()"| AC
+    AC -->|"2.1: GetActivePINForSession()"| V
+    AC -->|"2.2: GetRoomGeoConfig()"| R
+    AC -->|"2.3: CreateRecord()"| AR
+    AC -->|"3: Return Success / Error"| SAF
+```
+
+---
+
+### **6. UC07: Real-time Attendance Monitor**
+
+#### **Figure II-11: Sequence Diagram for UC07 - Real-time Attendance Monitor**
+```mermaid
+sequenceDiagram
+    autonumber
+    actor GV as Lecturer
+    participant LWP as «user interaction»<br>LecturerWebPortal
+    participant SC as «state dependent control»<br>SessionController
+    participant CS as «entity»<br>ClassSectionStudent
+    participant AR as «entity»<br>AttendanceRecord
+    participant WSH as «coordinator»<br>AttendanceHub (SignalR)
+
+    GV->>LWP: Open Dynamic Presentation View
+    activate LWP
+    LWP->>SC: GetStudentRosterForSession(SessionId)
+    activate SC
+    SC->>CS: ReadEnrolledStudents(ClassSectionId)
+    activate CS
+    CS-->>SC: List of Students (35 records)
+    deactivate CS
+    SC-->>LWP: Student Grid Data (Name, MSSV, Status=Pending)
+    deactivate SC
+    LWP-->>GV: Render student tiles grid (all gray/pending)
+    deactivate LWP
+
+    Note over GV, WSH: WebSocket channel is now open (from UC06)
+
+    loop For each student check-in event
+        WSH->>WSH: OnStudentCheckedIn(StudentId, Status)
+        activate WSH
+        WSH->>LWP: BroadcastAttendanceUpdate(StudentId, Status, CheckedInAt)
+        activate LWP
+        LWP->>LWP: UpdateStudentTile(StudentId, Color=Green/Orange)
+        LWP->>LWP: UpdateAttendanceCounter(++checkedIn)
+        LWP-->>GV: Student tile turns 🟢 Green (Present) or 🟡 Orange (Late) with chime
+        deactivate LWP
+        deactivate WSH
+    end
+
+    alt If WebSocket disconnects
+        LWP->>LWP: ShowReconnectWarning()
+        LWP-->>GV: Display 🔴 red warning icon
+        LWP->>WSH: AttemptReconnection()
+    end
+```
+
+#### **Figure II-12: Communication Diagram for UC07 - Real-time Attendance Monitor**
+```mermaid
+graph TD
+    GV((Lecturer))
+    LWP["«user interaction»<br>LecturerWebPortal"]
+    SC["«state dependent control»<br>SessionController"]
+    CS[("«entity»<br>ClassSectionStudent")]
+    AR[("«entity»<br>AttendanceRecord")]
+    WSH["«coordinator»<br>AttendanceHub"]
+
+    GV -->|"1: Open Presentation View"| LWP
+    LWP -->|"1.1: GetStudentRosterForSession()"| SC
+    SC -->|"1.1.1: ReadEnrolledStudents()"| CS
+    
+    WSH -->|"2: BroadcastAttendanceUpdate()"| LWP
+    LWP -->|"2.1: UpdateStudentTile() / UpdateCounter()"| LWP
+```
+
+---
+
+### **7. UC08: Manual Attendance Adjustment**
+
+#### **Figure II-13: Sequence Diagram for UC08 - Manual Attendance Adjustment**
+```mermaid
+sequenceDiagram
+    autonumber
+    actor GV as Lecturer
+    participant LWP as «user interaction»<br>LecturerWebPortal
+    participant AC as «coordinator»<br>AttendanceController
+    participant AR as «entity»<br>AttendanceRecord
+    participant SL as «entity»<br>SystemLog
+
+    GV->>LWP: Click on student tile "SE170789"
+    activate LWP
+    LWP-->>GV: Show Adjustment Modal (current status, options)
+    deactivate LWP
+
+    GV->>LWP: Select "Present", enter reason: "Medical certificate", click "Save"
+    activate LWP
+    LWP->>AC: AdjustAttendanceStatus(RecordId, NewStatus="Present", Reason, LecturerId)
+    activate AC
+    
+    AC->>AC: ValidateReasonNotEmpty(Reason)
+    
+    alt If Reason is empty
+        AC-->>LWP: Return Error: Reason is mandatory
+        LWP-->>GV: Highlight reason field with error
+    else If Reason is provided
+        AC->>AR: UpdateRecordStatus(RecordId, Status="Present", VerificationMode="Manual")
+        activate AR
+        AR-->>AC: Record Updated
+        deactivate AR
+        
+        AC->>SL: WriteAuditLog(LecturerId, Action="Manual_Adjustment", RecordId, Reason)
+        activate SL
+        SL-->>AC: Log Written
+        deactivate SL
+        
+        AC-->>LWP: Return Success: Status Updated
+        LWP-->>GV: Close modal, update student tile to 🟢 Green, show confirmation
+    end
+    deactivate AC
+    deactivate LWP
+```
+
+#### **Figure II-14: Communication Diagram for UC08 - Manual Attendance Adjustment**
+```mermaid
+graph TD
+    GV((Lecturer))
+    LWP["«user interaction»<br>LecturerWebPortal"]
+    AC["«coordinator»<br>AttendanceController"]
+    AR[("«entity»<br>AttendanceRecord")]
+    SL[("«entity»<br>SystemLog")]
+
+    GV -->|"1: Click student / Select status / Save"| LWP
+    LWP -->|"1.1: AdjustAttendanceStatus()"| AC
+    AC -->|"1.1.1: UpdateRecordStatus()"| AR
+    AC -->|"1.1.2: WriteAuditLog()"| SL
+    AC -->|"2: Return Success"| LWP
 ```
 
 ---
@@ -1155,40 +1797,40 @@ graph TD
     SV((Student))
 
     %% Boundary Classes (Web & Mobile Ports)
-    AWP[«boundary» AdminWebPortal]
-    LWP[«boundary» LecturerWebPortal]
-    SAF[«boundary» StudentAppForm]
+    AWP["«boundary»<br>AdminWebPortal"]
+    LWP["«boundary»<br>LecturerWebPortal"]
+    SAF["«boundary»<br>StudentAppForm"]
 
     %% Control Classes (Application Services)
-    RCC[«control» RoomConfigurationController]
-    SC[«control» SessionController]
-    AC[«control» AttendanceController]
+    RCC["«control»<br>RoomConfigurationController"]
+    SC["«control»<br>SessionController"]
+    AC["«control»<br>AttendanceController"]
 
     %% Entity Classes (Domain Core)
-    R[(«entity» Room)]
-    S[(«entity» Session)]
-    V[(«entity» AttendanceVersion)]
-    AR[(«entity» AttendanceRecord)]
+    R[("«entity»<br>Room")]
+    S[("«entity»<br>Session")]
+    V[("«entity»<br>AttendanceVersion")]
+    AR[("«entity»<br>AttendanceRecord")]
 
     %% Actor to Boundary Interactions
-    AD -->|1: Edit Room / 2: Save Geo Config| AWP
-    GV -->|1: Get Session Details / 2: Click Start Attendance| LWP
-    SV -->|1: Trigger Face ID / 2: Scan QR / 3: Check-in| SAF
+    AD -->|"1: Edit Room / 2: Save Geo Config"| AWP
+    GV -->|"1: Get Session Details / 2: Click Start Attendance"| LWP
+    SV -->|"1: Trigger Face ID / 2: Scan QR / 3: Check-in"| SAF
 
     %% Boundary to Control API Calls
-    AWP -->|1.1 GetRoomsList() / 2.1 SaveGeoConfiguration()| RCC
-    LWP -->|1.1 GetSessionDetails() / 2.1 ActivateAttendanceSession()| SC
-    SAF -->|3.1 SubmitAttendance()| AC
+    AWP -->|"1.1: GetRoomsList() / 2.1: SaveGeoConfiguration()"| RCC
+    LWP -->|"1.1: GetSessionDetails() / 2.1: ActivateAttendanceSession()"| SC
+    SAF -->|"3.1: SubmitAttendance()"| AC
 
     %% Control to Entity operations
-    RCC -->|2.2 UpdateGeoConfig()| R
+    RCC -->|"2.2: UpdateGeoConfig()"| R
     
-    SC -->|1.2 ReadSessionInfo()| S
-    SC -->|2.2 InitializeVersion() / 2.3 UpdateDynamicToken()| V
+    SC -->|"1.2: ReadSessionInfo()"| S
+    SC -->|"2.2: InitializeVersion() / 2.3: UpdateDynamicToken()"| V
     
-    AC -->|3.2 GetActiveTokenForSession()| V
-    AC -->|3.3 GetRoomGeoConfig()| R
-    AC -->|3.4 CreateRecord()| AR
+    AC -->|"3.2: GetActiveTokenForSession()"| V
+    AC -->|"3.3: GetRoomGeoConfig()"| R
+    AC -->|"3.4: CreateRecord()"| AR
 ```
 
 ### **Transition from Analysis-level to Design-level Specification**
@@ -1541,6 +2183,36 @@ classDiagram
         <<Interface / Domain>>
         +GetByIdAsync(string id) Task~AttendanceRecord~
         +AddAsync(AttendanceRecord entity) Task
+        +GetStudentProfileAsync(string studentId) Task~Student~
+        +GetBySessionIdAsync(string sessionId) Task~List~AttendanceRecord~~
+    }
+
+    class IRoomRepository {
+        <<Interface / Domain>>
+        +GetRoomGeoConfigAsync(string sessionId) Task~RoomGeoConfig~
+        +GetAllRoomsAsync() Task~List~Room~~
+        +UpdateGeoConfigAsync(Room room) Task
+    }
+
+    class ISessionRepository {
+        <<Interface / Domain>>
+        +GetSessionByIdAsync(string sessionId) Task~Session~
+        +GetActiveSessionForLecturerAsync(string lecturerId) Task~Session~
+        +UpdateSessionAsync(Session session) Task
+    }
+
+    class IAccountRepository {
+        <<Interface / Domain>>
+        +GetByEmailAsync(string email) Task~Account~
+        +GetByUsernameAsync(string username) Task~Account~
+        +CreateAccountAsync(Account account) Task
+    }
+
+    class IStudentRepository {
+        <<Interface / Domain>>
+        +GetByStudentIdAsync(string studentId) Task~Student~
+        +UpdateDeviceUUIDAsync(string studentId, string deviceUUID) Task
+        +ClearDeviceUUIDAsync(string studentId) Task
     }
 
     class ICacheManager {
@@ -1641,7 +2313,11 @@ classDiagram
 
 ### **5.2 SQL DDL Scripts and Indexes**
 ```sql
--- Create physical database schema
+-- ============================================================
+-- AFAS Physical Database Schema — PostgreSQL DDL (All 11 Tables)
+-- ============================================================
+
+-- 1. Core Credential Catalog
 CREATE TABLE accounts (
     id VARCHAR(36) PRIMARY KEY,
     email VARCHAR(100) UNIQUE NOT NULL,
@@ -1651,6 +2327,7 @@ CREATE TABLE accounts (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 2. Student Profile (1:1 Account)
 CREATE TABLE students (
     student_id VARCHAR(20) PRIMARY KEY,
     account_id VARCHAR(36) UNIQUE NOT NULL,
@@ -1659,6 +2336,22 @@ CREATE TABLE students (
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
+-- 3. Lecturer Profile (1:1 Account)
+CREATE TABLE lecturers (
+    lecturer_id VARCHAR(20) PRIMARY KEY,
+    account_id VARCHAR(36) UNIQUE NOT NULL,
+    department VARCHAR(100),
+    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+
+-- 4. Subject Catalog
+CREATE TABLE subjects (
+    subject_code VARCHAR(20) PRIMARY KEY,
+    subject_name VARCHAR(150) NOT NULL,
+    credits INT NOT NULL CHECK (credits > 0)
+);
+
+-- 5. Classroom Geofence Catalog
 CREATE TABLE rooms (
     room_id VARCHAR(20) PRIMARY KEY,
     room_name VARCHAR(50) NOT NULL,
@@ -1667,6 +2360,49 @@ CREATE TABLE rooms (
     allowed_radius DOUBLE PRECISION NOT NULL DEFAULT 20.0
 );
 
+-- 6. Class Section Assignments
+CREATE TABLE class_sections (
+    class_section_id VARCHAR(30) PRIMARY KEY,
+    class_section_name VARCHAR(100) NOT NULL,
+    subject_code VARCHAR(20) NOT NULL,
+    lecturer_id VARCHAR(20) NOT NULL,
+    semester VARCHAR(20) NOT NULL,
+    FOREIGN KEY (subject_code) REFERENCES subjects(subject_code) ON DELETE RESTRICT,
+    FOREIGN KEY (lecturer_id) REFERENCES lecturers(lecturer_id) ON DELETE RESTRICT
+);
+
+-- 7. Class Enrollment Roster (Many-to-Many)
+CREATE TABLE class_section_students (
+    class_section_id VARCHAR(30) NOT NULL,
+    student_id VARCHAR(20) NOT NULL,
+    PRIMARY KEY (class_section_id, student_id),
+    FOREIGN KEY (class_section_id) REFERENCES class_sections(class_section_id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE
+);
+
+-- 8. Scheduled Study Sessions
+CREATE TABLE sessions (
+    session_id VARCHAR(36) PRIMARY KEY,
+    class_section_id VARCHAR(30) NOT NULL,
+    room_id VARCHAR(20) NOT NULL,
+    session_date DATE NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    FOREIGN KEY (class_section_id) REFERENCES class_sections(class_section_id) ON DELETE CASCADE,
+    FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE RESTRICT
+);
+
+-- 9. Dynamic QR/PIN Session Version (1:1 Session)
+CREATE TABLE attendance_versions (
+    session_id VARCHAR(36) PRIMARY KEY,
+    dynamic_token VARCHAR(255),
+    qr_refreshed_at TIMESTAMP,
+    pin_code VARCHAR(6),
+    is_active BOOLEAN NOT NULL DEFAULT FALSE,
+    FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE
+);
+
+-- 10. Check-in Telemetry Audit Records
 CREATE TABLE attendance_records (
     record_id VARCHAR(36) PRIMARY KEY,
     student_id VARCHAR(20) NOT NULL,
@@ -1681,13 +2417,32 @@ CREATE TABLE attendance_records (
     selfie_path VARCHAR(255),
     status VARCHAR(20) NOT NULL CHECK (status IN ('Present', 'Late', 'Absent', 'Fraud_Declined')),
     verification_mode VARCHAR(20) NOT NULL CHECK (verification_mode IN ('QR', 'PIN', 'Offline_Cached', 'Manual')),
-    FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE RESTRICT
+    FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE RESTRICT,
+    FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE RESTRICT
 );
 
--- Optimize database query performance
+-- 11. Administrative Audit Log
+CREATE TABLE system_logs (
+    log_id SERIAL PRIMARY KEY,
+    account_id VARCHAR(36) NOT NULL,
+    timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    action VARCHAR(50) NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE RESTRICT
+);
+
+-- ============================================================
+-- Performance Optimization Indexes
+-- ============================================================
 CREATE INDEX idx_records_student ON attendance_records(student_id);
 CREATE INDEX idx_records_session ON attendance_records(session_id);
+CREATE INDEX idx_records_status ON attendance_records(status);
 CREATE INDEX idx_students_device ON students(device_uuid);
+CREATE INDEX idx_sessions_class ON sessions(class_section_id);
+CREATE INDEX idx_sessions_date ON sessions(session_date);
+CREATE INDEX idx_class_students_student ON class_section_students(student_id);
+CREATE INDEX idx_system_logs_account ON system_logs(account_id);
+CREATE INDEX idx_system_logs_timestamp ON system_logs(timestamp);
 ```
 
 ---
