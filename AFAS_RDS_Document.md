@@ -441,64 +441,144 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 Below are the activity diagrams modeling the key event flows of the check-in and session activation use cases.
 
 #### **Figure I-2: Activity diagram for UC03 - Scan Dynamic QR Check-in**
-```mermaid
-flowchart TD
-    Start([Start]) --> FaceID{1. Local Face ID\nVerification?}
-    FaceID -- Fails --> PinSecure[2. Lock screen /\nRequest Backup Pin]
-    PinSecure --> End([Check-in Aborted])
-    FaceID -- Success --> OpenCam[3. Open Native Camera]
-    OpenCam --> ScanQR[4. Scan Projector QR Code]
-    ScanQR --> GetTelemetry[5. Retrieve Device Telemetry\nGPS, UUID, Public IP, SSID]
-    GetTelemetry --> Submit[6. Send HTTPS POST to Server]
-    
-    %% Server verification steps
-    Submit --> CheckToken{7. Layer 1: QR Token\nValid and < 15s old?}
-    CheckToken -- Expired --> ErrToken[8. Return QR Expired Error]
-    ErrToken --> AlertStudent[9. Display Error Alert on App]
-    AlertStudent --> End
-    
-    CheckToken -- Valid --> CheckGPS{10. Layer 2: Geofence\nDistance < AllowedRadius?}
-    CheckGPS -- Out of Range --> SetFraud[11. Save record as Fraud_Declined]
-    SetFraud --> AlertGPS[12. Display Geo-error Alert]
-    AlertGPS --> End
-    
-    CheckGPS -- Within Range --> CheckUUID{13. Layer 3: UUID\nMatches Bound Device?}
-    CheckUUID -- Mismatch --> ErrUUID[14. Return UUID Mismatch Error]
-    ErrUUID --> AlertUUID[15. Display Device Alert]
-    AlertUUID --> End
-    
-    CheckUUID -- Match --> CheckIP{16. Match Campus\nIP Gateway?}
-    CheckIP -- Match --> SaveSuccess[17. Save Record: Present / Late\nDelete Selfie Image]
-    CheckIP -- Mismatch --> FlagWarning[18. Save Record with IP Warning\nDelete Selfie Image]
-    
-    SaveSuccess --> PushSocket[19. Push Real-time Event to Lecturer Web]
-    FlagWarning --> PushSocket
-    PushSocket --> AlertSuccess[20. Show Success Dialog on App]
-    AlertSuccess --> End
+```plantuml
+@startuml UC03_Activity_Swimlane
+skinparam ActivityBackgroundColor #AED6F1
+skinparam ActivityBorderColor #2E86C1
+skinparam ActivityDiamondBackgroundColor #AED6F1
+skinparam ActivityDiamondBorderColor #2E86C1
+skinparam ArrowColor #2E86C1
+skinparam ActivityFontSize 12
+skinparam swimlaneBorderColor #2E86C1
+skinparam swimlaneHeaderFontStyle bold
+
+|Student|
+start
+:1. Tap "Scan QR Check-in" button;
+
+|Mobile App|
+:2. Request Face ID / Biometric verification;
+
+|Student|
+:3. Perform Face ID authentication;
+
+|Mobile App|
+if (Face ID verified?) then (Aborted)
+  :Show abort message;
+  stop
+else (Success)
+  :4. Open native camera;
+endif
+
+|Student|
+:5. Point camera at projector QR code;
+
+|Mobile App|
+:6. Decode QR → extract DynamicToken;
+:7. Collect telemetry\n(GPS, DeviceUUID, Wi-Fi IP, SSID);
+:8. Send HTTPS POST /api/attendance/submit;
+
+|Server|
+if (Layer 1: QR Token valid\nand created < 15s?) then (Expired)
+  :E9.3 Reject — token expired;
+  |Mobile App|
+  :Show "QR expired" error alert;
+  stop
+else (Valid)
+endif
+
+if (Layer 2: Geofence\nDistance < AllowedRadius?) then (Out of Range)
+  :E9.1 Save Fraud_Declined record\nlog geofence violation;
+  |Mobile App|
+  :Show "Outside classroom range" alert;
+  stop
+else (Within Range)
+endif
+
+if (Layer 3: DeviceUUID\nmatches registered device?) then (Mismatch)
+  :E9.2 Reject — device not bound;
+  |Mobile App|
+  :Show "Device mismatch" alert;
+  stop
+else (Match)
+endif
+
+|Server|
+:10. Save AttendanceRecord\n(Present / Late)\nDelete selfie if any;
+:11. Push WebSocket event\nto Lecturer Web Portal;
+
+|Mobile App|
+:12. Display "Check-in Successful"\nwith timestamp;
+
+|Student|
+stop
+@enduml
 ```
 
 ---
 
 #### **Figure I-3: Activity diagram for UC06 - Activate Dynamic QR Session**
-```mermaid
-flowchart TD
-    Start([Start]) --> SelectClass[1. Select Class & Scheduled Session]
-    SelectClass --> ClickStart[2. Click Start Attendance]
-    ClickStart --> ValidateTime{3. Is Current Time\nWithin Session Window?}
-    
-    ValidateTime -- No --> ErrTime[4. Show Out of Schedule Alert]
-    ErrTime --> End([End])
-    
-    ValidateTime -- Yes --> SetActive[5. Update AttendanceVersion.is_active = True]
-    SetActive --> StartTimers[6. Trigger Dynamic Token Timer 10s\nTrigger PIN Code Timer 30s]
-    StartTimers --> OpenSocket[7. Open Lecturer Web Portal WebSocket Channel]
-    OpenSocket --> RenderProjector[8. Render Projector View with QR & PIN Grid]
-    
-    %% Background loop during session
-    RenderProjector --> LoopCheck{9. Is Session Still Active?}
-    LoopCheck -- Yes --> RenderProjector
-    LoopCheck -- No/Lecturer Stopped --> CloseSession[10. Set is_active = False\nClose WebSocket Channel]
-    CloseSession --> End
+```plantuml
+@startuml UC06_Activity_Swimlane
+skinparam ActivityBackgroundColor #AED6F1
+skinparam ActivityBorderColor #2E86C1
+skinparam ActivityDiamondBackgroundColor #AED6F1
+skinparam ActivityDiamondBorderColor #2E86C1
+skinparam ArrowColor #2E86C1
+skinparam ActivityFontSize 12
+skinparam swimlaneBorderColor #2E86C1
+skinparam swimlaneHeaderFontStyle bold
+
+|Lecturer|
+start
+:1. Navigate to "My Classes"\non Web Portal;
+:2. Select class section\nand current session;
+:3. Click "Start Attendance" button;
+
+|Server|
+if (Is current time within\nsession window?) then (No)
+  :E4.1 Show "Outside scheduled\ntime window" error alert;
+  |Lecturer|
+  stop
+else (Yes)
+endif
+
+:5. Set AttendanceVersion.is_active = True;
+:6. Start DynamicToken refresh timer (10s)\nStart PINCode refresh timer (30s);
+
+|Lecturer Web Portal|
+:7. Open WebSocket channel\nRender projector view\n(QR code + PIN + countdown + dashboard);
+
+|Lecturer|
+:8. Display projector screen\nfor students to scan;
+
+repeat
+
+  |Server|
+  :Refresh DynamicToken;
+  :Refresh PINCode (every 30s);
+
+  |Lecturer Web Portal|
+  :Push new QR & PIN via WebSocket;
+
+  |Lecturer|
+  :Monitor real-time attendance dashboard;
+
+repeat while (Session still active?) is (Yes)
+-> Lecturer clicks "Stop Attendance";
+
+|Lecturer|
+:9. Click "Stop Attendance" button;
+
+|Server|
+:10. Set is_active = False\nStop token refresh timers;
+
+|Lecturer Web Portal|
+:11. Close WebSocket channel\nReturn to session management view;
+
+|Lecturer|
+stop
+@enduml
 ```
 
 ---
