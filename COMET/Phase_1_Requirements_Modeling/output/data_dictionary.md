@@ -83,8 +83,9 @@ Từ điển dữ liệu mô tả chi tiết tất cả các thuộc tính của
 | :--- | :--- | :--- | :--- |
 | **SessionId** | String | 36, PK, FK (Session.SessionId)| Liên kết 1-1 với buổi học hiện hành. |
 | **DynamicToken** | String | 255, Nullable | Chuỗi token ngẫu nhiên thay đổi mỗi 10 giây được mã hóa trong QR. |
-| **QRRefreshedAt** | DateTime | Nullable | Thời điểm máy chủ cập nhật token động gần nhất để tính hạn hết hạn (10-15s). |
+| **QRRefreshedAt** | DateTime | Nullable | Thời điểm máy chủ cập nhật token động gần nhất; QR làm mới mỗi 10 giây và Server chấp nhận trong cửa sổ 15 giây. |
 | **PINCode** | String | 6, Nullable | Mã pin dự phòng 6 chữ số đổi sau mỗi 30 giây phục vụ Fallback 2. |
+| **PINRefreshedAt** | DateTime | Nullable | Thời điểm máy chủ cập nhật mã PIN gần nhất để kiểm tra hạn 30 giây. |
 | **IsActive** | Boolean | Not Null, Default False | Trạng thái phiên điểm danh QR động đang mở hay đóng. |
 
 ---

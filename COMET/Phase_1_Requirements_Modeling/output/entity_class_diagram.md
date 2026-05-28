@@ -72,6 +72,7 @@ classDiagram
         +string DynamicToken
         +DateTime QRRefreshedAt
         +string PINCode
+        +DateTime PINRefreshedAt
         +bool IsActive
     }
 

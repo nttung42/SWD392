@@ -1,55 +1,55 @@
-# ĐẶC TẢ CHI TIẾT USE CASE (USE CASE SPECIFICATION)
+# ĐẶC TẢ CHI TIẾT USE CASE: UC01 - ĐĂNG NHẬP
 
 ---
 
-## 📄 [UC-XX]: [Tên Use Case - Ví dụ: UC-02 Add Product]
+## 📄 UC01: LOGIN VIA CREDENTIALS OR GOOGLE OAUTH (ĐĂNG NHẬP BẰNG TÀI KHOẢN HOẶC GOOGLE OAUTH)
 
 ### 1. Thông tin chung (Metadata)
-*   **Mã số (ID):** UC-02
-*   **Tên Use Case:** Add Product (Thêm sản phẩm mới)
-*   **Người tạo:** [Tên sinh viên / Agent]
-*   **Ngày tạo:** YYYY-MM-DD
-*   **Độ ưu tiên (Priority):** [High / Medium / Low]
-*   **Tác nhân chính (Primary Actor):** Warehouse Staff (Nhân viên kho)
-*   **Tác nhân phụ (Secondary Actors):** Không có
+*   **Mã số (ID):** UC01
+*   **Tên Use Case:** Login via Credentials or Google OAuth
+*   **Người tạo:** SWD392 Team
+*   **Ngày tạo:** 2026-05-26
+*   **Độ ưu tiên (Priority):** High
+*   **Tác nhân chính (Primary Actor):** Student, Lecturer, Admin
+*   **Tác nhân phụ (Secondary Actors):** Google OAuth Service
 
 ### 2. Mô tả ngắn (Description)
-Use case này cho phép nhân viên kho thêm thông tin sản phẩm sạch mới vào cơ sở dữ liệu hệ thống FOS để sản phẩm có thể hiển thị trên cửa hàng trực tuyến cho khách hàng đặt mua.
+Use case này cho phép toàn bộ người dùng hệ thống AFAS đăng nhập an toàn vào đúng cổng chức năng của mình bằng tài khoản cá nhân hoặc Google OAuth với email trường FPT.
 
 ### 3. Tiền điều kiện (Preconditions)
-*   **PRE-1:** Nhân viên kho đã đăng nhập thành công vào hệ thống Quản trị.
-*   **PRE-2:** Tài khoản nhân viên kho đã được phân quyền quản trị danh mục sản phẩm.
+*   **PRE-1:** Tài khoản người dùng đã tồn tại trong cơ sở dữ liệu `Accounts`.
+*   **PRE-2:** Nếu dùng Google OAuth, người dùng sở hữu email hợp lệ thuộc miền `@fpt.edu.vn` hoặc `@fe.edu.vn`.
 
 ### 4. Hậu điều kiện (Postconditions)
-*   **POST-1 (Thành công):** Thông tin sản phẩm mới được lưu trữ chính xác vào CSDL, danh sách sản phẩm được cập nhật hiển thị tại màn hình quản lý, hệ thống ghi nhận lịch sử vào bảng Log.
-*   **POST-2 (Thất bại):** Hệ thống không thực hiện bất kỳ thay đổi nào trong cơ sở dữ liệu và hiển thị thông báo lỗi tương ứng cho người dùng.
+*   **POST-1 (Thành công):** Người dùng được xác thực, hệ thống phát hành JWT chứa vai trò người dùng và chuyển hướng đến dashboard tương ứng.
+*   **POST-2 (Thất bại):** Hệ thống từ chối đăng nhập, không tạo phiên làm việc và hiển thị thông báo lỗi.
 
 ### 5. Luồng sự kiện chính (Normal Flow)
-1.  Nhân viên kho bấm chọn mục **"Manage Products"** từ menu hệ thống.
-2.  Hệ thống truy xuất và hiển thị danh sách sản phẩm hiện có cùng nút hành động **"Add Product"**.
-3.  Nhân viên kho bấm chọn nút **"Add Product"**.
-4.  Hệ thống hiển thị Biểu mẫu thêm sản phẩm mới (`Add Product Form`).
-5.  Hệ thống tự động truy xuất danh mục loại sản phẩm (`Product Categories`) hoạt động và nạp vào thanh lựa chọn thả xuống (Dropdown List).
-6.  Nhân viên kho điền các thông tin chi tiết của sản phẩm bao gồm: Tên sản phẩm, đơn vị tính, mô tả, tải ảnh sản phẩm lên và chọn danh mục tương ứng.
-7.  Nhân viên kho bấm nút **"Submit"** để gửi biểu mẫu.
-8.  Hệ thống tiến hành xác thực dữ liệu đầu vào (Xem kiểm tra nghiệp vụ bổ sung).
-9.  Hệ thống tạo mã sản phẩm duy nhất, lưu thông tin sản phẩm vào CSDL và ghi nhận hành động vào hệ thống log.
-10. Hệ thống hiển thị hộp thoại xác nhận **"Product Added Successfully"** và tự động đóng form quay về màn hình danh sách sản phẩm.
+1.  Người dùng mở Mobile App hoặc Web Portal của AFAS.
+2.  Hệ thống hiển thị màn hình đăng nhập với hai lựa chọn: **Credentials** hoặc **Google OAuth**.
+3.  Nếu chọn **Credentials**, người dùng nhập MSSV/Username và Password rồi nhấn **Login**.
+4.  Nếu chọn **Google OAuth**, người dùng nhấn **Login with Google**, xác thực qua Google Gateway và hệ thống nhận lại email FPT.
+5.  Server kiểm tra thông tin đăng nhập trong bảng `Accounts` hoặc xác minh OAuth token từ Google.
+6.  Server xác định vai trò người dùng (`Student`, `Lecturer`, `Admin`).
+7.  Server tạo JWT bảo mật chứa `AccountId`, `Role` và thời hạn phiên.
+8.  Hệ thống chuyển hướng người dùng đến dashboard đúng vai trò.
 
 ### 6. Luồng thay thế (Alternative Flows)
-*   **A4.1: Người dùng hủy bỏ thao tác (Cancel)**
-    1.  Tại bước 4 hoặc 6 của luồng chính, Nhân viên kho bấm chọn nút **"Cancel"** hoặc nút **"Close"** trên form.
-    2.  Hệ thống đóng biểu mẫu mà không lưu bất kỳ thay đổi nào và đưa nhân viên kho trở lại màn hình danh sách quản lý sản phẩm.
+*   **A2.1: Người dùng quên mật khẩu**
+    1.  Tại màn hình đăng nhập, người dùng chọn **Forgot Password**.
+    2.  Người dùng nhập email đã đăng ký.
+    3.  Hệ thống gửi liên kết đặt lại mật khẩu đến email trường.
+    4.  Người dùng mở liên kết và cập nhật mật khẩu mới.
 
 ### 7. Luồng ngoại lệ (Exceptions)
-*   **E8.1: Dữ liệu nhập không hợp lệ (Invalid Input Data)**
-    1.  Tại bước 8 của luồng chính, nếu dữ liệu nhập thiếu các trường bắt buộc hoặc sai định dạng (ví dụ: tên sản phẩm bị trùng lặp, ảnh quá kích thước cho phép).
-    2.  Hệ thống hiển thị thông báo lỗi màu đỏ tại chân từng ô nhập liệu tương ứng và yêu cầu người dùng sửa lại thông tin trước khi submit lại.
-*   **E9.1: Lỗi kết nối Cơ sở dữ liệu (Database Connection Error)**
-    1.  Tại bước 9 của luồng chính, nếu hệ thống không thể lưu trữ bản ghi do mất kết nối mạng hoặc lỗi server DB.
-    2.  Hệ thống ghi nhận lỗi nghiệp vụ hệ thống (log error), hiển thị thông báo lỗi **"System Error: Can not save product. Please try again later."** và giữ nguyên dữ liệu đã điền trên form để người dùng không phải nhập lại từ đầu.
+*   **E5.1: Sai thông tin đăng nhập**
+    1.  Tại bước 5, nếu MSSV/Username hoặc Password không hợp lệ, server từ chối xác thực.
+    2.  Hệ thống hiển thị thông báo **"Invalid username or password"**.
+*   **E5.2: Email không thuộc miền trường**
+    1.  Tại bước 5, nếu Google OAuth trả về email không kết thúc bằng `@fpt.edu.vn` hoặc `@fe.edu.vn`, server từ chối đăng nhập.
+    2.  Hệ thống hiển thị thông báo tài khoản không thuộc miền trường được phép.
 
 ### 8. Quy tắc nghiệp vụ (Business Rules)
-*   **BR-01:** Tên sản phẩm sạch không được chứa ký tự đặc biệt nguy hiểm (để phòng chống SQL Injection, XSS) và không được vượt quá 100 ký tự.
-*   **BR-02:** Hình ảnh sản phẩm tải lên bắt buộc phải ở định dạng `.jpg`, `.jpeg` hoặc `.png` và kích thước file tối đa là 2MB.
-*   **BR-03:** Mỗi sản phẩm phải thuộc ít nhất một danh mục hợp lệ đang hoạt động trong hệ thống.
+*   **BR-01:** Mật khẩu phải được băm bằng `bcrypt` trên server.
+*   **BR-02:** Google OAuth chỉ chấp nhận email thuộc miền `@fpt.edu.vn` hoặc `@fe.edu.vn`.
+*   **BR-03:** JWT phải chứa vai trò người dùng để phân quyền truy cập đúng portal.

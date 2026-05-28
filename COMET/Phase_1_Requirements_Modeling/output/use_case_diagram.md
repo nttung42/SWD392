@@ -7,8 +7,7 @@ Sơ đồ Use Case mô tả trực quan các chức năng cốt lõi của hệ 
 ## 📊 SƠ ĐỒ USE CASE TỔNG QUAN (MERMAID)
 
 ```mermaid
-leftToRightDirection
-graph TD
+graph LR
     %% Định nghĩa các Tác nhân (Actors)
     subgraph Actors [Tác nhân người dùng]
         Student((Student))
@@ -21,8 +20,8 @@ graph TD
         UC01[UC01: Login via Google OAuth]
         UC02[UC02: Register Device UUID]
         UC03[UC03: Scan Dynamic QR Check-in]
-        UC04[UC04: Enter PIN Fallback Check-in]
-        UC05[UC05: View Attendance History]
+        UC04[UC04: View Attendance History]
+        UC05[UC05: PIN Fallback Check-in]
         
         Student --> UC01
         Student --> UC02
@@ -31,6 +30,7 @@ graph TD
         Student --> UC05
         
         UC03 -.-> |include| UC02
+        UC05 -.-> |extend| UC03
     end
 
     %% Định nghĩa phân hệ Lecturer
@@ -66,4 +66,5 @@ graph TD
 
 1.  **Student --> UC03 include UC02:** Khi sinh viên kích hoạt chức năng điểm danh bằng QR Động (`UC03`), hệ thống di động bắt buộc phải thực hiện kèm theo quy trình kiểm tra và đăng ký mã định danh thiết bị (`UC02`) ở luồng xác thực trên Server nhằm khóa chặt tài khoản sinh viên với duy nhất 1 chiếc điện thoại di động chính chủ.
 2.  **Lecturer --> UC07 include UC06:** Chức năng giám sát chuyên cần thời gian thực (`UC07`) hoạt động dựa trên tiền điều kiện của việc Giảng viên đã khởi chạy thành công phiên điểm danh QR động (`UC06`) trên lớp học.
-3.  **Google OAuth (UC01):** Sử dụng chung cho cả 3 vai trò để đăng nhập an toàn bằng tài khoản tổ chức cấp của trường.
+3.  **Student --> UC05 extend UC03:** Chức năng điểm danh bằng PIN dự phòng (`UC05`) là luồng mở rộng của điểm danh QR động (`UC03`) khi camera hỏng hoặc không thể quét mã QR.
+4.  **Google OAuth (UC01):** Sử dụng chung cho cả 3 vai trò để đăng nhập an toàn bằng tài khoản tổ chức cấp của trường.
