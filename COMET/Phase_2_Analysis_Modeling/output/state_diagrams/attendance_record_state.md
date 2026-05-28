@@ -21,16 +21,18 @@ stateDiagram-v2
     Verifying_Location --> Failed_Location_Fraud : GPS Distance > AllowedRadius
     Failed_Location_Fraud --> [*] : Saved as "Fraud_Declined" in DB
     
-    Verifying_Device --> Verifying_Biometrics : DeviceUUID matches bound device (Layer 3)
+    Verifying_Device --> Verifying_BiometricSignal : DeviceUUID matches bound device (Layer 3)
     Verifying_Device --> Failed_Device_Mismatch : DeviceUUID belongs to another student
     Failed_Device_Mismatch --> [*] : Rejection logged
     
-    Verifying_Biometrics --> Checked_In_Present : Face ID match score > 85%
-    Verifying_Biometrics --> Failed_Face_Mismatch : Face ID matching fails
-    Failed_Face_Mismatch --> [*] : Rejection logged
+    Verifying_BiometricSignal --> Checked_In_Present : BiometricVerified = True
+    Verifying_BiometricSignal --> Verifying_SelfieFallback : Local biometric unavailable or failed
+    Verifying_SelfieFallback --> Checked_In_Present : Temporary selfie proof verified
+    Verifying_SelfieFallback --> Failed_Biometric_Proof : Selfie proof invalid
+    Failed_Biometric_Proof --> [*] : Rejection logged
     
-    Checked_In_Present --> Checked_In_Late : Checked-in time > Class start time
+    Checked_In_Present --> Checked_In_Late : Checked-in time > Class start time + 15 minutes
     
-    Checked_In_Present --> [*] : Saved as "Present" / Selfie image deleted
-    Checked_In_Late --> [*] : Saved as "Late" / Selfie image deleted
+    Checked_In_Present --> [*] : Saved as "Present" / Temporary selfie deleted if any
+    Checked_In_Late --> [*] : Saved as "Late" / Temporary selfie deleted if any
 ```

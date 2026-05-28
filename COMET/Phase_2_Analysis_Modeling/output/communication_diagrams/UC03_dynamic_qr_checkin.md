@@ -23,7 +23,10 @@ graph TD
     
     SAF -->|5: SubmitAttendance| AC
     AC -->|6: GetActiveTokenForSession| V
+    AC -->|6.1: VerifyQRTimeWindow| AC
     AC -->|7: GetRoomGeoConfig| R
+    AC -->|7.1: CalculateHaversineDistance| AC
+    AC -->|7.2: CheckWifiGateway| AC
     AC -->|8: CreateRecord| AR
-    AC -->|9: Return Success / Display| SAF
+    AC -->|9: Return Success / Error| SAF
 ```

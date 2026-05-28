@@ -34,5 +34,5 @@ Lưu giữ dữ liệu lâu dài và các trạng thái của hệ thống:
 
 ## 📝 DANH SÁCH CÁC QUYẾT ĐỊNH ĐÃ GHI NHẬN (DECISION LIST)
 
-### 📌 [ANA-ADR-001]: Cơ chế Đối khớp Face ID
-*   **Quyết định:** Face ID được thực hiện thông qua thư viện trích xuất khuôn mặt cục bộ trên Mobile App (Local Device Authentication API). App di động gọi Face ID của hệ điều hành, đối khớp dấu vân tay/khuôn mặt chủ máy. Khi thành công, App gửi tín hiệu `BiometricVerified = True` kèm theo ảnh Selfie thời điểm đó để Server lưu tạm xác thực. Việc này tránh việc Server phải chạy các model AI so khớp khuôn mặt nặng nề, giảm độ trễ phản hồi xuống `< 2 giây` như yêu cầu phi chức năng.
+### 📌 [ANA-ADR-001]: Cơ chế xác thực sinh trắc học Face ID
+*   **Quyết định:** Face ID / Touch ID được thực hiện thông qua API sinh trắc học cục bộ trên Mobile App (Local Device Authentication API). App di động gọi cơ chế xác thực của hệ điều hành và chỉ gửi tín hiệu `BiometricVerified = True` cho Server khi xác thực thành công. Ảnh selfie chỉ được gửi trong luồng dự phòng khi thiết bị không hỗ trợ hoặc xác thực cục bộ thất bại; Server xác minh tạm thời rồi xóa ngay sau khi xử lý. Việc này tránh việc Server phải chạy model AI so khớp khuôn mặt nặng nề trong luồng chính, giảm độ trễ phản hồi xuống `< 2 giây` như yêu cầu phi chức năng.

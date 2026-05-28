@@ -53,7 +53,8 @@ graph TD
     Data --> SessionEntity
     Data --> AttendanceRecordEntity
     
-    DBWrap --> SQLQueryEngine
+    DBWrap --> StudentRepository
+    DBWrap --> AttendanceRepository
     DBWrap --> RedisCacheManager
 ```
 
@@ -76,4 +77,4 @@ graph TD
 
 ### 3. Tiêu chí phân nhóm Entity (Lớp thực thể)
 *   **Data Abstraction Objects:** Đối tượng biểu diễn cấu trúc dữ liệu thô trong bộ nhớ RAM, chứa các thuộc tính và phương thức thao tác dữ liệu cơ bản.
-*   **Database Wrapper Objects:** Đối tượng chịu trách nhiệm bao bọc logic truy cập cơ sở dữ liệu vật lý (PostgreSQL) và quản lý bộ nhớ đệm tốc độ cao (Redis Cache) phục vụ yêu cầu chịu tải đầu giờ **NF-01 (Concurrency)**.
+*   **Database Wrapper Objects:** Đối tượng chịu trách nhiệm bao bọc logic truy cập cơ sở dữ liệu vật lý (PostgreSQL) thông qua các repository như `StudentRepository`, `AttendanceRepository` và quản lý bộ nhớ đệm tốc độ cao (`RedisCacheManager`) phục vụ yêu cầu chịu tải đầu giờ **NF-01 (Concurrency)**.
