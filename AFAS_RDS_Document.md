@@ -463,10 +463,16 @@ start
 :3. Perform Face ID authentication;
 
 |Mobile App|
-if (Face ID verified?) then (Aborted)
+if (Face ID verified?) then ([Aborted])
   :Show abort message;
   stop
-else (Success)
+elseif ([Failed / Not Supported]) then
+  :A3.1 Prompt selfie capture\nas fallback proof;
+  |Student|
+  :Capture face selfie;
+  |Mobile App|
+  :4. Open native camera;
+else ([Success])
   :4. Open native camera;
 endif
 
@@ -479,28 +485,28 @@ endif
 :8. Send HTTPS POST /api/attendance/submit;
 
 |Server|
-if (Layer 1: QR Token valid\nand created < 15s?) then (Expired)
-  :E9.3 Reject — token expired;
+if (Layer 1: QR Token valid\nand created < 15s?) then ([Expired])
+  :E8.1 Reject — token expired;
   |Mobile App|
   :Show "QR expired" error alert;
   stop
-else (Valid)
+else ([Valid])
 endif
 
-if (Layer 2: Geofence\nDistance < AllowedRadius?) then (Out of Range)
+if (Layer 2: Geofence\nDistance < AllowedRadius?) then ([Out of Range])
   :E9.1 Save Fraud_Declined record\nlog geofence violation;
   |Mobile App|
   :Show "Outside classroom range" alert;
   stop
-else (Within Range)
+else ([Within Range])
 endif
 
-if (Layer 3: DeviceUUID\nmatches registered device?) then (Mismatch)
-  :E9.2 Reject — device not bound;
+if (Layer 3: DeviceUUID\nmatches registered device?) then ([Mismatch])
+  :E10.1 Reject — device not bound;
   |Mobile App|
   :Show "Device mismatch" alert;
   stop
-else (Match)
+else ([Match])
 endif
 
 |Server|
@@ -536,11 +542,11 @@ start
 :3. Click "Start Attendance" button;
 
 |Server|
-if (Is current time within\nsession window?) then (No)
+if (Is current time within\nsession window?) then ([No])
   :E4.1 Show "Outside scheduled\ntime window" error alert;
   |Lecturer|
   stop
-else (Yes)
+else ([Yes])
 endif
 
 :5. Set AttendanceVersion.is_active = True;
@@ -564,8 +570,8 @@ repeat
   |Lecturer|
   :Monitor real-time attendance dashboard;
 
-repeat while (Session still active?) is (Yes)
--> Lecturer clicks "Stop Attendance";
+repeat while (Session still active?) is ([Yes])
+-> [Lecturer clicks "Stop Attendance"];
 
 |Lecturer|
 :9. Click "Stop Attendance" button;
@@ -699,6 +705,8 @@ classDiagram
 ```
 
 ---
+
+The entity class diagram (Figure I-4) specifies the domain entities and their relationships, representing the system's data requirements. Table I-12 below serves as the data dictionary, describing each entity's attributes, data types, constraints, and purpose.
 
 ### **Table I-12: Data Description (Data dictionary)**
 
