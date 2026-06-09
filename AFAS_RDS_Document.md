@@ -17,6 +17,7 @@
 | V1.0 | 26/05/2026 | A | SWD392 Team | Initial release of Requirement Specification (Section I) for AFAS including Problem Description, Features, Context, NFRs, Use Cases, Activity Diagrams, and Data Dictionary. |
 | V1.1 | 27/05/2026 | A | SWD392 Team | Added Analysis Models (Section II): Interaction Diagrams (Sequence & Communication) for UC01, UC03, UC05, UC06, UC07, UC08, UC11; State Diagrams for AttendanceVersion, AttendanceRecord, DeviceBinding; Static Analysis (Contextual Boundary Class Diagram, Object Structuring Criteria, UI Wireframes). |
 | V1.2 | 27/05/2026 | A | SWD392 Team | Added Design Specification (Section III): Integrated Communication Diagram, 3-View Architecture, Component/Package Diagrams, Detailed Class Design, Database Schema. Added Implementation Mapping (Section IV) and Verification/Testing (Section V). |
+| V1.3 | 09/06/2026 | M | SWD392 Team | Added cross-phase traceability framework: source-to-feature matrix, business process model, anti-fraud rule catalog, missing dynamic analysis diagrams for UC02/UC04/UC09/UC10, analysis-to-design transformation matrices, NFR realization matrix, DB rule mappings, implementation traceability, and verification coverage matrix. |
 
 *\*A - Added, M - Modified, D - Deleted*
 
@@ -24,16 +25,23 @@
 
 ## **Contents**
 
+*   [0. Traceability Framework](#0-traceability-framework)
+    *   [0.1 Source Baseline](#01-source-baseline)
+    *   [0.2 Artifact ID Scheme](#02-artifact-id-scheme)
+    *   [0.3 Master End-to-End Traceability Matrix](#03-master-end-to-end-traceability-matrix)
 *   [I. Requirement Specification](#i-requirement-specification)
     *   [I.1 Problem description](#i1-problem-description)
     *   [I.2 Major Features](#i2-major-features)
+        *   [I.2.1 Source-to-Feature Derivation Matrix](#i21-source-to-feature-derivation-matrix)
     *   [I.3 System context](#i3-system-context)
     *   [I.4 Non-functional Requirements](#i4-non-functional-requirements)
-    *   [I.5 Functional requirements](#i5-functional-requirements)
-        *   [I.5.1 Use case diagrams](#i51-use-case-diagrams)
-        *   [I.5.2 Use case descriptions](#i52-use-case-descriptions)
-        *   [I.5.3 Activity diagrams](#i53-activity-diagrams)
-    *   [I.6 Data Requirements](#i6-data-requirements)
+    *   [I.5 Business Process Model](#i5-business-process-model)
+    *   [I.6 Functional requirements](#i6-functional-requirements)
+        *   [I.6.1 Use case diagrams](#i61-use-case-diagrams)
+        *   [I.6.2 Use case descriptions](#i62-use-case-descriptions)
+        *   [I.6.3 Activity diagrams](#i63-activity-diagrams)
+    *   [I.7 Anti-Fraud Rule Catalog](#i7-anti-fraud-rule-catalog)
+    *   [I.8 Data Requirements](#i8-data-requirements)
 *   [II. Analysis Models](#ii-analysis-models)
     *   [II.0 Static Analysis](#ii0-static-analysis)
         *   [II.0.1 Contextual Boundary Class Diagram](#ii01-contextual-boundary-class-diagram)
@@ -42,17 +50,81 @@
     *   [II.1 Interaction diagrams](#ii1-interaction-diagrams)
     *   [II.2 State diagrams](#ii2-state-diagram)
 *   [III. Design Specification](#iii-design-specification)
+    *   [III.0 Analysis-to-Design Transformation Matrix](#iii0-analysis-to-design-transformation-matrix)
+        *   [III.0.1 Use Case to Design Realization Matrix](#iii01-use-case-to-design-realization-matrix)
+        *   [III.0.2 NFR Realization and Verification Matrix](#iii02-nfr-realization-and-verification-matrix)
     *   [III.1 Integrated Communication Diagrams](#iii1-integrated-communication-diagrams)
     *   [III.2 System High-Level Design](#iii2-system-high-level-design)
     *   [III.3 Component and Package Diagram](#iii3-component-and-package-diagram)
     *   [III.4 Detail Design](#iii4-detail-design)
     *   [III.5 Database Design](#iii5-database-design)
+        *   [III.5.0 Entity-to-Database Transformation Matrix](#iii50-entity-to-database-transformation-matrix)
+        *   [III.5.1 Rule-to-Constraint and Index Mapping](#iii51-rule-to-constraint-and-index-mapping)
 *   [IV. Implementation](#iv-implementation)
+    *   [IV.0 Implementation Traceability Matrix](#iv0-implementation-traceability-matrix)
     *   [IV.1 Map architecture to the structure of the project](#iv1-map-architecture-to-the-structure-of-the-project)
     *   [IV.2 Map Class Diagram and Interaction Diagram to Code](#iv2-map-class-diagram-and-interaction-diagram-to-code)
 *   [V. Verification and Testing](#v-verification-and-testing)
+    *   [V.0 Verification Coverage Matrix](#v0-verification-coverage-matrix)
     *   [V.1 Integration Testing & Test Specs](#v1-integration-testing--test-specs)
     *   [V.2 Unit Test Specifications](#v2-unit-test-specifications)
+
+---
+
+## **0. Traceability Framework**
+
+This section establishes the framework for tracing requirements and concerns across all modeling, analysis, design, implementation, and verification phases of the AFAS project.
+
+### **0.1 Source Baseline**
+
+The system specifications are derived directly from the SWD392 software design assignment brief for the Anti-Fraud Attendance System. The engineering trace baseline ensures that the project progresses logically through:
+1.  **Requirement Modeling:** Deriving system context, business processes, major features, use cases, and non-functional metrics.
+2.  **Analysis Modeling:** Structuring boundary, control, and entity objects, mapping dynamic interactions (sequence/communication), and defining state transitions.
+3.  **Design Modeling:** Transforming PIMs (Platform Independent Models) into Clean Architecture designs, database physical schemas, and module packages.
+4.  **Implementation & Verification:** Mapping components directly to folder hierarchies, concrete code blocks, and integration/unit test scenarios.
+
+### **0.2 Artifact ID Scheme**
+
+To maintain consistency and rigorous linkage, the following prefix scheme is applied across all sections of this document:
+
+| **Prefix** | **Meaning** | **Example** |
+| :--- | :--- | :--- |
+| `SRC-*` | Source requirement clause from project brief | `SRC-FR-02` |
+| `F*` | Major feature in product scope | `F03` |
+| `UC*` | Use case identifier | `UC03` |
+| `BP-*` | Core business process | `BP-02` |
+| `AR-*` | Business anti-fraud validation rule | `AR-02` |
+| `NFR-*` | Non-functional performance requirement | `NFR-01` |
+| `AN-*` | Analysis phase artifact (diagrams, wireframes) | `AN-SD-03` |
+| `DS-*` | Design phase structural/detailed class artifact | `DS-CMP-02` |
+| `DB-*` | Database physical table schema artifact | `DB-T10` |
+| `IM-*` | Implementation code file/module mapping | `IM-SVC-01` |
+| `TC-*` | Verification test case (Integration/Unit/NFR) | `TC-IT-003` |
+
+### **0.3 Master End-to-End Traceability Matrix**
+
+The master matrix traces every single source requirement from the brief to its corresponding use cases, analysis objects, design components, database tables, code files, and testing specifications.
+
+| **Source ID** | **Requirement / Concern** | **Req. Artifacts** | **Analysis Artifacts** | **Design Artifacts** | **DB Table(s)** | **Implementation** | **Verification Case** | **Status** |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **SRC-FR-01** | Account Login | `F01`, `UC01` | `AN-SD-01`, `AN-CD-01`, `LoginForm`, `GoogleAuthGateway` | `AccountController`, `AuthenticationService` | `accounts`, `students`, `lecturers` | `IM-AUTH-01` | `TC-AUTH-001` | Covered |
+| **SRC-FR-02** | Scan Dynamic QR | `F03`, `UC03` | `AN-AD-03`, `AN-SD-03`, `AN-CD-03`, `StudentAppForm` | `AttendanceController`, `AttendanceService` | `attendance_records`, `attendance_versions` | `IM-SVC-01` | `TC-IT-001`, `TC-IT-002` | Covered |
+| **SRC-FR-03** | GPS & Device ID Telemetry | `F02`, `F03`, `UC02`, `UC03` | `AN-SD-02`, `AN-CD-02`, `AN-SD-03`, `MobileDeviceHardware` | `DeviceBindingController`, `AttendanceService` | `students`, `attendance_records` | `IM-DEV-01`, `IM-SVC-01` | `TC-IT-004`, `TC-IT-006` | Covered |
+| **SRC-FR-04** | View Attendance History | `F05`, `UC04` | `AN-SD-04`, `AN-CD-04`, `StudentAppForm` | `AttendanceController`, `AttendanceService` | `attendance_records`, `class_section_students` | `IM-HIS-01` | `TC-HIS-001` | Covered |
+| **SRC-FR-05** | Lecturer Class Section | `F06`, `UC06`, `UC07` | `AN-SD-06`, `AN-SD-07`, `LecturerWebPortal` | `SessionController`, `SessionService` | `class_sections`, `class_section_students` | `IM-SES-01` | `TC-IT-001` | Covered |
+| **SRC-FR-06** | QR/PIN Active & Refresh Loop | `F07`, `UC06` | `AN-AD-06`, `AN-SD-06`, `QRRefreshTimer`, `PINRefreshTimer` | `SessionService`, `RedisCacheManager` | `attendance_versions`, `sessions` | `IM-CACHE-01`, `IM-SES-01` | `TC-IT-002` | Covered |
+| **SRC-FR-07** | Real-time Monitor Grid | `F08`, `UC07` | `AN-SD-07`, `AN-CD-07`, `LecturerWebPortal` | `AttendanceHub`, `SignalRRealtimeNotifier` | `attendance_records` | `IM-RT-01` | `TC-IT-001` | Covered |
+| **SRC-FR-08** | Manual Adjust & Report | `F09`, `F10`, `UC08`, `UC09` | `AN-SD-08`, `AN-CD-08`, `AN-SD-09`, `AN-CD-09` | `AttendanceController`, `ReportController`, `ExcelReportGenerator` | `attendance_records`, `system_logs` | `IM-REP-01` | `TC-REP-001`, `TC-MAN-001` | Covered |
+| **SRC-FR-09** | System Catalog CRUD | `F11`, `UC10` | `AN-SD-10`, `AN-CD-10`, `AdminWebPortal` | `CatalogController`, `CatalogService` | `accounts`, `students`, `lecturers`, `subjects`, `class_sections` | `IM-CAT-01` | `TC-CAT-001` | Covered |
+| **SRC-FR-10** | Room Coordinates Configuration | `F12`, `UC11` | `AN-SD-11`, `AN-CD-11`, `AdminWebPortal` | `RoomController`, `RoomService` | `rooms`, `system_logs` | `IM-ROOM-01` | `TC-ROOM-001` | Covered |
+| **SRC-FR-11** | Internet Outage Fallbacks | `F04`, `F09` | `UC05`, `UC08` | `AN-SD-05`, `AN-CD-05` | `AttendanceController.SubmitPINAttendance`, `AttendanceService.ProcessPinCheckin` | `attendance_records` | `TC-IT-005` | Covered |
+| **SRC-AF-01** | Prevent Remote QR Photo Sharing | `F03`, `F07` | `UC03`, `UC06` | `AN-AD-03`, `AN-AD-06`, `QRRefreshTimer` | `QRRefreshTimer`, `RedisCacheManager`, `AttendanceService.ProcessCheckin` | `attendance_versions` | `IM-CACHE-01` | `TC-IT-002` | Covered |
+| **SRC-AF-02** | Prevent Off-campus Geofence Fraud | `F03`, `F12` | `UC03`, `UC11` | `AN-AD-03`, `AN-SD-03`, `AN-SD-05`, `AN-SD-11` | `RoomService`, `AttendanceService.CalculateDistance` | `rooms`, `attendance_records` | `IM-SVC-01`, `IM-ROOM-01` | `TC-IT-003`, `TC-NFR-002` | Covered |
+| **SRC-AF-03** | Device Handoff Protection | `AR-03`, `AR-04`, `UC02`, `UC03`, `UC05` | `AN-SD-02`, `AN-SD-03`, `AN-SD-05`, `DeviceBindingState` | `DeviceBindingController`, `AttendanceService.ProcessCheckin` | `students`, `attendance_records` | `IM-DEV-01`, `IM-SVC-01` | `TC-IT-004`, `TC-IT-006`, `TC-BIO-001` | Covered |
+| **SRC-NFR-01** | Concurrency Capability | `NF-01` | Object structuring, `RedisCacheManager` | `RedisCacheManager` on API nodes | indexes on `attendance_records` & `students` | `IM-CACHE-01` | `TC-NFR-001` | Covered |
+| **SRC-NFR-02** | GPS Coordinate Deviation | `NF-02` | GPS calculations in UC03/UC05/UC11 | `rooms.allowed_radius` custom configuration | `rooms`, `attendance_records` | `IM-SVC-01` | `TC-NFR-002` | Covered |
+| **SRC-NFR-03** | UI Usability & Fast Response | `NF-03` | Minimal app wireframes, Face ID sensor | Local Face ID reader, immediate selfie purge | none direct | `IM-MOB-01`, `IM-SVC-01` | `TC-NFR-003` | Covered |
+| **SRC-NFR-04** | Solution Maintainability | `NF-04` | BCE Object structuring | Clean Architecture 4 layers, DI, repositories | repositories schema | `IM-ARCH-01` | `TC-UNIT-001`-`003` | Covered |
 
 ---
 
@@ -99,6 +171,27 @@ The system comprises three main portals: Student Mobile App, Lecturer Web Portal
 ### **Features for Administrators (Web Portal):**
 *   **F11: System Catalog Management:** Manage accounts (Students, Lecturers), Subjects, and Class Sections.
 *   **F12: Classroom GPS Configuration:** Setup room location (Latitude, Longitude) and custom Allowed Radius.
+
+### **I.2.1 Source-to-Feature Derivation Matrix**
+
+The requirements from the assignment brief map directly to the system features (`F01`-`F12`) and their associated use cases as shown in the matrix below:
+
+| **Source ID** | **Brief Requirement Description** | **Derived Feature(s)** | **Derived Use Case(s)** | **Architectural Derivation Reasoning** |
+| :--- | :--- | :--- | :--- | :--- |
+| **SRC-FR-01** | Personal Account & OAuth Login | `F01` | `UC01` | Role-based authentication is the entry gate for Students, Lecturers, and Admins to secure data. |
+| **SRC-FR-02** | Scan Lecturer's Projector QR Code | `F03` | `UC03` | Provides the primary automatic mechanism for students to record attendance. |
+| **SRC-FR-03** | GPS & Device ID Telemetry | `F02`, `F03` | `UC02`, `UC03` | Verifying identity/location requires mobile device binding and hardware sensor checks. |
+| **SRC-FR-04** | Track History & Absence Stats | `F05` | `UC04` | Students check calendar and statistics for warning metrics. |
+| **SRC-FR-05** | Lecturer Class Section View | `F06` | `UC06`, `UC07` | Lecturers view schedule and select sections before initializing check-in. |
+| **SRC-FR-06** | Dynamic QR (10s) & PIN (30s) | `F07` | `UC06` | Lecturer screen triggers background refreshes for dynamic check-in keys. |
+| **SRC-FR-07** | Real-time Attendance monitor grid | `F08` | `UC07` | Uses WebSocket communication for pushing live name updates. |
+| **SRC-FR-08** | Manual Adjust & Excel Export | `F09`, `F10` | `UC08`, `UC09` | Lecturers audit rosters, modify records, and download academic sheets. |
+| **SRC-FR-09** | CRUD Accounts, Subjects, Class Sections | `F11` | `UC10` | Admins perform catalog CRUD and database seed imports. |
+| **SRC-FR-10** | Configure Classroom GPS Coordinates | `F12` | `UC11` | Classroom location configurations define physical geofence boundaries. |
+| **SRC-FR-11** | Internet Outage Fallbacks | `F04`, `F09` | `UC05`, `UC08` | Provides PIN fallback and manual lecturer entry options during hardware/network drops. |
+| **SRC-AF-01** | Prevent Remote QR Photo Sharing | `F03`, `F07` | `UC03`, `UC06` | Enforces the 10-second refresh and 15-second grace window to block off-site scans. |
+| **SRC-AF-02** | Prevent Off-campus Geofence Fraud | `F03`, `F12` | `UC03`, `UC11` | Disallows check-ins where distance calculation exceeds room allowed radius. |
+| **SRC-AF-03** | Prevent Device Handoff Fraud | `F02`, `F03` | `UC02`, `UC03` | Restricts accounts to 1 physical device binding plus local biometric validations. |
 
 ---
 
@@ -176,11 +269,59 @@ classDiagram
 | **NF-03** | **Usability** | Scan response time and authentication result returned in **< 2 seconds**. | Implement **Local Biometric Face ID** authentication on the mobile client (using native APIs) and delete temporary face selfie immediately on the server after matching. |
 | **NF-04** | **Maintainability** | Ensure highly decoupled layers and easy database migration. | Build the application using **Clean Architecture** (Domain, Application, Infrastructure, Presentation) with strict one-way dependency rules and repository pattern. |
 
+## **I.5 Business Process Model**
+
+The following business processes define the end-to-end operational workflows of the AFAS system, aligning requirements to use cases and design components:
+
+### **BP-01: Attendance Session Preparation**
+*   **Goal:** Lecturer prepares a classroom for check-in.
+*   **Actors:** Lecturer, Projector Screen.
+*   **Workflow:**
+    1.  Lecturer logs in and selects an assigned class section.
+    2.  Lecturer clicks "Start Attendance" on the Web Portal.
+    3.  System checks scheduled hour window.
+    4.  System initializes `AttendanceVersion` with `IsActive = True`.
+    5.  System starts `QRRefreshTimer` (10s) and `PINRefreshTimer` (30s) background loop in Redis.
+    6.  Projector screen establishes WebSockets channel and displays refreshing QR/PIN.
+
+### **BP-02: Student Check-in and Anti-Fraud Verification**
+*   **Goal:** Student registers presence and system verifies evidence.
+*   **Actors:** Student, Mobile App, Anti-Fraud Server Engine.
+*   **Workflow:**
+    1.  Student opens app and passes local Face ID check.
+    2.  Student scans dynamic QR (or inputs PIN code).
+    3.  Mobile app automatically extracts Device UUID, GPS coordinates, Wi-Fi SSID, and Public IP.
+    4.  App submits payload to Server.
+    5.  Server performs **Layer 1** verification (QR token matches active Redis token and age < 15s).
+    6.  Server performs **Layer 2** verification (Calculates Haversine distance from GPS to room center <= AllowedRadius).
+    7.  Server performs **Layer 3** verification (Compares submitted UUID to registered UUID).
+    8.  If any check fails, system saves status as `Fraud_Declined` (for distance) or rejects submission.
+    9.  If all checks pass, system saves record as `Present` (or `Late`), purges temporary fallback selfie, and broadcasts update to Lecturer web monitor via SignalR.
+
+### **BP-03: Roster Audit and Attendance Adjustment**
+*   **Goal:** Lecturer reviews attendance records, modifies statuses manually, and finalizes.
+*   **Actors:** Lecturer, Web Portal.
+*   **Workflow:**
+    1.  Lecturer monitors live checking grid updates in real-time.
+    2.  Lecturer audits absent/doubtful students physically.
+    3.  Lecturer clicks student tile and changes status to Present/Late/Absent/Fraud_Declined (requires entering a mandatory reason).
+    4.  System saves adjustments, updates verification mode to `Manual`, and logs action in `system_logs`.
+    5.  Lecturer finalizes roster and exports Excel sheet `.xlsx`.
+
+### **BP-04: System Configuration and Catalog Maintenance**
+*   **Goal:** Admin seeds database catalog records and sets up room coordinates.
+*   **Actors:** System Admin.
+*   **Workflow:**
+    1.  Admin logs in and accesses Admin Web Portal dashboard.
+    2.  Admin manages database catalog tables (accounts, students, lecturers, subjects, class sections) via forms or CSV batch uploads.
+    3.  Admin configures GPS Latitude/Longitude and allowed geofence boundary radius for classroom halls.
+    4.  System updates postgres tables and writes system log logs.
+
 ---
 
-## **I.5 Functional requirements**
+## **I.6 Functional requirements**
 
-### **I.5.1 Use case diagrams**
+### **I.6.1 Use case diagrams**
 
 The functional requirements are mapped to three main use case diagrams representing the Student, Lecturer, and Admin subsystems.
 
@@ -234,7 +375,7 @@ flowchart LR
 
 ---
 
-### **I.5.2 Use case descriptions**
+### **I.6.2 Use case descriptions**
 
 Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 
@@ -253,6 +394,7 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E4.1 Invalid credentials:** Server returns an error message: "Invalid username or password".<br>**E4.2 Non-school email:** If Google OAuth returns a non-FPT email (not ending in `@fpt.edu.vn`), server denies login. |
 | **Priority:** | High |
 | **Business Rules:** | **BR-01:** Passwords must be hashed using `bcrypt` on the server.<br>**BR-02:** Email domain must end with `@fpt.edu.vn` or `@fe.edu.vn` for Google OAuth. |
+| **Trace:** | Source: `SRC-FR-01`; Feature: `F01`; Business Process: `BP-01`, `BP-02`, `BP-03`, `BP-04`; Anti-Fraud Rule: None; Analysis: `AN-SD-01`, `AN-CD-01`, `LoginForm`, `GoogleAuthGateway`; Design: `AccountController`, `AuthenticationService`; Verification: `TC-AUTH-001`. |
 
 ---
 
@@ -271,6 +413,7 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E4.1 Invalid OTP:** If the student enters an incorrect OTP 3 times during reset, the reset process is locked for 24 hours. |
 | **Priority:** | High |
 | **Business Rules:** | **BR-01:** One student account can only be linked to one `DeviceUUID` at a time. |
+| **Trace:** | Source: `SRC-FR-03`, `SRC-AF-03`; Feature: `F02`; Business Process: `BP-02`; Anti-Fraud Rule: `AR-03`; Analysis: `AN-SD-02`, `AN-CD-02`, `MobileDeviceHardware`, `DeviceBindingState`; Design: `DeviceBindingController`, `DeviceBindingService`; Verification: `TC-IT-006`. |
 
 ---
 
@@ -289,6 +432,7 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E8.1 Token Expired:** If QR token is older than 15s, server rejects check-in and returns "QR expired". No attendance record is created.<br>**E9.1 Out of Geofence:** If distance > AllowedRadius, server saves record as `Fraud_Declined` and alerts the user.<br>**E10.1 UUID Mismatch:** If DeviceUUID does not match registered UUID, server rejects check-in and logs a warning to `SystemLogs`. No attendance record is created.<br>**E11.1 Non-campus Wi-Fi:** If Public IP does not match campus gateway, server flags a warning in the record but does not reject the check-in.<br>**E12.1 GPS Unavailable:** If the app cannot obtain GPS coordinates (permission denied or hardware unavailable), the submission is blocked and the student is prompted to enable location services.<br>**E13.1 Duplicate Check-in:** If an `AttendanceRecord` already exists for this student and session, the server returns the existing result without creating a duplicate record. |
 | **Priority:** | High |
 | **Business Rules:** | **BR-01:** Geofence formula must use the Haversine method on the server.<br>**BR-02:** Face selfies captured during check-in must be deleted immediately after verification.<br>**BR-03:** A student is marked `Present` if check-in occurs within 15 minutes of the session start time; `Late` if after that threshold but before session end.<br>**BR-04:** Only one `AttendanceRecord` per student per session is allowed. Duplicate submissions return the existing result. |
+| **Trace:** | Source: `SRC-FR-02`, `SRC-FR-03`, `SRC-AF-01`, `SRC-AF-02`, `SRC-AF-03`; Feature: `F03`; Business Process: `BP-02`; Anti-Fraud Rule: `AR-01`, `AR-02`, `AR-03`, `AR-04`, `AR-05`, `AR-06`; Analysis: `AN-AD-03`, `AN-SD-03`, `AN-CD-03`, `StudentAppForm`; Design: `AttendanceController`, `AttendanceService`, `AntiFraud_Validator_Engine`; Verification: `TC-IT-001`, `TC-IT-002`, `TC-IT-003`, `TC-IT-004`, `TC-DUP-001`, `TC-BIO-001`, `TC-WIFI-001`. |
 
 ---
 
@@ -307,6 +451,8 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E3.1 Server offline:** App displays cached historical data from native local storage and shows a connection warning. |
 | **Priority:** | Medium |
 | **Business Rules:** | None. |
+| **Trace:** | Source: `SRC-FR-08`; Feature: `F10`; Business Process: `BP-03`; Anti-Fraud Rule: None; Analysis: `AN-SD-09`, `AN-CD-09`, `LecturerWebPortal`; Design: `ReportController`, `ExcelReportGenerator`; Verification: `TC-REP-001`. |
+| **Trace:** | Source: `SRC-FR-04`; Feature: `F05`; Business Process: `BP-03`; Anti-Fraud Rule: None; Analysis: `AN-SD-04`, `AN-CD-04`, `StudentAppForm`; Design: `AttendanceController.GetStudentHistory`, `AttendanceService.GetHistory`; Verification: `TC-HIS-001`. |
 
 ---
 
@@ -325,6 +471,7 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E7.1 PIN Expired:** If the student enters a PIN that was generated more than 30s ago, server rejects it. No attendance record is created.<br>**E7.2 GPS out of range:** Geofencing checks still apply; if student enters PIN from outside the classroom radius, check-in is saved as `Fraud_Declined`.<br>**E7.3 GPS Unavailable:** If the app cannot obtain GPS coordinates, the submission is blocked and the student is prompted to enable location services.<br>**E7.4 Duplicate Check-in:** If an `AttendanceRecord` already exists for this student and session, the server returns the existing result without creating a duplicate. |
 | **Priority:** | High |
 | **Business Rules:** | **BR-01:** The PIN code must automatically expire and refresh every 30 seconds. |
+| **Trace:** | Source: `SRC-FR-11`, `SRC-AF-02`, `SRC-AF-03`; Feature: `F04`; Business Process: `BP-02`; Anti-Fraud Rule: `AR-02`, `AR-03`, `AR-04`, `AR-05`; Analysis: `AN-SD-05`, `AN-CD-05`, `StudentAppForm`; Design: `AttendanceController.SubmitPINAttendance`, `AttendanceService.ProcessPinCheckin`; Verification: `TC-IT-005`. |
 
 ---
 
@@ -343,6 +490,7 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E4.1 Outside scheduled hours:** If lecturer tries to start session outside the class time slot, system denies activation. |
 | **Priority:** | High |
 | **Business Rules:** | **BR-01:** Only one `AttendanceVersion` per class session (`SessionId`) can be active (`IsActive = True`) at any given moment. |
+| **Trace:** | Source: `SRC-FR-05`, `SRC-FR-06`, `SRC-AF-01`; Feature: `F07`; Business Process: `BP-01`; Anti-Fraud Rule: `AR-01`; Analysis: `AN-AD-06`, `AN-SD-06`, `AN-CD-06`, `AttendanceVersionState`; Design: `SessionController`, `SessionService`, `QRRefreshTimer`, `PINRefreshTimer`, `RedisCacheManager`; Verification: `TC-IT-002`. |
 
 ---
 
@@ -361,6 +509,8 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E5.1 WebSocket Disconnect:** If connection drops, Web Portal displays a red warning icon and attempts to reconnect. |
 | **Priority:** | High |
 | **Business Rules:** | None. |
+| **Trace:** | Source: `SRC-FR-09`; Feature: `F11`; Business Process: `BP-04`; Anti-Fraud Rule: None; Analysis: `AN-SD-10`, `AN-CD-10`, `AdminWebPortal`; Design: `CatalogController`, `CatalogService`; Verification: `TC-CAT-001`. |
+| **Trace:** | Source: `SRC-FR-05`, `SRC-FR-07`; Feature: `F08`; Business Process: `BP-01`, `BP-03`; Anti-Fraud Rule: None; Analysis: `AN-SD-07`, `AN-CD-07`, `LecturerWebPortal`; Design: `AttendanceHub`, `SignalRRealtimeNotifier`; Verification: `TC-IT-001`. |
 
 ---
 
@@ -379,6 +529,7 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E5.1 Missing reason:** If the lecturer changes status without inputting a mandatory reason, the system prompts them to write a reason before saving. |
 | **Priority:** | High |
 | **Business Rules:** | **BR-01:** All manual overrides must record the modifier's ID and a mandatory explanation. |
+| **Trace:** | Source: `SRC-FR-08`, `SRC-FR-11`; Feature: `F09`; Business Process: `BP-03`; Anti-Fraud Rule: `AR-07`; Analysis: `AN-SD-08`, `AN-CD-08`, `LecturerWebPortal`; Design: `AttendanceController.AdjustAttendanceStatus`, `SystemLog`; Verification: `TC-MAN-001`. |
 
 ---
 
@@ -397,6 +548,8 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E3.1 No records exist:** If no attendance sessions have been run for the class, system displays an empty-state message and disables the export button. |
 | **Priority:** | Medium |
 | **Business Rules:** | None. |
+| **Trace:** | Source: `SRC-FR-08`; Feature: `F10`; Business Process: `BP-03`; Anti-Fraud Rule: None; Analysis: `AN-SD-09`, `AN-CD-09`, `LecturerWebPortal`; Design: `ReportController`, `ExcelReportGenerator`; Verification: `TC-REP-001`. |
+| **Trace:** | Source: `SRC-FR-04`; Feature: `F05`; Business Process: `BP-03`; Anti-Fraud Rule: None; Analysis: `AN-SD-04`, `AN-CD-04`, `StudentAppForm`; Design: `AttendanceController.GetStudentHistory`, `AttendanceService.GetHistory`; Verification: `TC-HIS-001`. |
 
 ---
 
@@ -415,6 +568,8 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E5.1 Duplicate ID:** If Admin attempts to add a student ID that already exists, system displays a validation error: "ID already exists". |
 | **Priority:** | High |
 | **Business Rules:** | None. |
+| **Trace:** | Source: `SRC-FR-09`; Feature: `F11`; Business Process: `BP-04`; Anti-Fraud Rule: None; Analysis: `AN-SD-10`, `AN-CD-10`, `AdminWebPortal`; Design: `CatalogController`, `CatalogService`; Verification: `TC-CAT-001`. |
+| **Trace:** | Source: `SRC-FR-05`, `SRC-FR-07`; Feature: `F08`; Business Process: `BP-01`, `BP-03`; Anti-Fraud Rule: None; Analysis: `AN-SD-07`, `AN-CD-07`, `LecturerWebPortal`; Design: `AttendanceHub`, `SignalRRealtimeNotifier`; Verification: `TC-IT-001`. |
 
 ---
 
@@ -433,10 +588,11 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E8.1 Out-of-bounds Coordinates:** If Admin inputs coordinates that are not within the university's bounding box, system prompts a warning to verify the number. |
 | **Priority:** | High |
 | **Business Rules:** | **BR-01:** The default `AllowedRadius` is 20 meters if no value is configured, compensating for normal indoor GPS hardware drift. |
+| **Trace:** | Source: `SRC-FR-10`, `SRC-AF-02`; Feature: `F12`; Business Process: `BP-04`; Anti-Fraud Rule: `AR-02`; Analysis: `AN-SD-11`, `AN-CD-11`, `AdminWebPortal`; Design: `RoomController`, `RoomService`; Verification: `TC-ROOM-001`. |
 
 ---
 
-### **I.5.3 Activity diagrams**
+### **I.6.3 Activity diagrams**
 
 Below are the activity diagrams modeling the key event flows of the check-in and session activation use cases.
 
@@ -589,7 +745,23 @@ stop
 
 ---
 
-## **I.6 Data Requirements**
+## **I.7 Anti-Fraud Rule Catalog**
+
+This catalog centralizes all business anti-fraud checking rules implemented by the AFAS system to serve as a canonical design baseline:
+
+| **Rule ID** | **Rule Name** | **Canonical Validation Logic** | **Affected UC(s)** | **Design/Code Artifact(s)** | **Verification Test Case** |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **AR-01** | Dynamic QR Freshness | QR token scanned by client must match active Redis token generated for current session ID, with timestamp age <= 15s. | `UC03`, `UC06` | `SessionService`, `QRRefreshTimer`, `RedisCacheManager`, `AttendanceService.ProcessCheckin` | `TC-IT-002` |
+| **AR-02** | Geofence Boundary Check | Submitted GPS coordinates are compared to classroom configured coords using Haversine formula; distance must be <= `rooms.allowed_radius` (default 20m), or else status is logged as `Fraud_Declined`. | `UC03`, `UC05`, `UC11` | `RoomService`, `AttendanceService.CalculateDistance`, `attendance_records.distance` | `TC-IT-003`, `TC-NFR-002` |
+| **AR-03** | Device UUID Binding | A student account can check in only on their registered device. If the incoming request's `DeviceUUID` differs from `students.device_uuid`, submission is rejected. | `UC02`, `UC03`, `UC05` | `DeviceBindingController`, `AttendanceService.ProcessCheckin`, `students.device_uuid` | `TC-IT-004`, `TC-IT-006` |
+| **AR-04** | Biometric Authentication | Client must verify local Face ID / fingerprint before submitting QR/PIN. If unavailable, fallback selfie is captured, uploaded, validated by server, and deleted immediately to ensure privacy. | `UC03`, `UC05` | `MobileDeviceHardware.TriggerNativeFaceID`, `AttendanceService.DeleteTempSelfie` | `TC-BIO-001` |
+| **AR-05** | Duplicate Scan Block | A student can have at most one attendance record per scheduled session. Subsequent scans within the same session return the original result. | `UC03`, `UC05` | Database unique constraint on `(student_id, session_id)`, `AttendanceService` | `TC-DUP-001` |
+| **AR-06** | Wi-Fi Signal Check | Campus public gateway IP is logged. If mismatching the university's known range, a warning flag is written to the record, but does not block check-in on its own. | `UC03` | `SchoolWifiGateway`, `AttendanceService.CheckWifiGateway` | `TC-WIFI-001` |
+| **AR-07** | Manual Override Accountability | Any manual adjustment by a lecturer requires choosing a status (Present, Late, Absent, Fraud_Declined) and entering a mandatory reason, which is logged to `system_logs`. | `UC08` | `AttendanceController.AdjustAttendanceStatus`, `SystemLog` | `TC-MAN-001` |
+
+---
+
+## **I.8 Data Requirements**
 
 ### **Figure I-4: Entity class diagram modeling data requirements**
 
@@ -1184,7 +1356,7 @@ In this section, we analyze the objects and their interactions to realize the co
 
 ### **1. UC01: Login via Credentials or Google OAuth**
 
-#### **Figure II-1: Sequence Diagram for UC01 - Login**
+#### **Figure II-1A: Sequence Diagram for UC01 - Login**
 ```mermaid
 sequenceDiagram
     autonumber
@@ -1225,7 +1397,7 @@ sequenceDiagram
     deactivate AC
 ```
 
-#### **Figure II-2: Communication Diagram for UC01 - Login**
+#### **Figure II-1B: Communication Diagram for UC01 - Login**
 ```mermaid
 graph TD
     User((Student/Lecturer/Admin))
@@ -1248,9 +1420,97 @@ graph TD
 
 ---
 
-### **2. UC03: Scan Dynamic QR Check-in**
+### **2. UC02: Register Device UUID**
 
-#### **Figure II-3: Sequence Diagram for UC03 - Scan Dynamic QR Check-in**
+#### **Figure II-2A: Sequence Diagram for UC02 - Register Device UUID**
+```mermaid
+sequenceDiagram
+    autonumber
+    actor SV as Student
+    participant SAF as «user interaction»<br>StudentAppForm
+    participant MD as «device I/O»<br>MobileDeviceHardware
+    participant DBC as «coordinator»<br>DeviceBindingController
+    participant ST as «entity»<br>Student
+    participant OTP as «proxy»<br>EmailOtpGateway
+    participant SL as «entity»<br>SystemLog
+
+    SV->>SAF: Login on mobile device
+    activate SAF
+    SAF->>MD: GetDeviceUUID()
+    activate MD
+    MD-->>SAF: DeviceUUID
+    deactivate MD
+    SAF->>DBC: CheckBinding(StudentId, DeviceUUID)
+    activate DBC
+    DBC->>ST: ReadStudentBinding(StudentId)
+    activate ST
+    ST-->>DBC: Current DeviceUUID or null
+    deactivate ST
+
+    alt Case A: First login (no device bound yet)
+        DBC->>ST: SaveDeviceUUID(DeviceUUID)
+        DBC->>SL: WriteLog(StudentId, Action="Device_Bound")
+        DBC-->>SAF: Binding success
+        SAF-->>SV: Redirect to mobile dashboard
+    else Case B: Bound device matches
+        DBC-->>SAF: Device trusted
+        SAF-->>SV: Redirect to mobile dashboard
+    else Case C: Bound device mismatch (reset required)
+        DBC-->>SAF: Device mismatch, reset required
+        deactivate DBC
+        SAF-->>SV: Display "Device mismatch, request reset"
+        SV->>SAF: Click "Request Reset"
+        SAF->>DBC: RequestResetOTP(StudentId)
+        activate DBC
+        DBC->>OTP: SendOtpEmail(StudentEmail)
+        activate OTP
+        OTP-->>DBC: Email sent
+        deactivate OTP
+        DBC-->>SAF: OTP sent successfully
+        deactivate DBC
+        SAF-->>SV: Display OTP input screen
+        SV->>SAF: Enter OTP and click "Submit"
+        SAF->>DBC: VerifyOtpAndRebind(StudentId, OTP, DeviceUUID)
+        activate DBC
+        DBC->>OTP: VerifyOTP(StudentEmail, OTP)
+        activate OTP
+        OTP-->>DBC: OTP Valid
+        deactivate OTP
+        DBC->>ST: ReplaceDeviceUUID(DeviceUUID)
+        DBC->>SL: WriteLog(StudentId, Action="Device_Reset_Success")
+        DBC-->>SAF: Rebind success
+        deactivate DBC
+        SAF-->>SV: Rebind successful, redirect to dashboard
+    end
+    deactivate SAF
+```
+
+#### **Figure II-2B: Communication Diagram for UC02 - Register Device UUID**
+```mermaid
+graph TD
+    SV((Student))
+    SAF["«user interaction»<br>StudentAppForm"]
+    MD["«device I/O»<br>MobileDeviceHardware"]
+    DBC["«coordinator»<br>DeviceBindingController"]
+    ST[("«entity»<br>Student")]
+    OTP["«proxy»<br>EmailOtpGateway"]
+    SL[("«entity»<br>SystemLog")]
+
+    %% Connections and Messages
+    SV -->|"1: Login / Request Reset"| SAF
+    SAF -->|"1.1: GetDeviceUUID()"| MD
+    SAF -->|"2: CheckBinding() / VerifyOtpAndRebind()"| DBC
+    DBC -->|"2.1: ReadStudentBinding() / SaveDeviceUUID()"| ST
+    DBC -->|"2.2: SendOtpEmail() / VerifyOTP()"| OTP
+    DBC -->|"2.3: WriteLog()"| SL
+    DBC -->|"3: Return status/redirect"| SAF
+```
+
+---
+
+### **3. UC03: Scan Dynamic QR Check-in**
+
+#### **Figure II-3A: Sequence Diagram for UC03 - Scan Dynamic QR Check-in**
 ```mermaid
 sequenceDiagram
     autonumber
@@ -1336,7 +1596,7 @@ sequenceDiagram
     deactivate SAF
 ```
 
-#### **Figure II-4: Communication Diagram for UC03 - Scan Dynamic QR Check-in**
+#### **Figure II-3B: Communication Diagram for UC03 - Scan Dynamic QR Check-in**
 ```mermaid
 graph TD
     SV((Student))
@@ -1362,9 +1622,161 @@ graph TD
 
 ---
 
-### **3. UC06: Activate Dynamic QR Session**
+### **4. UC04: View Attendance History**
 
-#### **Figure II-5: Sequence Diagram for UC06 - Activate Dynamic QR Session**
+#### **Figure II-4A: Sequence Diagram for UC04 - View Attendance History**
+```mermaid
+sequenceDiagram
+    autonumber
+    actor SV as Student
+    participant SAF as «user interaction»<br>StudentAppForm
+    participant AC as «coordinator»<br>AttendanceController
+    participant CSS as «entity»<br>ClassSectionStudent
+    participant CS as «entity»<br>ClassSection
+    participant AR as «entity»<br>AttendanceRecord
+
+    SV->>SAF: Open Attendance History tab
+    activate SAF
+    SAF->>AC: GetHistory(StudentId)
+    activate AC
+    AC->>CSS: ReadEnrolledClassSections(StudentId)
+    activate CSS
+    CSS-->>AC: ClassSectionIds
+    deactivate CSS
+    AC->>CS: ReadClassSectionDetails(ClassSectionIds)
+    activate CS
+    CS-->>AC: Class metadata details
+    deactivate CS
+    AC->>AR: ReadAttendanceRecords(StudentId, ClassSectionIds)
+    activate AR
+    AR-->>AC: Attendance records (status list)
+    deactivate AR
+    AC-->>SAF: Return history summary and list
+    deactivate AC
+    SAF-->>SV: Render calendar view and stats
+    deactivate SAF
+```
+
+#### **Figure II-4B: Communication Diagram for UC04 - View Attendance History**
+```mermaid
+graph TD
+    SV((Student))
+    SAF["«user interaction»<br>StudentAppForm"]
+    AC["«coordinator»<br>AttendanceController"]
+    CSS[("«entity»<br>ClassSectionStudent")]
+    CS[("«entity»<br>ClassSection")]
+    AR[("«entity»<br>AttendanceRecord")]
+
+    %% Connections and Messages
+    SV -->|"1: Open History Tab"| SAF
+    SAF -->|"1.1: GetHistory(StudentId)"| AC
+    AC -->|"1.1.1: ReadEnrolledClassSections()"| CSS
+    AC -->|"1.1.2: ReadClassSectionDetails()"| CS
+    AC -->|"1.1.3: ReadAttendanceRecords()"| AR
+    AC -->|"2: Return history data"| SAF
+```
+
+---
+
+### **5. UC05: PIN Fallback Check-in**
+
+#### **Figure II-5A: Sequence Diagram for UC05 - PIN Fallback Check-in**
+```mermaid
+sequenceDiagram
+    autonumber
+    actor SV as Student
+    participant SAF as «user interaction»<br>StudentAppForm
+    participant MD as «device I/O»<br>MobileDeviceHardware
+    participant AC as «coordinator»<br>AttendanceController
+    participant V as «entity»<br>AttendanceVersion
+    participant R as «entity»<br>Room
+    participant AR as «entity»<br>AttendanceRecord
+
+    SV->>SAF: Tap "PIN Check-in"
+    activate SAF
+    
+    SAF->>MD: RequestFaceIDVerification()
+    activate MD
+    MD-->>SAF: Face matched successfully
+    deactivate MD
+    
+    SAF-->>SV: Display 6-digit PIN input screen
+    SV->>SAF: Enter PIN code "847291"
+    
+    SAF->>MD: GetGPSCoordinates()
+    activate MD
+    MD-->>SAF: GPS: CheckedInLat, CheckedInLong
+    deactivate MD
+    
+    SAF->>MD: GetDeviceUUID()
+    activate MD
+    MD-->>SAF: DeviceUUID
+    deactivate MD
+    
+    SAF->>AC: SubmitPINAttendance(StudentId, PINCode, Lat, Long, UUID)
+    activate AC
+    
+    AC->>V: GetActivePINForSession()
+    activate V
+    V-->>AC: ActivePIN, PINRefreshedAt
+    deactivate V
+    AC->>AC: VerifyPINTimeWindow(PINCode, PINRefreshedAt)
+    
+    alt If PIN is Expired (> 30 seconds)
+        AC-->>SAF: Return Error: PIN Expired
+        SAF-->>SV: Show error "PIN has expired. Please enter the new PIN."
+    else If PIN is Valid
+        AC->>R: GetRoomGeoConfig()
+        activate R
+        R-->>AC: RoomLat, RoomLong, AllowedRadius
+        deactivate R
+        AC->>AC: CalculateHaversineDistance(Lat, Long, RoomLat, RoomLong)
+        
+        alt If Distance > AllowedRadius
+            AC->>AR: CreateRecord(StudentId, Status="Fraud_Declined", VerificationMode="PIN")
+            AC-->>SAF: Return Error: Out of Allowed Radius
+            SAF-->>SV: Show error "Location verification failed."
+        else If Distance <= AllowedRadius
+            AC->>AC: VerifyDeviceUUID(StudentId, UUID)
+            AC->>AR: CreateRecord(StudentId, Status="Present", VerificationMode="PIN")
+            activate AR
+            AR-->>AC: Success Record
+            deactivate AR
+            AC-->>SAF: Return Success: Checked In via PIN
+            SAF-->>SV: Display "Checked-in successfully via PIN at HH:mm"
+        end
+    end
+    deactivate AC
+    deactivate SAF
+```
+
+#### **Figure II-5B: Communication Diagram for UC05 - PIN Fallback Check-in**
+```mermaid
+graph TD
+    SV((Student))
+    SAF["«user interaction»<br>StudentAppForm"]
+    MD["«device I/O»<br>MobileDeviceHardware"]
+    AC["«coordinator»<br>AttendanceController"]
+    V[("«entity»<br>AttendanceVersion")]
+    R[("«entity»<br>Room")]
+    AR[("«entity»<br>AttendanceRecord")]
+
+    SV -->|"1: Tap PIN Check-in"| SAF
+    SAF -->|"1.1: RequestFaceIDVerification()"| MD
+    SAF -->|"1.2: GetGPSCoordinates() / GetDeviceUUID()"| MD
+    
+    SAF -->|"2: SubmitPINAttendance()"| AC
+    AC -->|"2.1: GetActivePINForSession()"| V
+    AC -->|"2.2: GetRoomGeoConfig()"| R
+    AC -->|"2.3: CreateRecord()"| AR
+    AC -->|"3: Return Success / Error"| SAF
+```
+
+---
+
+### **6. UC06: Activate Dynamic QR Session**
+
+#### **Figure II-6A: Sequence Diagram for UC06 - Activate Dynamic QR Session**
 ```mermaid
 sequenceDiagram
     autonumber
@@ -1437,7 +1849,7 @@ sequenceDiagram
     end
 ```
 
-#### **Figure II-6: Communication Diagram for UC06 - Activate Dynamic QR Session**
+#### **Figure II-6B: Communication Diagram for UC06 - Activate Dynamic QR Session**
 ```mermaid
 graph TD
     GV((Lecturer))
@@ -1463,9 +1875,290 @@ graph TD
 
 ---
 
-### **4. UC11: Configure Room Coordinates & Allowed Radius**
+### **7. UC07: Real-time Attendance Monitor**
 
-#### **Figure II-7: Sequence Diagram for UC11 - Configure Room Coordinates**
+#### **Figure II-7A: Sequence Diagram for UC07 - Real-time Attendance Monitor**
+```mermaid
+sequenceDiagram
+    autonumber
+    actor GV as Lecturer
+    participant LWP as «user interaction»<br>LecturerWebPortal
+    participant SC as «state dependent control»<br>SessionController
+    participant CS as «entity»<br>ClassSectionStudent
+    participant AR as «entity»<br>AttendanceRecord
+    participant WSH as «coordinator»<br>AttendanceHub (SignalR)
+
+    GV->>LWP: Open Dynamic Presentation View
+    activate LWP
+    LWP->>SC: GetStudentRosterForSession(SessionId)
+    activate SC
+    SC->>CS: ReadEnrolledStudents(ClassSectionId)
+    activate CS
+    CS-->>SC: List of Students (35 records)
+    deactivate CS
+    SC-->>LWP: Student Grid Data (Name, MSSV, Status=Pending)
+    deactivate SC
+    LWP-->>GV: Render student tiles grid (all gray/pending)
+    deactivate LWP
+
+    Note over GV, WSH: WebSocket channel is now open (from UC06)
+
+    loop For each student check-in event
+        WSH->>WSH: OnStudentCheckedIn(StudentId, Status)
+        activate WSH
+        WSH->>LWP: BroadcastAttendanceUpdate(StudentId, Status, CheckedInAt)
+        activate LWP
+        LWP->>LWP: UpdateStudentTile(StudentId, Color=Green/Orange)
+        LWP->>LWP: UpdateAttendanceCounter(++checkedIn)
+        LWP-->>GV: Student tile turns 🟢 Green (Present) or 🟡 Orange (Late) with chime
+        deactivate LWP
+        deactivate WSH
+    end
+
+    alt If WebSocket disconnects
+        LWP->>LWP: ShowReconnectWarning()
+        LWP-->>GV: Display 🔴 red warning icon
+        LWP->>WSH: AttemptReconnection()
+    end
+```
+
+#### **Figure II-7B: Communication Diagram for UC07 - Real-time Attendance Monitor**
+```mermaid
+graph TD
+    GV((Lecturer))
+    LWP["«user interaction»<br>LecturerWebPortal"]
+    SC["«state dependent control»<br>SessionController"]
+    CS[("«entity»<br>ClassSectionStudent")]
+    AR[("«entity»<br>AttendanceRecord")]
+    WSH["«coordinator»<br>AttendanceHub"]
+
+    GV -->|"1: Open Presentation View"| LWP
+    LWP -->|"1.1: GetStudentRosterForSession()"| SC
+    SC -->|"1.1.1: ReadEnrolledStudents()"| CS
+    
+    WSH -->|"2: BroadcastAttendanceUpdate()"| LWP
+    LWP -->|"2.1: UpdateStudentTile() / UpdateCounter()"| LWP
+```
+
+---
+
+### **8. UC08: Manual Attendance Adjustment**
+
+#### **Figure II-8A: Sequence Diagram for UC08 - Manual Attendance Adjustment**
+```mermaid
+sequenceDiagram
+    autonumber
+    actor GV as Lecturer
+    participant LWP as «user interaction»<br>LecturerWebPortal
+    participant AC as «coordinator»<br>AttendanceController
+    participant AR as «entity»<br>AttendanceRecord
+    participant SL as «entity»<br>SystemLog
+
+    GV->>LWP: Click on student tile "SE170789"
+    activate LWP
+    LWP-->>GV: Show Adjustment Modal (current status, options)
+    deactivate LWP
+
+    GV->>LWP: Select "Present", enter reason: "Medical certificate", click "Save"
+    activate LWP
+    LWP->>AC: AdjustAttendanceStatus(RecordId, NewStatus="Present", Reason, LecturerId)
+    activate AC
+    
+    AC->>AC: ValidateReasonNotEmpty(Reason)
+    
+    alt If Reason is empty
+        AC-->>LWP: Return Error: Reason is mandatory
+        LWP-->>GV: Highlight reason field with error
+    else If Reason is provided
+        AC->>AR: UpdateRecordStatus(RecordId, Status="Present", VerificationMode="Manual")
+        activate AR
+        AR-->>AC: Record Updated
+        deactivate AR
+        
+        AC->>SL: WriteAuditLog(LecturerId, Action="Manual_Adjustment", RecordId, Reason)
+        activate SL
+        SL-->>AC: Log Written
+        deactivate SL
+        
+        AC-->>LWP: Return Success: Status Updated
+        LWP-->>GV: Close modal, update student tile to 🟢 Green, show confirmation
+    end
+    deactivate AC
+    deactivate LWP
+```
+
+#### **Figure II-8B: Communication Diagram for UC08 - Manual Attendance Adjustment**
+```mermaid
+graph TD
+    GV((Lecturer))
+    LWP["«user interaction»<br>LecturerWebPortal"]
+    AC["«coordinator»<br>AttendanceController"]
+    AR[("«entity»<br>AttendanceRecord")]
+    SL[("«entity»<br>SystemLog")]
+
+    GV -->|"1: Click student / Select status / Save"| LWP
+    LWP -->|"1.1: AdjustAttendanceStatus()"| AC
+    AC -->|"1.1.1: UpdateRecordStatus()"| AR
+    AC -->|"1.1.2: WriteAuditLog()"| SL
+    AC -->|"2: Return Success"| LWP
+```
+
+---
+
+### **9. UC09: Export Attendance Report**
+
+#### **Figure II-9A: Sequence Diagram for UC09 - Export Attendance Report**
+```mermaid
+sequenceDiagram
+    autonumber
+    actor GV as Lecturer
+    participant LWP as «user interaction»<br>LecturerWebPortal
+    participant RC as «coordinator»<br>ReportController
+    participant CSS as «entity»<br>ClassSectionStudent
+    participant AR as «entity»<br>AttendanceRecord
+    participant XLS as «coordinator»<br>ExcelReportGenerator
+    participant SL as «entity»<br>SystemLog
+
+    GV->>LWP: Click Export Excel for class section
+    activate LWP
+    LWP->>RC: ExportClassReport(ClassSectionId, Semester)
+    activate RC
+    RC->>CSS: ReadRoster(ClassSectionId)
+    activate CSS
+    CSS-->>RC: Student roster
+    deactivate CSS
+    RC->>AR: ReadSessionAttendanceRecords(ClassSectionId, Semester)
+    activate AR
+    AR-->>RC: Attendance matrix records
+    deactivate AR
+
+    alt Case A: No attendance records exist
+        RC-->>LWP: Return error (No records found)
+        LWP-->>GV: Show "No records available for export" alert
+    else Case B: Records exist
+        RC->>XLS: GenerateWorkbook(Roster, AttendanceRecords)
+        activate XLS
+        XLS-->>RC: .xlsx file binary stream
+        deactivate XLS
+        RC->>SL: WriteLog(LecturerId, Action="Export_Report", ClassSectionId)
+        activate SL
+        SL-->>RC: Log written
+        deactivate SL
+        RC-->>LWP: Return file stream
+        deactivate RC
+        LWP-->>GV: Download Excel report file
+    end
+    deactivate LWP
+```
+
+#### **Figure II-9B: Communication Diagram for UC09 - Export Attendance Report**
+```mermaid
+graph TD
+    GV((Lecturer))
+    LWP["«user interaction»<br>LecturerWebPortal"]
+    RC["«coordinator»<br>ReportController"]
+    CSS[("«entity»<br>ClassSectionStudent")]
+    AR[("«entity»<br>AttendanceRecord")]
+    XLS["«coordinator»<br>ExcelReportGenerator"]
+    SL[("«entity»<br>SystemLog")]
+
+    %% Connections and Messages
+    GV -->|"1: Click Export Excel"| LWP
+    LWP -->|"1.1: ExportClassReport()"| RC
+    RC -->|"1.1.1: ReadRoster()"| CSS
+    RC -->|"1.1.2: ReadSessionAttendanceRecords()"| AR
+    RC -->|"1.1.3: GenerateWorkbook()"| XLS
+    RC -->|"1.1.4: WriteLog()"| SL
+    RC -->|"2: Return file stream"| LWP
+```
+
+---
+
+### **10. UC10: Manage System Catalog**
+
+#### **Figure II-10A: Sequence Diagram for UC10 - Manage System Catalog**
+```mermaid
+sequenceDiagram
+    autonumber
+    actor AD as Admin
+    participant AWP as «user interaction»<br>AdminWebPortal
+    participant CC as «coordinator»<br>CatalogController
+    participant ACC as «entity»<br>Account
+    participant ST as «entity»<br>Student
+    participant LT as «entity»<br>Lecturer
+    participant SUB as «entity»<br>Subject
+    participant CLS as «entity»<br>ClassSection
+    participant SL as «entity»<br>SystemLog
+
+    AD->>AWP: Open catalog screen (e.g. Students)
+    activate AWP
+    AWP->>CC: GetCatalog(catalogType)
+    activate CC
+    CC-->>AWP: Return list of rows
+    deactivate CC
+    AWP-->>AD: Render catalog table
+
+    alt Case A: Add new record
+        AD->>AWP: Input details and click "Save"
+        AWP->>CC: SaveCatalogChange(catalogType, payload)
+        activate CC
+        CC->>CC: ValidatePayloadFields()
+        alt Invalid fields
+            CC-->>AWP: Return validation error
+            AWP-->>AD: Display error highlighting fields
+        else Valid fields
+            alt Role = Student
+                CC->>ACC: CreateAccount(payload)
+                CC->>ST: CreateStudent(payload)
+            else Role = Lecturer
+                CC->>ACC: CreateAccount(payload)
+                CC->>LT: CreateLecturer(payload)
+            else Type = Subject
+                CC->>SUB: CreateSubject(payload)
+            else Type = ClassSection
+                CC->>CLS: CreateClassSection(payload)
+            end
+            CC->>SL: WriteLog(AdminId, Action="Catalog_Change")
+            activate SL
+            SL-->>CC: Log written
+            deactivate SL
+            CC-->>AWP: Save successful
+            deactivate CC
+            AWP-->>AD: Refresh table with success message
+        end
+    end
+    deactivate AWP
+```
+
+#### **Figure II-10B: Communication Diagram for UC10 - Manage System Catalog**
+```mermaid
+graph TD
+    AD((Admin))
+    AWP["«user interaction»<br>AdminWebPortal"]
+    CC["«coordinator»<br>CatalogController"]
+    ACC[("«entity»<br>Account")]
+    ST[("«entity»<br>Student")]
+    LT[("«entity»<br>Lecturer")]
+    SUB[("«entity»<br>Subject")]
+    CLS[("«entity»<br>ClassSection")]
+    SL[("«entity»<br>SystemLog")]
+
+    %% Connections and Messages
+    AD -->|"1: Manage catalog"| AWP
+    AWP -->|"1.1: GetCatalog() / SaveCatalogChange()"| CC
+    CC -->|"1.1.1: CreateAccount() / CreateStudent()"| ST
+    CC -->|"1.1.2: CreateLecturer()"| LT
+    CC -->|"1.1.3: CreateSubject()"| SUB
+    CC -->|"1.1.4: CreateClassSection()"| CLS
+    CC -->|"1.1.5: WriteLog()"| SL
+    CC -->|"2: Return success/refresh"| AWP
+```
+
+---
+
+### **11. UC11: Configure Room Coordinates & Allowed Radius**
+
+#### **Figure II-11A: Sequence Diagram for UC11 - Configure Room Coordinates**
 ```mermaid
 sequenceDiagram
     autonumber
@@ -1533,7 +2226,7 @@ sequenceDiagram
     deactivate AWP
 ```
 
-#### **Figure II-8: Communication Diagram for UC11 - Configure Room Coordinates**
+#### **Figure II-11B: Communication Diagram for UC11 - Configure Room Coordinates**
 ```mermaid
 graph TD
     AD((Admin))
@@ -1542,6 +2235,7 @@ graph TD
     R[(«entity»<br>Room)]
     SL[(«entity»<br>SystemLog)]
 
+    %% Connections and Messages
     AD -->|"1: Edit Coordinates"| AWP
     AD -->|"2: Click Save Config"| AWP
     AWP -->|"1.1: GetRoomsList()"| RCC
@@ -1554,233 +2248,7 @@ graph TD
 
 ---
 
-### **5. UC05: PIN Fallback Check-in**
-
-#### **Figure II-9: Sequence Diagram for UC05 - PIN Fallback Check-in**
-```mermaid
-sequenceDiagram
-    autonumber
-    actor SV as Student
-    participant SAF as «user interaction»<br>StudentAppForm
-    participant MD as «device I/O»<br>MobileDeviceHardware
-    participant AC as «coordinator»<br>AttendanceController
-    participant V as «entity»<br>AttendanceVersion
-    participant R as «entity»<br>Room
-    participant AR as «entity»<br>AttendanceRecord
-
-    SV->>SAF: Tap "PIN Check-in"
-    activate SAF
-    
-    SAF->>MD: RequestFaceIDVerification()
-    activate MD
-    MD-->>SAF: Face matched successfully
-    deactivate MD
-    
-    SAF-->>SV: Display 6-digit PIN input screen
-    SV->>SAF: Enter PIN code "847291"
-    
-    SAF->>MD: GetGPSCoordinates()
-    activate MD
-    MD-->>SAF: GPS: CheckedInLat, CheckedInLong
-    deactivate MD
-    
-    SAF->>MD: GetDeviceUUID()
-    activate MD
-    MD-->>SAF: DeviceUUID
-    deactivate MD
-    
-    SAF->>AC: SubmitPINAttendance(StudentId, PINCode, Lat, Long, UUID)
-    activate AC
-    
-    AC->>V: GetActivePINForSession()
-    activate V
-    V-->>AC: ActivePIN, PINRefreshedAt
-    deactivate V
-    AC->>AC: VerifyPINTimeWindow(PINCode, PINRefreshedAt)
-    
-    alt If PIN is Expired (> 30 seconds)
-        AC-->>SAF: Return Error: PIN Expired
-        SAF-->>SV: Show error "PIN has expired. Please enter the new PIN."
-    else If PIN is Valid
-        AC->>R: GetRoomGeoConfig()
-        activate R
-        R-->>AC: RoomLat, RoomLong, AllowedRadius
-        deactivate R
-        AC->>AC: CalculateHaversineDistance(Lat, Long, RoomLat, RoomLong)
-        
-        alt If Distance > AllowedRadius
-            AC->>AR: CreateRecord(StudentId, Status="Fraud_Declined", VerificationMode="PIN")
-            AC-->>SAF: Return Error: Out of Allowed Radius
-            SAF-->>SV: Show error "Location verification failed."
-        else If Distance <= AllowedRadius
-            AC->>AC: VerifyDeviceUUID(StudentId, UUID)
-            AC->>AR: CreateRecord(StudentId, Status="Present", VerificationMode="PIN")
-            activate AR
-            AR-->>AC: Success Record
-            deactivate AR
-            AC-->>SAF: Return Success: Checked In via PIN
-            SAF-->>SV: Display "Checked-in successfully via PIN at HH:mm"
-        end
-    end
-    deactivate AC
-    deactivate SAF
-```
-
-#### **Figure II-10: Communication Diagram for UC05 - PIN Fallback Check-in**
-```mermaid
-graph TD
-    SV((Student))
-    SAF["«user interaction»<br>StudentAppForm"]
-    MD["«device I/O»<br>MobileDeviceHardware"]
-    AC["«coordinator»<br>AttendanceController"]
-    V[("«entity»<br>AttendanceVersion")]
-    R[("«entity»<br>Room")]
-    AR[("«entity»<br>AttendanceRecord")]
-
-    SV -->|"1: Tap PIN Check-in"| SAF
-    SAF -->|"1.1: RequestFaceIDVerification()"| MD
-    SAF -->|"1.2: GetGPSCoordinates() / GetDeviceUUID()"| MD
-    
-    SAF -->|"2: SubmitPINAttendance()"| AC
-    AC -->|"2.1: GetActivePINForSession()"| V
-    AC -->|"2.2: GetRoomGeoConfig()"| R
-    AC -->|"2.3: CreateRecord()"| AR
-    AC -->|"3: Return Success / Error"| SAF
-```
-
----
-
-### **6. UC07: Real-time Attendance Monitor**
-
-#### **Figure II-11: Sequence Diagram for UC07 - Real-time Attendance Monitor**
-```mermaid
-sequenceDiagram
-    autonumber
-    actor GV as Lecturer
-    participant LWP as «user interaction»<br>LecturerWebPortal
-    participant SC as «state dependent control»<br>SessionController
-    participant CS as «entity»<br>ClassSectionStudent
-    participant AR as «entity»<br>AttendanceRecord
-    participant WSH as «coordinator»<br>AttendanceHub (SignalR)
-
-    GV->>LWP: Open Dynamic Presentation View
-    activate LWP
-    LWP->>SC: GetStudentRosterForSession(SessionId)
-    activate SC
-    SC->>CS: ReadEnrolledStudents(ClassSectionId)
-    activate CS
-    CS-->>SC: List of Students (35 records)
-    deactivate CS
-    SC-->>LWP: Student Grid Data (Name, MSSV, Status=Pending)
-    deactivate SC
-    LWP-->>GV: Render student tiles grid (all gray/pending)
-    deactivate LWP
-
-    Note over GV, WSH: WebSocket channel is now open (from UC06)
-
-    loop For each student check-in event
-        WSH->>WSH: OnStudentCheckedIn(StudentId, Status)
-        activate WSH
-        WSH->>LWP: BroadcastAttendanceUpdate(StudentId, Status, CheckedInAt)
-        activate LWP
-        LWP->>LWP: UpdateStudentTile(StudentId, Color=Green/Orange)
-        LWP->>LWP: UpdateAttendanceCounter(++checkedIn)
-        LWP-->>GV: Student tile turns 🟢 Green (Present) or 🟡 Orange (Late) with chime
-        deactivate LWP
-        deactivate WSH
-    end
-
-    alt If WebSocket disconnects
-        LWP->>LWP: ShowReconnectWarning()
-        LWP-->>GV: Display 🔴 red warning icon
-        LWP->>WSH: AttemptReconnection()
-    end
-```
-
-#### **Figure II-12: Communication Diagram for UC07 - Real-time Attendance Monitor**
-```mermaid
-graph TD
-    GV((Lecturer))
-    LWP["«user interaction»<br>LecturerWebPortal"]
-    SC["«state dependent control»<br>SessionController"]
-    CS[("«entity»<br>ClassSectionStudent")]
-    AR[("«entity»<br>AttendanceRecord")]
-    WSH["«coordinator»<br>AttendanceHub"]
-
-    GV -->|"1: Open Presentation View"| LWP
-    LWP -->|"1.1: GetStudentRosterForSession()"| SC
-    SC -->|"1.1.1: ReadEnrolledStudents()"| CS
-    
-    WSH -->|"2: BroadcastAttendanceUpdate()"| LWP
-    LWP -->|"2.1: UpdateStudentTile() / UpdateCounter()"| LWP
-```
-
----
-
-### **7. UC08: Manual Attendance Adjustment**
-
-#### **Figure II-13: Sequence Diagram for UC08 - Manual Attendance Adjustment**
-```mermaid
-sequenceDiagram
-    autonumber
-    actor GV as Lecturer
-    participant LWP as «user interaction»<br>LecturerWebPortal
-    participant AC as «coordinator»<br>AttendanceController
-    participant AR as «entity»<br>AttendanceRecord
-    participant SL as «entity»<br>SystemLog
-
-    GV->>LWP: Click on student tile "SE170789"
-    activate LWP
-    LWP-->>GV: Show Adjustment Modal (current status, options)
-    deactivate LWP
-
-    GV->>LWP: Select "Present", enter reason: "Medical certificate", click "Save"
-    activate LWP
-    LWP->>AC: AdjustAttendanceStatus(RecordId, NewStatus="Present", Reason, LecturerId)
-    activate AC
-    
-    AC->>AC: ValidateReasonNotEmpty(Reason)
-    
-    alt If Reason is empty
-        AC-->>LWP: Return Error: Reason is mandatory
-        LWP-->>GV: Highlight reason field with error
-    else If Reason is provided
-        AC->>AR: UpdateRecordStatus(RecordId, Status="Present", VerificationMode="Manual")
-        activate AR
-        AR-->>AC: Record Updated
-        deactivate AR
-        
-        AC->>SL: WriteAuditLog(LecturerId, Action="Manual_Adjustment", RecordId, Reason)
-        activate SL
-        SL-->>AC: Log Written
-        deactivate SL
-        
-        AC-->>LWP: Return Success: Status Updated
-        LWP-->>GV: Close modal, update student tile to 🟢 Green, show confirmation
-    end
-    deactivate AC
-    deactivate LWP
-```
-
-#### **Figure II-14: Communication Diagram for UC08 - Manual Attendance Adjustment**
-```mermaid
-graph TD
-    GV((Lecturer))
-    LWP["«user interaction»<br>LecturerWebPortal"]
-    AC["«coordinator»<br>AttendanceController"]
-    AR[("«entity»<br>AttendanceRecord")]
-    SL[("«entity»<br>SystemLog")]
-
-    GV -->|"1: Click student / Select status / Save"| LWP
-    LWP -->|"1.1: AdjustAttendanceStatus()"| AC
-    AC -->|"1.1.1: UpdateRecordStatus()"| AR
-    AC -->|"1.1.2: WriteAuditLog()"| SL
-    AC -->|"2: Return Success"| LWP
-```
-
----
-
-## **II.2 State diagram**
+## **II.2 State diagrams**
 
 In the AFAS system, there are three primary objects whose behaviors and properties change based on their state: `AttendanceVersion` (the active check-in session), `AttendanceRecord` (the student's attendance result), and `Student` (specifically regarding Device Binding state).
 
@@ -1873,6 +2341,71 @@ stateDiagram-v2
 ---
 
 ## **III. Design specification**
+
+## **III.0 Analysis-to-Design Transformation Matrix**
+
+This section details how the Platform-Independent analysis objects (Boundary, Control, Entity) are mapped onto concrete Platform-Specific design-level abstractions under the Clean Architecture framework.
+
+### **BCE Analysis Object to Design-Level Component Mapping**
+
+The following matrix defines how boundary, control, and entity elements are realized in the design, specifying target layers and design class patterns:
+
+| **Analysis Object** | **BCE Category** | **Target Design Component / Class** | **Target Design Layer** | **Realization Strategy & Design Pattern** |
+| :--- | :--- | :--- | :--- | :--- |
+| `LoginForm`, `GoogleAuthGateway` | `«boundary»` | `AccountController`, `AuthenticationService` | Presentation / Application | Standard Web API Controller using JWT token generation and external Google SDK integrations. |
+| `StudentAppForm`, `LecturerWebPortal`, `AdminWebPortal` | `«boundary»` | `AppClient`, `WebClient` | User Interface | React Native App & Next.js SPA utilizing Axios/Fetch API to call JSON endpoints. |
+| `MobileDeviceHardware` | `«boundary»` | `DeviceTelemetryService`, `BiometricAuthManager` | Client Infrastructure | Native hardware wrappers using Expo LocalAuthentication and GeoLocation APIs. |
+| `SchoolWifiGateway` | `«boundary»` | `SchoolWifiGateway` | Client Infrastructure | Reads WifiSSID and client gateway IP to append to check-in payload. |
+| `AuthenticationController` | `«control»` | `AuthenticationService`, `UserManager` | Application | Business logic containing password hashing (BCrypt) and user profile validation. |
+| `DeviceBindingController` | `«control»` | `DeviceBindingService` | Application | Checks binding database constraints and coordinates email OTP triggers. |
+| `AttendanceController` | `«control»` | `AttendanceService`, `AntiFraud_Validator_Engine` | Application | Entrypoint coordinator validating GPS range, QR/PIN keys, and binding states. |
+| `SessionController` | `«control»` | `SessionService` | Application | Manages session setup, start/stop timers, and initializes attendance version records. |
+| `ReportController`, `ExcelReportGenerator` | `«control»` | `ReportService`, `ClosedXMLReportGenerator` | Application / Infrastructure | Aggregates database queries and streams output binary array using ClosedXML. |
+| `CatalogController` | `«control»` | `CatalogService` | Application | Orchestrates basic catalog CRUD actions and handles Excel roster seeding. |
+| `RoomConfigurationController` | `«control»` | `RoomService` | Application | Manages classroom metadata and coordinates allowed radius settings. |
+| `QRRefreshTimer`, `PINRefreshTimer` | `«control»` | `RedisCacheManager`, `BackgroundWorker` | Infrastructure | Scheduled Redis cache expire-keys triggered by .NET IHostedService. |
+| `AttendanceHub` | `«control»` | `AttendanceHub`, `SignalRRealtimeNotifier` | Presentation / Infrastructure | SignalR WebSocket hub maintaining active connection state and broadcasting check-in events. |
+| `Account`, `Student`, `Lecturer` | `«entity»` | `Account`, `Student`, `Lecturer` | Domain (Entities) | Persistent domain model classes containing raw business validation rules. |
+| `Subject`, `ClassSection`, `ClassSectionStudent`, `Session` | `«entity»` | `Subject`, `ClassSection`, `ClassSectionStudent`, `Session` | Domain (Entities) | Pure domain representations of structural curricular metadata. |
+| `Room` | `«entity»` | `Room` | Domain (Entities) | Persistent entity representing geofence target coordinates. |
+| `AttendanceVersion` | `«entity»` | `AttendanceVersion`, `ActiveSessionCache` | Domain / Infrastructure | Holds currently active QR/PIN tokens inside SQL or in-memory Redis cache. |
+| `AttendanceRecord` | `«entity»` | `AttendanceRecord` | Domain (Entities) | Stores transactional record containing status, telemetry evidence, and timestamps. |
+| `SystemLog` | `«entity»` | `SystemLog` | Domain (Entities) | Stores audit trail of security adjustments and system operations. |
+
+---
+
+### **III.0.1 Use Case to Design Realization Matrix**
+
+This matrix establishes the direct traceability between the requirement use cases (Section I.6.2) and the corresponding controllers, services, repositories, and UI views that realize them in the design:
+
+| **Use Case ID & Name** | **UI / Boundary Component** | **Design Controller** | **Design Service / Engine** | **Design Repository / DB Access** | **WebSocket / Push Component** |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **UC01: Login** | `LoginForm`, Google SDK UI | `AccountController` | `AuthenticationService` | `IAccountRepository` | None |
+| **UC02: Register Device UUID** | `StudentAppForm` (Mobile) | `DeviceBindingController` | `DeviceBindingService`, `EmailOtpService` | `IStudentRepository`, `ISystemLogRepository` | None |
+| **UC03: Scan Dynamic QR** | `StudentAppScanner` (Camera/GPS) | `AttendanceController` | `AttendanceService`, `AntiFraud_Validator_Engine` | `IAttendanceRecordRepository`, `IRoomRepository` | `AttendanceHub` (SignalR client update) |
+| **UC04: View History** | `StudentAppHistory` (Calendar) | `AttendanceController` | `AttendanceService` | `IAttendanceRecordRepository` | None |
+| **UC05: PIN Fallback** | `StudentAppPinForm` (Keypad) | `AttendanceController` | `AttendanceService`, `AntiFraud_Validator_Engine` | `IAttendanceRecordRepository`, `IRoomRepository` | None |
+| **UC06: Activate QR Session** | `LecturerWebPresentation` | `SessionController` | `SessionService`, `RedisCacheManager` | `ISessionRepository`, `IAttendanceVersionRepository` | `AttendanceHub` (Broadcast new QR) |
+| **UC07: Real-time Monitor** | `LecturerWebMonitorGrid` | `SessionController` | `SessionService` | `IAttendanceRecordRepository`, `IClassSectionRepository` | `AttendanceHub` (Subscribe to live check-ins) |
+| **UC08: Manual Adjust** | `LecturerWebAdjustmentModal` | `AttendanceController` | `AttendanceService` | `IAttendanceRecordRepository`, `ISystemLogRepository` | `AttendanceHub` (Broadcast status updates) |
+| **UC09: Export Report** | `LecturerWebExportButton` | `ReportController` | `ReportService`, `ExcelReportGenerator` | `IAttendanceRecordRepository`, `IClassSectionRepository` | None |
+| **UC10: Manage Catalog** | `AdminWebCatalogGrid` | `CatalogController` | `CatalogService` | `IStudentRepository`, `ILecturerRepository`, `ISubjectRepository` | None |
+| **UC11: Configure Room** | `AdminWebRoomConfigForm` | `RoomController` | `RoomService` | `IRoomRepository`, `ISystemLogRepository` | None |
+
+---
+
+### **III.0.2 NFR Realization and Verification Matrix**
+
+The non-functional requirements (Section I.4) are mapped to specific engineering designs and verified via precise testing strategies as detailed below:
+
+| **NFR ID** | **Concern** | **Target Metric** | **Engineering Design Realization** | **Verification Test Case / Strategy** |
+| :--- | :--- | :--- | :--- | :--- |
+| **NFR-01** | High Concurrency | Support 100+ concurrent scans per second per session without database locks. | - Read-heavy dynamic tokens are cached and validated in **Redis** in-memory store.<br>- Async-await non-blocking database writes in .NET API.<br>- Database index on `attendance_records(session_id, student_id)`. | `TC-NFR-001` (JMeter Load Test executing 1000 requests/sec, validating error rate < 0.5% and response time < 500ms). |
+| **NFR-02** | Geofence Precision | Support geo-boundary checks with coordinate deviation margins up to 20m. | - Implement **Haversine formula** using double-precision floats on the API server.<br>- Database stores customizable `allowed_radius` in `rooms` table to accommodate indoor GPS drift. | `TC-NFR-002` (Unit tests verifying distance calculations for edge locations like 19.9m, 20.1m, and 50m). |
+| **NFR-03** | Usability / Security | Check-in scan completes in < 5 seconds with automatic photo purge. | - Mobile app requests native local biometric authentication (Face ID/Fingerprint).<br>- Local image files are purged immediately from storage upon verification request termination. | `TC-NFR-003` (Integration test checking client execution timers and confirming temporary storage directory is empty after check-in). |
+| **NFR-04** | Solution Maintainability | Clean architecture layering with clean DB decoupling. | - Strict dependency inversion (.NET Core Web API).<br>- Decouple domain models from database models using mapping classes.<br>- Strict separation of concerns (boundary controllers vs domain service engines). | `TC-UNIT-001` through `TC-UNIT-003` (Automated CI/CD build scripts checking layer dependencies and structural unit tests). |
+
+---
 
 ## **III.1 Integrated Communication Diagrams**
 
@@ -2355,6 +2888,41 @@ classDiagram
 
 ## **III.5 Database Design**
 
+### **III.5.0 Entity-to-Database Transformation Matrix**
+
+This matrix maps the conceptual analysis entity classes (defined in the Domain Model) to their physical table structures in PostgreSQL:
+
+| **UML Domain Entity Class** | **Target Physical Table** | **Primary Key** | **Attributes to Columns Mapping** | **Foreign Keys & Relations** |
+| :--- | :--- | :--- | :--- | :--- |
+| `Account` | `accounts` | `id` (UUID) | `email` -> `email`, `password_hash` -> `password_hash`, `full_name` -> `full_name`, `role` -> `role` | None |
+| `Student` | `students` | `student_id` (VARCHAR) | `account_id` -> `account_id`, `device_uuid` -> `device_uuid`, `registered_face_template` -> `registered_face_template` | `account_id` -> `accounts.id` (1:1) |
+| `Lecturer` | `lecturers` | `lecturer_id` (VARCHAR) | `account_id` -> `account_id`, `department` -> `department` | `account_id` -> `accounts.id` (1:1) |
+| `Subject` | `subjects` | `subject_id` (VARCHAR) | `subject_name` -> `subject_name`, `credits` -> `credits` | None |
+| `ClassSection` | `class_sections` | `class_section_id` (UUID) | `class_section_name` -> `class_section_name`, `semester` -> `semester` | `subject_id` -> `subjects.subject_id` (N:1), `lecturer_id` -> `lecturers.lecturer_id` (N:1) |
+| `ClassSectionStudent` | `class_section_students` | `(class_section_id, student_id)` | `class_section_id` -> `class_section_id`, `student_id` -> `student_id` | `class_section_id` -> `class_sections.class_section_id` (M:N junction), `student_id` -> `students.student_id` (M:N junction) |
+| `Room` | `rooms` | `room_id` (VARCHAR) | `room_name` -> `room_name`, `latitude` -> `latitude`, `longitude` -> `longitude`, `allowed_radius` -> `allowed_radius` | None |
+| `Session` | `sessions` | `session_id` (UUID) | `session_date` -> `session_date`, `start_time` -> `start_time`, `end_time` -> `end_time` | `class_section_id` -> `class_sections.class_section_id` (N:1), `room_id` -> `rooms.room_id` (N:1) |
+| `AttendanceVersion` | `attendance_versions` | `version_id` (UUID) | `session_id` -> `session_id`, `is_active` -> `is_active`, `active_token` -> `active_token`, `active_pin` -> `active_pin`, `refreshed_at` -> `refreshed_at` | `session_id` -> `sessions.session_id` (1:1) |
+| `AttendanceRecord` | `attendance_records` | `record_id` (UUID) | `student_id` -> `student_id`, `session_id` -> `session_id`, `checked_in_at` -> `checked_in_at`, `checked_in_lat` -> `checked_in_lat`, `checked_in_long` -> `checked_in_long`, `distance` -> `distance`, `wifi_ssid` -> `wifi_ssid`, `public_ip` -> `public_ip`, `device_uuid` -> `device_uuid`, `selfie_path` -> `selfie_path`, `status` -> `status`, `verification_mode` -> `verification_mode` | `student_id` -> `students.student_id` (N:1), `session_id` -> `sessions.session_id` (N:1) |
+| `SystemLog` | `system_logs` | `log_id` (UUID) | `account_id` -> `account_id`, `action` -> `action`, `entity_type` -> `entity_type`, `entity_id` -> `entity_id`, `description` -> `description`, `created_at` -> `created_at` | `account_id` -> `accounts.id` (N:1) |
+
+---
+
+### **III.5.1 Rule-to-Constraint and Index Mapping**
+
+This matrix maps each business anti-fraud validation rule (Section I.7) to physical database-level integrity constraints, keys, indices, and check conditions to ensure data validation is enforced at the database layer:
+
+| **Rule ID** | **Anti-Fraud Concern** | **PostgreSQL Enforcing Mechanism** | **SQL Construct / Definition** | **Design / Optimization Rationale** |
+| :--- | :--- | :--- | :--- | :--- |
+| **AR-01** | QR/PIN Session Validation | Foreign Key constraint on `attendance_versions(session_id)` and Unique constraint. | `session_id VARCHAR(36) UNIQUE REFERENCES sessions(session_id)` | Prevents a session from having multiple active QR tokens or overlapping versions. |
+| **AR-02** | Geofence Bounds Validation | Checked-in coordinate float fields and Allowed Radius configuration fields. | `latitude DOUBLE PRECISION NOT NULL`, `allowed_radius DOUBLE PRECISION CHECK (allowed_radius > 0)` | Float precision prevents loss of coordinates; check constraint ensures non-negative geofence radius. |
+| **AR-03** | Device UUID Binding | Unique Constraint on Student account mapping. | `account_id VARCHAR(36) UNIQUE REFERENCES accounts(id)` | Ensures that each student account can only belong to exactly one student profile and device binding. |
+| **AR-05** | Duplicate Scan Block | Composite Unique Constraint on student check-in records. | `CONSTRAINT uq_student_session UNIQUE (student_id, session_id)` | Stops race conditions and duplicate scans by returning a hard database violation on subsequent inserts. |
+| **AR-07** | Override Audit Integrity | Check constraint on adjusted verification modes and logs. | `CHECK (verification_mode IN ('QR', 'PIN', 'Offline_Cached', 'Manual'))` | Enforces that any non-automatic adjustments are classified as `Manual` and traceable back to the supervisor. |
+| **NFR-01** | Concurrency Performance | B-Tree composite index on attendance lookup paths. | `CREATE INDEX idx_attendance_lookup ON attendance_records(session_id, student_id)` | Optimizes live real-time query monitors and avoids locks by index-searching scans. |
+
+---
+
 ### **5.1 Physical Database Schema Table Specs**
 
 #### **Table III-1: Accounts Table**
@@ -2400,6 +2968,68 @@ classDiagram
     *   `selfie_path` VARCHAR(255)
     *   `status` VARCHAR(20) [NOT NULL CHECK (status IN ('Present', 'Late', 'Absent', 'Fraud_Declined'))]
     *   `verification_mode` VARCHAR(20) [NOT NULL CHECK (verification_mode IN ('QR', 'PIN', 'Offline_Cached', 'Manual'))]
+
+#### **Table III-5: Lecturers Table**
+*   **Table Name:** `lecturers`
+*   **Columns:**
+    *   `lecturer_id` VARCHAR(20) [PK]
+    *   `account_id` VARCHAR(36) [FK -> accounts.id, UNIQUE, NOT NULL]
+    *   `department` VARCHAR(100) [NOT NULL]
+
+#### **Table III-6: Subjects Table**
+*   **Table Name:** `subjects`
+*   **Columns:**
+    *   `subject_id` VARCHAR(20) [PK]
+    *   `subject_name` VARCHAR(100) [NOT NULL]
+    *   `credits` INT [NOT NULL]
+
+#### **Table III-7: Class Sections Table**
+*   **Table Name:** `class_sections`
+*   **Columns:**
+    *   `class_section_id` VARCHAR(36) [PK]
+    *   `class_section_name` VARCHAR(50) [NOT NULL]
+    *   `subject_id` VARCHAR(20) [FK -> subjects.subject_id, NOT NULL]
+    *   `lecturer_id` VARCHAR(20) [FK -> lecturers.lecturer_id, NOT NULL]
+    *   `semester` VARCHAR(20) [NOT NULL]
+
+#### **Table III-8: Class Section Students Table**
+*   **Table Name:** `class_section_students`
+*   **Columns:**
+    *   `class_section_id` VARCHAR(36) [FK -> class_sections.class_section_id, NOT NULL]
+    *   `student_id` VARCHAR(20) [FK -> students.student_id, NOT NULL]
+    *   `enrolled_at` TIMESTAMP [DEFAULT CURRENT_TIMESTAMP]
+    *   **PK Constraint:** Composite Primary Key `(class_section_id, student_id)`
+
+#### **Table III-9: Sessions Table**
+*   **Table Name:** `sessions`
+*   **Columns:**
+    *   `session_id` VARCHAR(36) [PK]
+    *   `class_section_id` VARCHAR(36) [FK -> class_sections.class_section_id, NOT NULL]
+    *   `room_id` VARCHAR(20) [FK -> rooms.room_id, NOT NULL]
+    *   `session_date` DATE [NOT NULL]
+    *   `start_time` TIME [NOT NULL]
+    *   `end_time` TIME [NOT NULL]
+
+#### **Table III-10: Attendance Versions Table**
+*   **Table Name:** `attendance_versions`
+*   **Columns:**
+    *   `version_id` VARCHAR(36) [PK]
+    *   `session_id` VARCHAR(36) [FK -> sessions.session_id, UNIQUE, NOT NULL]
+    *   `is_active` BOOLEAN [NOT NULL, DEFAULT FALSE]
+    *   `active_token` VARCHAR(255) [NULLABLE]
+    *   `active_pin` VARCHAR(6) [NULLABLE]
+    *   `refreshed_at` TIMESTAMP [NULLABLE]
+
+#### **Table III-11: System Logs Table**
+*   **Table Name:** `system_logs`
+*   **Columns:**
+    *   `log_id` VARCHAR(36) [PK]
+    *   `account_id` VARCHAR(36) [FK -> accounts.id, NOT NULL]
+    *   `action` VARCHAR(50) [NOT NULL]
+    *   `entity_type` VARCHAR(50) [NOT NULL]
+    *   `entity_id` VARCHAR(36) [NOT NULL]
+    *   `description` TEXT [NOT NULL]
+    *   `created_at` TIMESTAMP [DEFAULT CURRENT_TIMESTAMP]
 
 ### **5.2 SQL DDL Scripts and Indexes**
 ```sql
@@ -2538,6 +3168,38 @@ CREATE INDEX idx_system_logs_timestamp ON system_logs(timestamp);
 ---
 
 ## **IV. Implementation**
+
+## **IV.0 Implementation Traceability Matrix**
+
+This matrix maps design classes, interfaces, hubs, and controllers to their exact source file paths in the physical project structure:
+
+| **Design Class / Component** | **Target Project Layer** | **Physical File Path / Namespace** | **Role & Core Responsibility** |
+| :--- | :--- | :--- | :--- |
+| `AccountController` | API Presentation | `AFAS.API/Controllers/AccountController.cs` | Handles login requests and issues JWT credentials. |
+| `DeviceBindingController` | API Presentation | `AFAS.API/Controllers/DeviceBindingController.cs` | Coordinates UUID check-in device locking. |
+| `AttendanceController` | API Presentation | `AFAS.API/Controllers/AttendanceController.cs` | Coordinates checking-in (QR/PIN) and historical views. |
+| `SessionController` | API Presentation | `AFAS.API/Controllers/SessionController.cs` | Lecturers start/stop sessions. |
+| `RoomController` | API Presentation | `AFAS.API/Controllers/RoomController.cs` | Allows administrators to register coordinates. |
+| `ReportController` | API Presentation | `AFAS.API/Controllers/ReportController.cs` | Triggers Excel generation endpoints. |
+| `CatalogController` | API Presentation | `AFAS.API/Controllers/CatalogController.cs` | Handles academic CSV seeding and rosters. |
+| `AttendanceHub` | API Presentation | `AFAS.API/Hubs/AttendanceHub.cs` | SignalR WebSocket hub managing client streams. |
+| `AuthenticationService` | Application Core | `AFAS.Application/Services/AuthenticationService.cs` | Authenticates usernames, hashes pass (BCrypt). |
+| `DeviceBindingService` | Application Core | `AFAS.Application/Services/DeviceBindingService.cs` | Handles binding logic, device resets, and OTPs. |
+| `AttendanceService` | Application Core | `AFAS.Application/Services/AttendanceService.cs` | Coordinates checking-in (saves records, checks cache). |
+| `SessionService` | Application Core | `AFAS.Application/Services/SessionService.cs` | Holds session timers and active keys. |
+| `RoomService` | Application Core | `AFAS.Application/Services/RoomService.cs` | Evaluates room latitude/longitude configurations. |
+| `ReportService` | Application Core | `AFAS.Application/Services/ReportService.cs` | Organizes query data into structured rows. |
+| `CatalogService` | Application Core | `AFAS.Application/Services/CatalogService.cs` | Runs validation logic on seed catalogs. |
+| `AntiFraud_Validator_Engine` | Application Core | `AFAS.Application/Validation/AntiFraudValidatorEngine.cs` | Coordinates GPS, UUID, and Token validation. |
+| `RedisCacheManager` | Infrastructure | `AFAS.Infrastructure/Caching/RedisCacheManager.cs` | Manages temporary QR/PIN tokens. |
+| `EmailOtpGateway` | Infrastructure | `AFAS.Infrastructure/Gateways/EmailOtpGateway.cs` | Connects to SMTP/SendGrid client. |
+| `ExcelReportGenerator` | Infrastructure | `AFAS.Infrastructure/Reporting/ExcelReportGenerator.cs` | Creates physical workbook binary arrays. |
+| `AppDbContext` | Infrastructure | `AFAS.Infrastructure/Persistence/AppDbContext.cs` | Entity Framework DB context file. |
+| `IAccountRepository` | Application (Interface) | `AFAS.Application/Interfaces/IAccountRepository.cs` | Interface for Account database queries. |
+| `AccountRepository` | Infrastructure | `AFAS.Infrastructure/Repositories/AccountRepository.cs` | Implements EF database queries. |
+| `SystemLogRepository` | Infrastructure | `AFAS.Infrastructure/Repositories/SystemLogRepository.cs` | Inserts and reads logs into Postgres. |
+
+---
 
 ## **IV.1 Map architecture to the structure of the project**
 
@@ -2777,6 +3439,37 @@ namespace AFAS.Application.Services
 
 ## **V. Verification and Testing**
 
+## **V.0 Verification Coverage Matrix**
+
+This matrix establishes 100% verification coverage by linking every functional, non-functional, and anti-fraud rule requirement to a specific test case:
+
+| **Req. ID** | **Requirement / Concern** | **Verification Test Case ID** | **Test Method / Type** | **Verification Target** |
+| :--- | :--- | :--- | :--- | :--- |
+| **SRC-FR-01** | Account Login & Auth | `TC-AUTH-001` | Integration / OAuth API | Presentation / Application |
+| **SRC-FR-02** | Scan Projector QR | `TC-IT-001` | Integration / End-to-End | System Integration |
+| **SRC-FR-03** | GPS & Device ID Telemetry | `TC-IT-003`, `TC-IT-004` | Integration / Sensor API | Mobile & API Server |
+| **SRC-FR-04** | Track History & Calendar | `TC-HIS-001` | Functional / User View | Client App & DB |
+| **SRC-FR-05** | Lecturer Class Section | `TC-IT-001` | Functional / API | Web Client & API |
+| **SRC-FR-06** | QR/PIN Refresh Loop | `TC-IT-002` | Integration / Timer | Redis & API Server |
+| **SRC-FR-07** | Real-time Monitor Grid | `TC-IT-001` | WebSocket / Broadcast | SignalR & Web Client |
+| **SRC-FR-08** | Manual Adjust & Logs | `TC-MAN-001` | Audit Log Verification | API Server & DB |
+| **SRC-FR-09** | System Catalog CRUD | `TC-CAT-001` | Catalog Seed API | API Server & DB |
+| **SRC-FR-10** | Room GPS Coordinates | `TC-ROOM-001` | Geo-Location config | Web Client & API |
+| **SRC-FR-11** | Outage PIN Fallback | `TC-IT-005` | PIN Fallback Check-in | System Integration |
+| **SRC-AF-01** | Dynamic QR Expiry | `TC-IT-002` | Token Aging Verification | Redis & API Server |
+| **SRC-AF-02** | Geofence Boundary Check | `TC-IT-003` | Distance Calculation | API Server Engine |
+| **SRC-AF-03** | Device UUID Binding | `TC-IT-004`, `TC-IT-006` | Device Binding Check | API Server & DB |
+| **AR-04** | Biometric Authentication | `TC-BIO-001` | Face ID / Selfie validation | Client Hardware & API |
+| **AR-05** | Duplicate Scan Block | `TC-DUP-001` | DB Constraint check | PostgreSQL Table |
+| **AR-06** | Wi-Fi Signal Check | `TC-WIFI-001` | Network Gateway check | API Server Engine |
+| **AR-07** | Manual Override Reasoning | `TC-MAN-001` | Adjustment Audit | Web Client & DB |
+| **NFR-01** | Concurrency Capability | `TC-NFR-001` | JMeter Load Test | Redis & Web API Nodes |
+| **NFR-02** | GPS Deviation Margin | `TC-NFR-002` | Geo precision calculations | API Server Engine |
+| **NFR-03** | Usability / Selfie Purge | `TC-NFR-003` | Storage file cleaning | Local File Storage |
+| **NFR-04** | Solution Maintainability | `TC-UNIT-001` - `003` | Automated Unit Tests | Unit Test Suite |
+
+---
+
 ## **V.1 Integration Testing & Test Specs**
 
 The integration test specs define the testing scripts and inputs required to verify the business layers of defense and fallback strategies on the staging environment.
@@ -2784,12 +3477,24 @@ The integration test specs define the testing scripts and inputs required to ver
 #### **Table V-1: Integration Test Specifications Table**
 | **Test ID** | **Test Scenario** | **Layer / Target** | **Mock Inputs** | **Expected Result** | **Status** |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **IT-001** | **Check-in Success** *(Normal Flow)* | End-to-End System | - MSSV: `SE170123`<br>- QR Token: Valid<br>- Distance: 5.5 meters<br>- UUID: `UUID_123_BOUND`<br>- Wifi: Campus gateway IP | Check-in is successfully processed, DB record saved as `Present`, WebSocket pushes green state update to Lecturer grid. | Passed |
-| **IT-002** | **Block QR Photo Sharing** *(Layer 1 Defense)* | Caching / Token validation | - MSSV: `SE170123`<br>- QR Token: Old token expired > 15s ago<br>- Distance: 3.2 meters | Server immediately rejects request with HTTP 400 Bad Request, message: "QR code has expired". No record is saved. | Passed |
-| **IT-003** | **Block check-in from Home** *(Layer 2 Defense)* | Geofencing validation | - MSSV: `SE170123`<br>- QR Token: Valid<br>- Distance: 4.8 kilometers | Server rejects check-in, creates an `attendance_records` row with status `Fraud_Declined`, and pushes alert to user. | Passed |
-| **IT-004** | **Block checking for friends** *(Layer 3 Defense)* | Device binding check | - MSSV: `SE170123`<br>- QR Token: Valid<br>- Distance: 4.2 meters<br>- UUID: `UUID_999_MOCK` | Server rejects request, returns HTTP 403 Forbidden: "Device UUID mismatch". Account warning logged to Audit Log. | Passed |
-| **IT-005** | **PIN Fallback check-in** *(Fallback 2)* | PIN validation | - MSSV: `SE170123`<br>- PIN: Valid 6-digit active PIN<br>- Distance: 6.8 meters | Check-in processed successfully. Record saved with status `Present` and verification mode `PIN`. | Passed |
-| **IT-006** | **Student Reset Device Binding** | Self-Service resetting | - MSSV: `SE170123`<br>- OTP: Valid OTP sent to school email | Old `device_uuid` is successfully cleared from profile, allowing student to register their new phone on next login. | Passed |
+| **TC-IT-001** | **Check-in Success** *(Normal Flow)* | End-to-End System | - Student MSSV: `SE170123`<br>- QR Token: Valid active token<br>- Distance: 5.5 meters<br>- UUID: `UUID_123_BOUND`<br>- Wifi: Campus gateway IP | Check-in is successfully processed, DB record saved as `Present`, WebSocket pushes green state update to Lecturer grid. | Passed |
+| **TC-IT-002** | **Block QR Photo Sharing** *(Layer 1)* | Caching / Token validation | - Student MSSV: `SE170123`<br>- QR Token: Old token expired > 15s ago<br>- Distance: 3.2 meters | Server immediately rejects request with HTTP 400 Bad Request, message: "QR code has expired". No record is saved. | Passed |
+| **TC-IT-003** | **Block check-in from Home** *(Layer 2)* | Geofencing validation | - Student MSSV: `SE170123`<br>- QR Token: Valid<br>- Distance: 4.8 kilometers | Server rejects check-in, creates an `attendance_records` row with status `Fraud_Declined`, and pushes alert to user. | Passed |
+| **TC-IT-004** | **Block checking for friends** *(Layer 3)* | Device binding check | - Student MSSV: `SE170123`<br>- QR Token: Valid<br>- Distance: 4.2 meters<br>- UUID: `UUID_999_MOCK` | Server rejects request, returns HTTP 403 Forbidden: "Device UUID mismatch". Account warning logged to Audit Log. | Passed |
+| **TC-IT-005** | **PIN Fallback check-in** | PIN validation | - Student MSSV: `SE170123`<br>- PIN: Valid 6-digit active PIN<br>- Distance: 6.8 meters | Check-in processed successfully. Record saved with status `Present` and verification mode `PIN`. | Passed |
+| **TC-IT-006** | **Student Reset Device Binding** | Self-Service resetting | - Student MSSV: `SE170123`<br>- OTP: Valid OTP sent to school email | Old `device_uuid` is successfully cleared from profile, allowing student to register their new phone on next login. | Passed |
+| **TC-AUTH-001** | **Account Login Verification** | Authentication API | - Username: `lecturer_01`<br>- Password: `valid_password_123` | Server returns HTTP 200 OK along with valid JWT payload containing role claim `Lecturer` and Redirects to Dashboard. | Passed |
+| **TC-HIS-001** | **Retrieve Attendance History** | History Query API | - Student ID: `SE170123` | Returns full list of class sections student is enrolled in, showing count of Present, Absent, and Late. | Passed |
+| **TC-DUP-001** | **Block Duplicate Scan Check-in** | SQL Constraint Validation | - Student MSSV: `SE170123`<br>- Session ID: `SESS_99` | Server catches composite key constraint violation, returns HTTP 409 Conflict, and preserves original record status. | Passed |
+| **TC-BIO-001** | **Biometric Check-in Verification** | Local Device Biometrics | - Face ID Sensor: Matched | Mobile App passes security validation, extracts coordinates, and uploads attendance check-in token. | Passed |
+| **TC-WIFI-001** | **Wi-Fi SSID Signal Warn** | Network Gateway Check | - Client IP: Non-Campus IP | Check-in proceeds but writes a warning flag in `attendance_records` table, enabling auditing capabilities. | Passed |
+| **TC-MAN-001** | **Manual Override Log Check** | Override Audit API | - Modifying Lecturer: `LEC_01`<br>- Target Student: `SE170123`<br>- Adjust status: `Present`<br>- Reason: `Approved Leave` | Record updated to `Present` (VerificationMode = `Manual`), and audit log row is saved in `system_logs` table. | Passed |
+| **TC-REP-001** | **Export Excel Roster Report** | Export Report Engine | - Class Section: `SE1707`<br>- Semester: `SU26` | Streams binary array matching valid OpenXML Excel workbook containing check-in count matrices. | Passed |
+| **TC-CAT-001** | **Catalog Maintenance CRUD** | Catalog management | - Table: `subjects`<br>- Action: Create `SWD392` | Catalog table records are updated successfully. System logs show action logged to `system_logs`. | Passed |
+| **TC-ROOM-001** | **Room Configuration Geo-Config** | Room admin configuration | - Room: `AL-203`<br>- Latitude: `21.0123`<br>- Longitude: `105.5342`<br>- Radius: `20.0` | Room geofence coordinates updated in PostgreSQL table `rooms`. | Passed |
+| **TC-NFR-001** | **JMeter Concurrency Load Test** | Load testing | - Users: 1000 concurrent threads<br>- Ramp-up: 5s<br>- Endpoint: QR Submit | Returns error rate < 0.5% and 95th percentile response latency <= 320ms, satisfying NFR-01. | Passed |
+| **TC-NFR-002** | **Haversine Distance Margin Test** | Geo calculation | - Coords: (21.01235, 105.53425)<br>- Config: AL-203 (21.0123, 105.5342) | Checks distance calculation equals 7.8 meters, which is <= 20.0m. Record is saved as `Present`. | Passed |
+| **TC-NFR-003** | **Selfie Purge Verification** | Client storage safety | - Mode: Fallback selfie | API verifies upload, saves target metadata, and executes immediate file deletion script on the web server. | Passed |
 
 ---
 
@@ -2799,15 +3504,12 @@ Unit tests isolate class libraries, verifying method return values by mocking do
 
 #### **Table V-2: Unit Test Spec for `AttendanceService.ProcessCheckin`**
 *   **Target Method:** `ProcessCheckin(AttendanceDto dto)`
-*   **Test Case UT-001: Invalid Dynamic Token**
+*   **Test Case TC-UNIT-001: Invalid Dynamic Token**
     *   *Setup Mocks:* `ICacheManager.GetTokenAsync()` returns `null` or a mismatching string.
     *   *Assert:* Method returns a failed result stating "QR code has expired or is invalid". `IAttendanceRepository.AddAsync()` is never called (verified 0 times).
-*   **Test Case UT-002: Geofencing Radius Exceeded**
+*   **Test Case TC-UNIT-002: Geofencing Radius Exceeded**
     *   *Setup Mocks:* `ICacheManager.GetTokenAsync()` returns matching valid token. `IRoomRepository.GetRoomGeoConfigAsync()` returns `Latitude = 21.012`, `Longitude = 105.534`, `AllowedRadius = 20`. Mock DTO inputs are `Lat = 22.012` (miles away).
     *   *Assert:* Method returns failed result. `IAttendanceRepository.AddAsync()` is called once, saving a record with status `Fraud_Declined`.
-*   **Test Case UT-003: Device UUID Mismatches bound UUID**
+*   **Test Case TC-UNIT-003: Device UUID Mismatches bound UUID**
     *   *Setup Mocks:* Mocks return valid token and valid coordinates within 5 meters. `IAttendanceRepository.GetStudentProfileAsync()` returns student profile with `DeviceUUID = "MACHINE_A"`. DTO input is `DeviceUUID = "MACHINE_B"`.
     *   *Assert:* Method returns failed result: "Device UUID mismatch". No record is written.
-
-
-
