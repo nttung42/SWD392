@@ -1,4 +1,4 @@
-﻿## **II. Analysis models**
+## **II. Analysis models**
 
 ## **II.0 Static Analysis**
 
@@ -82,11 +82,11 @@ classDiagram
 ```
 
 **Boundary Communication Description:**
-1.  **StudentAppForm (`«user interaction»`):** Provides a minimal mobile interface optimized for NFR **NF-03 (Usability)**. Directly invokes hardware sensors on the mobile device (`MobileDeviceHardware`) via React Native Bridge to collect GPS coordinates, trigger Face ID verification, and activate the QR camera scanner.
-2.  **LecturerWebPortal (`«user interaction»`):** Web portal featuring a large-screen projector QR display with integrated WebSocket channel. The screen automatically updates the student attendance list in real-time without manual page refresh.
-3.  **GoogleAuthGateway (`«proxy»`):** Proxy boundary connecting to Google's OAuth 2.0 service for authenticating `@fpt.edu.vn` email accounts. All three user-facing boundaries delegate authentication through this shared proxy.
-4.  **SchoolWifiGateway (`«proxy»`):** Network proxy boundary that sends a hidden request to the campus network infrastructure to retrieve the Public IP address and verify whether the student is physically connected to the university's internal Wi-Fi.
-5.  **MobileDeviceHardware (`«device I/O»`):** Hardware abstraction boundary wrapping the phone's physical sensors: high-precision GPS chip, native biometric reader (Face ID / TouchID), camera module, and device UUID extraction.
+1.  **StudentAppForm (`«user interaction»`):** Provides a minimal mobile interface optimized for NFR **NF-03 (Usability)**. Directly invokes hardware sensors on the mobile device (`MobileDeviceHardware`) via platform-native bridging to collect coordinates, trigger biometric verification, and activate the camera scanner.
+2.  **LecturerWebPortal (`«user interaction»`):** Web portal featuring a large-screen projector display showing validation tokens. The screen automatically updates the student attendance list in real-time.
+3.  **GoogleAuthGateway (`«proxy»`):** Proxy boundary connecting to the school's external email authentication service. All three user-facing boundaries delegate authentication through this shared proxy.
+4.  **SchoolWifiGateway (`«proxy»`):** Network proxy boundary that checks internal network parameters to verify whether the student is connected to the university's internal network.
+5.  **MobileDeviceHardware (`«device I/O»`):** Hardware abstraction boundary wrapping the phone's physical sensors: location tracking, biometric reader, camera module, and unique device identifier extraction.
 
 ---
 
@@ -133,18 +133,16 @@ graph TD
     Timers --> PINRefreshTimer["PINRefreshTimer"]
 
     %% Entity hierarchy
-    Entity --> Data["3.1 Data Abstraction<br>«data abstraction»"]
-    Entity --> DBWrap["3.2 Database Wrapper<br>«database wrapper»"]
-    
-    Data --> StudentEntity["Student"]
-    Data --> LecturerEntity["Lecturer"]
-    Data --> RoomEntity["Room"]
-    Data --> SessionEntity["Session"]
-    Data --> AttendanceRecordEntity["AttendanceRecord"]
-    
-    DBWrap --> StudentRepository["StudentRepository"]
-    DBWrap --> AttendanceRepository["AttendanceRepository"]
-    DBWrap --> RedisCacheManager["RedisCacheManager"]
+    Entity --> StudentEntity["Student"]
+    Entity --> LecturerEntity["Lecturer"]
+    Entity --> RoomEntity["Room"]
+    Entity --> SessionEntity["Session"]
+    Entity --> SubjectEntity["Subject"]
+    Entity --> ClassSectionEntity["ClassSection"]
+    Entity --> ClassSectionStudentEntity["ClassSectionStudent"]
+    Entity --> AttendanceVersionEntity["AttendanceVersion"]
+    Entity --> AttendanceRecordEntity["AttendanceRecord"]
+    Entity --> SystemLogEntity["SystemLog"]
 ```
 
 **Structuring Criteria Description:**
@@ -159,9 +157,8 @@ graph TD
     *   **State-Dependent Objects (`«state dependent control»`):** Objects whose behavior changes based on the current state of an associated entity. Example: `SessionController` manages session lifecycle (`Active`, `Paused`, `Completed`).
     *   **Timer Control Objects (`«timer»`):** Background-running synchronization objects responsible for triggering periodic events. These form the backbone of Anti-Fraud Layer 1. Example: `QRRefreshTimer` triggers a new dynamic QR token every 10 seconds; `PINRefreshTimer` refreshes the PIN every 30 seconds.
 
-3.  **Entity Objects — Structuring by Persistence Responsibility (COMET Split Entity Rule):**
-    *   **Data Abstraction Objects (`«data abstraction»`):** Pure in-memory business model objects encapsulating attributes and domain logic. Located in the Domain layer.
-    *   **Database Wrapper Objects (`«database wrapper»`):** Objects encapsulating physical database access logic (PostgreSQL via EF Core) and high-speed cache management (Redis) to support NFR **NF-01 (Concurrency)** peak-hour load handling. Located in the Infrastructure layer.
+3.  **Entity Objects — Classifying Core Logical Data Entities:**
+    *   Entity objects encapsulate long-term, persistent domain data and associated business rules. In this phase, they represent logical concepts of the problem domain (e.g., Student, Lecturer, Room, Subject, ClassSection, Session, AttendanceVersion, AttendanceRecord, SystemLog) without specifying data-access libraries, physical tables, or caching technologies.
 
 ---
 
@@ -431,8 +428,8 @@ sequenceDiagram
     deactivate ACC
 
     alt If Authentication is Successful
-        AC->>AC: GenerateSecureJWTToken()
-        AC-->>User: Return JWT Token & redirect to Role Dashboard
+        AC->>AC: GenerateSessionToken()
+        AC-->>User: Return Session Token & redirect to Role Dashboard
     else If Authentication Fails (Invalid credentials or non-school email)
         AC-->>User: Display Error "Authentication failed"
     end
@@ -457,7 +454,7 @@ graph TD
     
     AC -->|"2: VerifyAccount()"| ACC
     ACC -->|"2.1: AccountExists()"| AC
-    AC -->|"3: Return JWT / Redirect"| User
+    AC -->|"3: Return Session Token / Redirect"| User
 ```
 
 ---
@@ -867,7 +864,7 @@ sequenceDiagram
     
     SC-->>LWP: Session Activated Successfully
     deactivate SC
-    LWP-->>GV: Open dynamic presentation screen (WebSocket Channel Opened)
+    LWP-->>GV: Open dynamic presentation screen (Real-time Channel Opened)
     deactivate LWP
 
     loop Every 10 Seconds
@@ -875,7 +872,7 @@ sequenceDiagram
         activate SC
         SC->>SC: GenerateNewDynamicToken()
         SC->>V: UpdateDynamicToken(DynamicToken)
-        SC->>LWP: PushNewQRViaWebSocket(DynamicToken)
+        SC->>LWP: PushNewQRToken(DynamicToken)
         LWP-->>GV: Display new QR Code on projector screen
         deactivate SC
     end
@@ -885,7 +882,7 @@ sequenceDiagram
         activate SC
         SC->>SC: GenerateNewPINCode()
         SC->>V: UpdatePINCode(PINCode)
-        SC->>LWP: PushNewPINViaWebSocket(PINCode)
+        SC->>LWP: PushNewPINCode(PINCode)
         LWP-->>GV: Display new 6-digit PIN on projector corner
         deactivate SC
     end
@@ -928,7 +925,7 @@ sequenceDiagram
     participant SC as «state dependent control»<br>SessionController
     participant CS as «entity»<br>ClassSectionStudent
     participant AR as «entity»<br>AttendanceRecord
-    participant WSH as «coordinator»<br>AttendanceHub (SignalR)
+    participant WSH as «coordinator»<br>AttendanceRealtimeHub
 
     GV->>LWP: Open Dynamic Presentation View
     activate LWP
@@ -943,7 +940,7 @@ sequenceDiagram
     LWP-->>GV: Render student tiles grid (all gray/pending)
     deactivate LWP
 
-    Note over GV, WSH: WebSocket channel is now open (from UC06)
+    Note over GV, WSH: Real-time notification channel is now open (from UC06)
 
     loop For each student check-in event
         WSH->>WSH: OnStudentCheckedIn(StudentId, Status)
@@ -957,9 +954,9 @@ sequenceDiagram
         deactivate WSH
     end
 
-    alt If WebSocket disconnects
+    alt If connection disconnects
         LWP->>LWP: ShowReconnectWarning()
-        LWP-->>GV: Display 🔴 red warning icon
+        LWP-->>GV: Display warning
         LWP->>WSH: AttemptReconnection()
     end
 ```
@@ -972,7 +969,7 @@ graph TD
     SC["«state dependent control»<br>SessionController"]
     CS[("«entity»<br>ClassSectionStudent")]
     AR[("«entity»<br>AttendanceRecord")]
-    WSH["«coordinator»<br>AttendanceHub"]
+    WSH["«coordinator»<br>AttendanceRealtimeHub"]
 
     GV -->|"1: Open Presentation View"| LWP
     LWP -->|"1.1: GetStudentRosterForSession()"| SC
@@ -1058,10 +1055,10 @@ sequenceDiagram
     participant RC as «coordinator»<br>ReportController
     participant CSS as «entity»<br>ClassSectionStudent
     participant AR as «entity»<br>AttendanceRecord
-    participant XLS as «coordinator»<br>ExcelReportGenerator
+    participant REP as «coordinator»<br>ReportGenerator
     participant SL as «entity»<br>SystemLog
 
-    GV->>LWP: Click Export Excel for class section
+    GV->>LWP: Click Export Report for class section
     activate LWP
     LWP->>RC: ExportClassReport(ClassSectionId, Semester)
     activate RC
@@ -1078,17 +1075,17 @@ sequenceDiagram
         RC-->>LWP: Return error (No records found)
         LWP-->>GV: Show "No records available for export" alert
     else Case B: Records exist
-        RC->>XLS: GenerateWorkbook(Roster, AttendanceRecords)
-        activate XLS
-        XLS-->>RC: .xlsx file binary stream
-        deactivate XLS
+        RC->>REP: GenerateReport(Roster, AttendanceRecords)
+        activate REP
+        REP-->>RC: Report file stream
+        deactivate REP
         RC->>SL: WriteLog(LecturerId, Action="Export_Report", ClassSectionId)
         activate SL
         SL-->>RC: Log written
         deactivate SL
         RC-->>LWP: Return file stream
         deactivate RC
-        LWP-->>GV: Download Excel report file
+        LWP-->>GV: Download report file
     end
     deactivate LWP
 ```
@@ -1101,15 +1098,15 @@ graph TD
     RC["«coordinator»<br>ReportController"]
     CSS[("«entity»<br>ClassSectionStudent")]
     AR[("«entity»<br>AttendanceRecord")]
-    XLS["«coordinator»<br>ExcelReportGenerator"]
+    REP["«coordinator»<br>ReportGenerator"]
     SL[("«entity»<br>SystemLog")]
 
     %% Connections and Messages
-    GV -->|"1: Click Export Excel"| LWP
+    GV -->|"1: Click Export Report"| LWP
     LWP -->|"1.1: ExportClassReport()"| RC
     RC -->|"1.1.1: ReadRoster()"| CSS
     RC -->|"1.1.2: ReadSessionAttendanceRecords()"| AR
-    RC -->|"1.1.3: GenerateWorkbook()"| XLS
+    RC -->|"1.1.3: GenerateReport()"| REP
     RC -->|"1.1.4: WriteLog()"| SL
     RC -->|"2: Return file stream"| LWP
 ```
@@ -1345,7 +1342,7 @@ stateDiagram-v2
     
     Verifying_Location --> Verifying_Device : GPS Distance < AllowedRadius (Layer 2)
     Verifying_Location --> Failed_Location_Fraud : GPS Distance > AllowedRadius
-    Failed_Location_Fraud --> [*] : Saved as "Fraud_Declined" in DB
+    Failed_Location_Fraud --> [*] : Saved as "Fraud_Declined" in system
     
     Verifying_Device --> Verifying_Biometrics : DeviceUUID matches bound device (Layer 3)
     Verifying_Device --> Failed_Device_Mismatch : DeviceUUID belongs to another student

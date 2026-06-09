@@ -1,4 +1,4 @@
-﻿## **III. Design specification**
+## **III. Design specification**
 
 ## **III.0 Analysis-to-Design Transformation Matrix**
 
@@ -115,13 +115,16 @@ graph TD
 ```
 
 ### **Transition from Analysis-level to Design-level Specification**
-Analysis-level models decompose the problem domain using generic abstractions (`«boundary»`, `«control»`, `«entity»`) without considering technology stacks. In contrast, Design-level models specify the concrete architectural implementation:
+Analysis-level models decompose the problem domain using generic abstractions (`«boundary»`, `«control»`, `«entity»`) without considering technology stacks. During the analysis phase (Phase 2), core data entities (`Student`, `Lecturer`, `Room`, `Subject`, `ClassSection`, `Session`, `AttendanceVersion`, `AttendanceRecord`, `SystemLog`) are kept as pure logical domain entities. 
 
-1.  **Splitting Lớp Thực Thể (Entity Classes):** Every entity class in the analysis model is split into two distinct structures during design:
-    *   **Data Abstraction Class:** Encapsulates the clean business attributes in the Domain layer (e.g., `Product`, `Student`, `AttendanceRecord` C# objects).
-    *   **Database Wrapper Class (Repository Pattern):** Handles persistence logic (CRUD) using the ORM (Entity Framework Core) connected to PostgreSQL. It isolates the Domain layer from raw database access.
-2.  **Introduction of Interfaces & Dependency Injection:** To adhere to the Dependency Inversion Principle (DIP), services communicate via abstract interfaces (`IRoomRepository`, `IAttendanceService`) rather than concrete classes. These dependencies are resolved dynamically via the C# built-in Dependency Injection container.
-3.  **Boundary to Controllers Mapping:** Boundary objects map to WebAPI REST controllers (Presentation layer) or SignalR Hubs for WebSockets, managing JSON serialization, request validation, and HTTP response codes.
+In the design phase (Phase 3), the Platform-Independent Model (PIM) is mapped into the Platform-Specific Model (PSM) and technical architecture:
+
+1.  **Gomaa's Split Entity Rule:** Every conceptual `«entity»` class from the analysis model is split into two distinct classes during design:
+    *   **Data Abstraction Class:** Encapsulates the core business fields and domain rules in the Domain layer (e.g., `Student`, `AttendanceRecord` C# objects).
+    *   **Database Wrapper Class (Repository Pattern):** Handles physical persistence logic (CRUD operations) using the ORM (Entity Framework Core) connected to PostgreSQL in the Infrastructure layer. This shields the Domain layer from database implementation details.
+    *   **Cache Infrastructure Wrapper:** High-speed cache managers (e.g., `RedisCacheManager` implementing `ICacheManager`) are introduced in the Infrastructure layer to handle dynamic QR/PIN validation without hitting the primary database.
+2.  **Introduction of Interfaces & Dependency Injection:** To adhere to the Dependency Inversion Principle (DIP), services communicate via abstract interfaces (e.g. `IRoomRepository`, `IAttendanceService`) rather than concrete classes. These dependencies are resolved dynamically via the built-in Dependency Injection container.
+3.  **Boundary to Controllers Mapping:** Boundary objects from analysis (e.g., forms, portals, gateways) map to concrete WebAPI REST controllers (Presentation layer) or WebSockets SignalR Hubs, managing JSON serialization, request validation, and HTTP response codes.
 
 ---
 

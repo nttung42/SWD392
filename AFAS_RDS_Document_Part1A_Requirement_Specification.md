@@ -1,4 +1,4 @@
-﻿# **Requirement & Design Specification**
+# **Requirement & Design Specification**
 
 ## **Anti-Fraud Attendance System (AFAS)**
 
@@ -264,10 +264,10 @@ classDiagram
 
 | **ID** | **NFR Category** | **Technical Specification (Metric)** | **Practical Implementation Solution** |
 | :--- | :--- | :--- | :--- |
-| **NF-01** | **Concurrency / Performance** | Handle **500 - 1,000 concurrent requests** within 5 minutes at the start of a class. | Use **Redis Cache** in the infrastructure layer to store and validate dynamic QR tokens in RAM instead of hitting the primary PostgreSQL database for every scan. |
-| **NF-02** | **Location Accuracy** | GPS positioning tolerance threshold of **15 - 20 meters**. | Implement dynamic geofence radius config on the server. Apply the **Haversine formula** to calculate distance and add buffer tolerance for indoor hardware GPS deviations. |
-| **NF-03** | **Usability** | Scan response time and authentication result returned in **< 2 seconds**. | Implement **Local Biometric Face ID** authentication on the mobile client (using native APIs) and delete temporary face selfie immediately on the server after matching. |
-| **NF-04** | **Maintainability** | Ensure highly decoupled layers and easy database migration. | Build the application using **Clean Architecture** (Domain, Application, Infrastructure, Presentation) with strict one-way dependency rules and repository pattern. |
+| **NF-01** | **Concurrency / Performance** | Handle **500 - 1,000 concurrent requests** within 5 minutes at the start of a class. | Use a high-performance in-memory cache to validate dynamic check-in tokens instantly, reducing direct queries to the primary database during peak traffic. |
+| **NF-02** | **Location Accuracy** | GPS positioning tolerance threshold of **15 - 20 meters**. | Calculate distance from room coordinates using a spherical geometric formula (e.g. Haversine) and apply an allowed geofence radius to accommodate hardware GPS deviation. |
+| **NF-03** | **Usability** | Scan response time and authentication result returned in **< 2 seconds**. | Implement local biometric authentication on the mobile client and purge any temporary captured validation selfie from the system storage immediately after matching. |
+| **NF-04** | **Maintainability** | Ensure highly decoupled layers and easy database migration. | Structure the system using a modular architecture with clearly separated layers, ensuring business rules are decoupled from external technologies and data access details. |
 
 ## **I.5 Business Process Model**
 
@@ -280,23 +280,23 @@ The following business processes define the end-to-end operational workflows of 
     1.  Lecturer logs in and selects an assigned class section.
     2.  Lecturer clicks "Start Attendance" on the Web Portal.
     3.  System checks scheduled hour window.
-    4.  System initializes `AttendanceVersion` with `IsActive = True`.
-    5.  System starts `QRRefreshTimer` (10s) and `PINRefreshTimer` (30s) background loop in Redis.
-    6.  Projector screen establishes WebSockets channel and displays refreshing QR/PIN.
+    4.  System initializes a new attendance session configuration as active.
+    5.  System starts periodic automatic refreshes of validation tokens (e.g., every 10 seconds for QR tokens and 30 seconds for PIN codes).
+    6.  Projector screen establishes a real-time connection to receive and display the refreshing QR/PIN.
 
 ### **BP-02: Student Check-in and Anti-Fraud Verification**
 *   **Goal:** Student registers presence and system verifies evidence.
 *   **Actors:** Student, Mobile App, Anti-Fraud Server Engine.
 *   **Workflow:**
-    1.  Student opens app and passes local Face ID check.
+    1.  Student opens app and passes local biometric check.
     2.  Student scans dynamic QR (or inputs PIN code).
-    3.  Mobile app automatically extracts Device UUID, GPS coordinates, Wi-Fi SSID, and Public IP.
-    4.  App submits payload to Server.
-    5.  Server performs **Layer 1** verification (QR token matches active Redis token and age < 15s).
-    6.  Server performs **Layer 2** verification (Calculates Haversine distance from GPS to room center <= AllowedRadius).
-    7.  Server performs **Layer 3** verification (Compares submitted UUID to registered UUID).
-    8.  If any check fails, system saves status as `Fraud_Declined` (for distance) or rejects submission.
-    9.  If all checks pass, system saves record as `Present` (or `Late`), purges temporary fallback selfie, and broadcasts update to Lecturer web monitor via SignalR.
+    3.  Mobile app automatically extracts Device identifier, GPS coordinates, Wi-Fi SSID, and Public IP.
+    4.  App submits attendance payload to Server.
+    5.  Server performs **Verification Layer 1** (validates that the submitted token matches the currently active token within a specified age limit).
+    6.  Server performs **Verification Layer 2** (calculates distance from student's location to room coordinates, ensuring it is within the allowed radius).
+    7.  Server performs **Verification Layer 3** (verifies that the student's device identifier matches the registered identifier).
+    8.  If any check fails, system records status as location-deviation flagged (for distance) or rejects submission.
+    9.  If all checks pass, system records status as Present (or Late), deletes any temporary fallback selfie, and broadcasts an immediate update to the lecturer's monitor.
 
 ### **BP-03: Roster Audit and Attendance Adjustment**
 *   **Goal:** Lecturer reviews attendance records, modifies statuses manually, and finalizes.
@@ -304,18 +304,18 @@ The following business processes define the end-to-end operational workflows of 
 *   **Workflow:**
     1.  Lecturer monitors live checking grid updates in real-time.
     2.  Lecturer audits absent/doubtful students physically.
-    3.  Lecturer clicks student tile and changes status to Present/Late/Absent/Fraud_Declined (requires entering a mandatory reason).
-    4.  System saves adjustments, updates verification mode to `Manual`, and logs action in `system_logs`.
-    5.  Lecturer finalizes roster and exports Excel sheet `.xlsx`.
+    3.  Lecturer selects a student and adjusts their status (e.g., Present, Late, Absent, or Location Deviation Flagged) and enters a mandatory reason.
+    4.  System saves adjustments, updates verification mode to indicate manual override, and records the action in the administrative audit log.
+    5.  Lecturer finalizes roster and exports the attendance report spreadsheet.
 
 ### **BP-04: System Configuration and Catalog Maintenance**
 *   **Goal:** Admin seeds database catalog records and sets up room coordinates.
 *   **Actors:** System Admin.
 *   **Workflow:**
     1.  Admin logs in and accesses Admin Web Portal dashboard.
-    2.  Admin manages database catalog tables (accounts, students, lecturers, subjects, class sections) via forms or CSV batch uploads.
+    2.  Admin manages catalog records (accounts, students, lecturers, subjects, class sections) via forms or batch file uploads.
     3.  Admin configures GPS Latitude/Longitude and allowed geofence boundary radius for classroom halls.
-    4.  System updates postgres tables and writes system log logs.
+    4.  System updates the central database catalog and writes an entry to the administrative audit log.
 
 ---
 
@@ -387,13 +387,13 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Primary Actor:** | Student, Lecturer, Admin |
 | **Description:** | Allows any system user to securely authenticate and access their respective portal using either MSSV/Password or Google OAuth (FPT Mail). |
 | **Trigger:** | The user opens the mobile application or visits the web portal. |
-| **Preconditions:** | The user account must exist in the database. |
-| **Postconditions:** | **POST-1 Success:** User is authenticated, a secure token (JWT) is issued, and the user is redirected to their dashboard. <br>**POST-2 Failure:** Authentication fails, access is denied, and no session is created. |
-| **Normal Flow:** | 1. User selects login method: "Credentials" or "Google OAuth".<br>2. **If Credentials:** User inputs MSSV/Username and Password, then submits. (See A2.1)<br>3. **If Google OAuth:** User clicks Google Login, authenticates through Google Gateway, and returns FPT email.<br>4. Server validates credentials against `Accounts` database or verifies the Google OAuth token.<br>5. Server generates a secure JWT token containing the user's role.<br>6. Server redirects user to their corresponding homepage. |
+| **Preconditions:** | The user account must exist in the system. |
+| **Postconditions:** | **POST-1 Success:** User is authenticated, a secure access session is created, and the user is redirected to their dashboard. <br>**POST-2 Failure:** Authentication fails, access is denied, and no session is created. |
+| **Normal Flow:** | 1. User selects login method: "Standard Credentials" or "Google OAuth".<br>2. **If Credentials:** User inputs MSSV/Username and Password, then submits. (See A2.1)<br>3. **If Google OAuth:** User clicks Google Login, authenticates through Google Identity service, and returns their school email.<br>4. System validates credentials against registered account data or verifies the Google authentication token.<br>5. System generates a secure access session token containing the user's role.<br>6. System redirects user to their corresponding homepage. |
 | **Alternative Flows:** | **A2.1 User forgets password:** User selects "Forgot Password", inputs registered email, receives reset link, and updates password. |
-| **Exceptions:** | **E4.1 Invalid credentials:** Server returns an error message: "Invalid username or password".<br>**E4.2 Non-school email:** If Google OAuth returns a non-FPT email (not ending in `@fpt.edu.vn`), server denies login. |
+| **Exceptions:** | **E4.1 Invalid credentials:** System returns an error message: "Invalid username or password".<br>**E4.2 Non-school email:** If Google OAuth returns a non-school email (not ending in `@fpt.edu.vn` or `@fe.edu.vn`), system denies login. |
 | **Priority:** | High |
-| **Business Rules:** | **BR-01:** Passwords must be hashed using `bcrypt` on the server.<br>**BR-02:** Email domain must end with `@fpt.edu.vn` or `@fe.edu.vn` for Google OAuth. |
+| **Business Rules:** | **BR-01:** Passwords must be securely hashed and encrypted on the server.<br>**BR-02:** Email domain must end with `@fpt.edu.vn` or `@fe.edu.vn` for Google authentication. |
 | **Trace:** | Source: `SRC-FR-01`; Feature: `F01`; Business Process: `BP-01`, `BP-02`, `BP-03`, `BP-04`; Anti-Fraud Rule: None; Analysis: `AN-SD-01`, `AN-CD-01`, `LoginForm`, `GoogleAuthGateway`; Design: `AccountController`, `AuthenticationService`; Verification: `TC-AUTH-001`. |
 
 ---
@@ -407,12 +407,12 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Description:** | Binds a student's account to a single unique physical mobile device upon first login to prevent multiple students from using one phone to check in for others. |
 | **Trigger:** | The student logs into the mobile application for the first time or on a new device. |
 | **Preconditions:** | Student is authenticated (UC01) and does not have an active device binding or has requested a device reset. |
-| **Postconditions:** | **POST-1 Success:** Student's `DeviceUUID` is recorded in the `Students` table, linking the account to the phone.<br>**POST-2 Failure:** Device is not linked, and student cannot proceed to scan QR. |
-| **Normal Flow:** | 1. Student logs into the AFAS App on a mobile device.<br>2. App checks if the student's record in `students.device_uuid` is null.<br>3. Since it is null, the App automatically extracts the hardware `DeviceUUID` of the phone.<br>4. App displays a message informing the student that this phone will be registered as their primary check-in device.<br>5. Student confirms the binding.<br>6. Server saves the `DeviceUUID` to the student's profile. |
-| **Alternative Flows:** | **A3.1 Student requests device reset (Self-Service):**<br>1. Student logs in on a new device and is notified that a device is already bound.<br>2. Student clicks "Request Device Reset".<br>3. System sends an OTP code to the student's registered FPT email.<br>4. Student enters the correct OTP on the screen.<br>5. System clears the old `device_uuid`, extracts the new device's UUID, and saves it. |
+| **Postconditions:** | **POST-1 Success:** Student's unique device identifier is recorded, linking the account to the phone.<br>**POST-2 Failure:** Device is not linked, and student cannot proceed to scan QR. |
+| **Normal Flow:** | 1. Student logs into the AFAS App on a mobile device.<br>2. App checks if the student's profile has a registered device identifier.<br>3. Since it is missing, the App automatically extracts the unique hardware identifier of the phone.<br>4. App displays a message informing the student that this phone will be registered as their primary check-in device.<br>5. Student confirms the binding.<br>6. System saves the device identifier to the student's profile. |
+| **Alternative Flows:** | **A3.1 Student requests device reset (Self-Service):**<br>1. Student logs in on a new device and is notified that a device is already bound.<br>2. Student clicks "Request Device Reset".<br>3. System sends an OTP code to the student's registered school email.<br>4. Student enters the correct OTP on the screen.<br>5. System clears the old device binding, extracts the new device's identifier, and saves it. |
 | **Exceptions:** | **E4.1 Invalid OTP:** If the student enters an incorrect OTP 3 times during reset, the reset process is locked for 24 hours. |
 | **Priority:** | High |
-| **Business Rules:** | **BR-01:** One student account can only be linked to one `DeviceUUID` at a time. |
+| **Business Rules:** | **BR-01:** One student account can only be linked to one device identifier at a time. |
 | **Trace:** | Source: `SRC-FR-03`, `SRC-AF-03`; Feature: `F02`; Business Process: `BP-02`; Anti-Fraud Rule: `AR-03`; Analysis: `AN-SD-02`, `AN-CD-02`, `MobileDeviceHardware`, `DeviceBindingState`; Design: `DeviceBindingController`, `DeviceBindingService`; Verification: `TC-IT-006`. |
 
 ---
@@ -423,15 +423,15 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **ID and Name:** | **UC03: Scan Dynamic QR Check-in** |
 | **Created By:** | SWD392 Team |
 | **Primary Actor:** | Student |
-| **Description:** | Student scans the active dynamic QR code on the projector screen, providing device GPS, Device UUID, Wi-Fi IP, and Face ID biometrics to log attendance. |
+| **Description:** | Student scans the active dynamic QR code on the projector screen, providing device GPS, Device identifier, Wi-Fi IP, and Face ID biometrics to log attendance. |
 | **Trigger:** | The student selects "Scan QR" from the dashboard. |
 | **Preconditions:** | - Student is logged in (UC01) and device is bound (UC02).<br>- Dynamic QR session is active (UC06). |
-| **Postconditions:** | **POST-1 Success:** An `AttendanceRecord` is created with status `Present` or `Late`, and the lecturer screen is updated in real-time.<br>**POST-2 Failure:** Check-in is rejected. If geofence is violated, record is saved as `Fraud_Declined`. For other failures (expired token, UUID mismatch, GPS unavailable), the submission is rejected with no attendance record created. |
-| **Normal Flow:** | 1. Student taps "Scan QR Check-in".<br>2. App prompts for local Face ID authentication.<br>3. Student successfully unlocks using Face ID (Local Biometric Reader).<br>4. App displays the camera view.<br>5. Student scans the active QR code on the screen, extracting the `DynamicToken`.<br>6. App silently collects GPS coordinates, Device UUID, Wi-Fi SSID, and Public IP Gateway.<br>7. App packages the payload and sends an HTTPS POST request to `/api/attendance/submit`.<br>8. Server verifies Layer 1 (QR Token is active and under 15s old). (See E8.1)<br>9. Server verifies Layer 2 (calculates Haversine distance < classroom allowed radius). (See E9.1)<br>10. Server verifies Layer 3 (matches Device UUID). (See E10.1)<br>11. Server records Wi-Fi Public IP Gateway as a supporting signal. (See E11.1)<br>12. Server registers status `Present` or `Late` in `attendance_records` and deletes temporary selfie data if any.<br>13. Server pushes a real-time WebSocket update to the Lecturer portal. |
-| **Alternative Flows:** | **A3.1 Face ID fails/not supported:** If local Face ID fails or is not supported by the hardware, the student is prompted to capture a quick selfie image as a fallback proof. The selfie is transmitted to the server, validated, and deleted immediately after verification. |
-| **Exceptions:** | **E8.1 Token Expired:** If QR token is older than 15s, server rejects check-in and returns "QR expired". No attendance record is created.<br>**E9.1 Out of Geofence:** If distance > AllowedRadius, server saves record as `Fraud_Declined` and alerts the user.<br>**E10.1 UUID Mismatch:** If DeviceUUID does not match registered UUID, server rejects check-in and logs a warning to `SystemLogs`. No attendance record is created.<br>**E11.1 Non-campus Wi-Fi:** If Public IP does not match campus gateway, server flags a warning in the record but does not reject the check-in.<br>**E12.1 GPS Unavailable:** If the app cannot obtain GPS coordinates (permission denied or hardware unavailable), the submission is blocked and the student is prompted to enable location services.<br>**E13.1 Duplicate Check-in:** If an `AttendanceRecord` already exists for this student and session, the server returns the existing result without creating a duplicate record. |
+| **Postconditions:** | **POST-1 Success:** An attendance record is created with status `Present` or `Late`, and the lecturer screen is updated in real-time.<br>**POST-2 Failure:** Check-in is rejected. If geofence is violated, the record is saved as location-deviation flagged. For other failures (expired token, device mismatch, location unavailable), the submission is rejected with no attendance record created. |
+| **Normal Flow:** | 1. Student taps "Scan QR Check-in".<br>2. App prompts for local biometric verification.<br>3. Student successfully authenticates using local biometrics.<br>4. App displays the camera view.<br>5. Student scans the active QR code on the screen, extracting the dynamic validation token.<br>6. App silently collects GPS coordinates, the device identifier, Wi-Fi SSID, and public IP gateway.<br>7. App packages the telemetry and submits the check-in request to the server.<br>8. Server verifies Layer 1 (validation token is active and matches the current active time window). (See E8.1)<br>9. Server verifies Layer 2 (calculates distance between student's GPS coordinates and classroom coordinates, ensuring it is within the allowed radius). (See E9.1)<br>10. Server verifies Layer 3 (matches the submitted device identifier with the registered one). (See E10.1)<br>11. Server records the Wi-Fi public IP gateway as a supporting validation signal. (See E11.1)<br>12. Server registers the attendance status as `Present` or `Late` in the system and deletes any temporary selfie data.<br>13. Server pushes a real-time update to the Lecturer portal. |
+| **Alternative Flows:** | **A3.1 Biometrics fail/not supported:** If local biometrics fail or are not supported by the hardware, the student is prompted to capture a face selfie as a fallback proof. The selfie is transmitted to the server, validated, and deleted immediately after verification. |
+| **Exceptions:** | **E8.1 Token Expired:** If the token has expired, the server rejects check-in and returns "QR expired". No attendance record is created.<br>**E9.1 Out of Geofence:** If calculated distance exceeds the allowed radius, server saves the record as location-deviation flagged and alerts the user.<br>**E10.1 Device Mismatch:** If the device identifier does not match the registered identifier, server rejects check-in and logs a security warning. No attendance record is created.<br>**E11.1 Non-campus Wi-Fi:** If the public IP does not match the campus gateway range, server flags a network warning in the record but does not reject the check-in.<br>**E12.1 GPS Unavailable:** If the app cannot obtain GPS coordinates (permission denied or hardware unavailable), the submission is blocked and the student is prompted to enable location services.<br>**E13.1 Duplicate Check-in:** If an attendance record already exists for this student and session, the server returns the existing result without creating a duplicate record. |
 | **Priority:** | High |
-| **Business Rules:** | **BR-01:** Geofence formula must use the Haversine method on the server.<br>**BR-02:** Face selfies captured during check-in must be deleted immediately after verification.<br>**BR-03:** A student is marked `Present` if check-in occurs within 15 minutes of the session start time; `Late` if after that threshold but before session end.<br>**BR-04:** Only one `AttendanceRecord` per student per session is allowed. Duplicate submissions return the existing result. |
+| **Business Rules:** | **BR-01:** Geofence formula must use a spherical geometric method (e.g. Haversine) on the server.<br>**BR-02:** Face selfies captured during fallback check-in must be deleted immediately after verification.<br>**BR-03:** A student is marked `Present` if check-in occurs within 15 minutes of the session start time; `Late` if after that threshold but before session end.<br>**BR-04:** Only one attendance record per student per session is allowed. Duplicate submissions return the existing result. |
 | **Trace:** | Source: `SRC-FR-02`, `SRC-FR-03`, `SRC-AF-01`, `SRC-AF-02`, `SRC-AF-03`; Feature: `F03`; Business Process: `BP-02`; Anti-Fraud Rule: `AR-01`, `AR-02`, `AR-03`, `AR-04`, `AR-05`, `AR-06`; Analysis: `AN-AD-03`, `AN-SD-03`, `AN-CD-03`, `StudentAppForm`; Design: `AttendanceController`, `AttendanceService`, `AntiFraud_Validator_Engine`; Verification: `TC-IT-001`, `TC-IT-002`, `TC-IT-003`, `TC-IT-004`, `TC-DUP-001`, `TC-BIO-001`, `TC-WIFI-001`. |
 
 ---
@@ -446,12 +446,11 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Trigger:** | The student selects the "History" tab from the navigation bar. |
 | **Preconditions:** | Student is authenticated (UC01). |
 | **Postconditions:** | Student views their visual attendance stats. |
-| **Normal Flow:** | 1. Student taps "History" tab.<br>2. App sends a request to `/api/attendance/history` with student's credentials.<br>3. Server retrieves all records from `attendance_records` linked to the student.<br>4. App displays a list of enrolled class sections.<br>5. Student selects a class section.<br>6. App renders a detailed calendar view showing days present (Green), late (Orange), and absent (Red). |
+| **Normal Flow:** | 1. Student taps "History" tab.<br>2. App requests the attendance history from the system.<br>3. System retrieves all records linked to the student.<br>4. App displays a list of enrolled class sections.<br>5. Student selects a class section.<br>6. App renders a detailed calendar view showing days present (Green), late (Orange), and absent (Red). |
 | **Alternative Flows:** | None. |
-| **Exceptions:** | **E3.1 Server offline:** App displays cached historical data from native local storage and shows a connection warning. |
+| **Exceptions:** | **E3.1 Server offline:** App displays cached historical data from local storage and shows a connection warning. |
 | **Priority:** | Medium |
 | **Business Rules:** | None. |
-| **Trace:** | Source: `SRC-FR-08`; Feature: `F10`; Business Process: `BP-03`; Anti-Fraud Rule: None; Analysis: `AN-SD-09`, `AN-CD-09`, `LecturerWebPortal`; Design: `ReportController`, `ExcelReportGenerator`; Verification: `TC-REP-001`. |
 | **Trace:** | Source: `SRC-FR-04`; Feature: `F05`; Business Process: `BP-03`; Anti-Fraud Rule: None; Analysis: `AN-SD-04`, `AN-CD-04`, `StudentAppForm`; Design: `AttendanceController.GetStudentHistory`, `AttendanceService.GetHistory`; Verification: `TC-HIS-001`. |
 
 ---
@@ -465,10 +464,10 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Description:** | Allows students to manually type a 6-digit dynamic PIN code displayed on the screen to check in if their device camera is broken or unable to scan. |
 | **Trigger:** | The student selects the "PIN Check-in" option on the App. |
 | **Preconditions:** | - Student is logged in (UC01).<br>- Dynamic QR/PIN session is active (UC06). |
-| **Postconditions:** | Student is marked present, and a manual PIN log is recorded in DB. |
-| **Normal Flow:** | 1. Student selects "PIN Check-in" on the App.<br>2. App prompts for local Face ID authentication.<br>3. Student successfully unlocks via Face ID.<br>4. App displays an input screen with 6 digit slots.<br>5. Student types the active 6-digit PIN displayed on the corner of the projector screen.<br>6. App silently collects GPS, IP, and Device UUID.<br>7. Server verifies that the PIN code is active (refreshed every 30s) and runs GPS geofencing and UUID matching.<br>8. Server records attendance with status `Present` and verification mode `PIN`. |
+| **Postconditions:** | Student is marked present, and a manual PIN check-in log is recorded. |
+| **Normal Flow:** | 1. Student selects "PIN Check-in" on the App.<br>2. App prompts for local biometric verification.<br>3. Student successfully authenticates via local biometrics.<br>4. App displays an input screen with 6 digit slots.<br>5. Student types the active 6-digit PIN displayed on the corner of the projector screen.<br>6. App silently collects GPS coordinates, public IP, and the device identifier.<br>7. Server verifies that the PIN code is active (refreshed every 30s) and runs GPS geofencing and device matching.<br>8. Server records attendance with status `Present` and verification mode `PIN`. |
 | **Alternative Flows:** | None. |
-| **Exceptions:** | **E7.1 PIN Expired:** If the student enters a PIN that was generated more than 30s ago, server rejects it. No attendance record is created.<br>**E7.2 GPS out of range:** Geofencing checks still apply; if student enters PIN from outside the classroom radius, check-in is saved as `Fraud_Declined`.<br>**E7.3 GPS Unavailable:** If the app cannot obtain GPS coordinates, the submission is blocked and the student is prompted to enable location services.<br>**E7.4 Duplicate Check-in:** If an `AttendanceRecord` already exists for this student and session, the server returns the existing result without creating a duplicate. |
+| **Exceptions:** | **E7.1 PIN Expired:** If the student enters a PIN that has expired, server rejects it. No attendance record is created.<br>**E7.2 GPS out of range:** Geofencing checks still apply; if student enters PIN from outside the classroom radius, check-in is saved as location-deviation flagged.<br>**E7.3 GPS Unavailable:** If the app cannot obtain GPS coordinates, the submission is blocked and the student is prompted to enable location services.<br>**E7.4 Duplicate Check-in:** If an attendance record already exists for this student and session, the server returns the existing result without creating a duplicate. |
 | **Priority:** | High |
 | **Business Rules:** | **BR-01:** The PIN code must automatically expire and refresh every 30 seconds. |
 | **Trace:** | Source: `SRC-FR-11`, `SRC-AF-02`, `SRC-AF-03`; Feature: `F04`; Business Process: `BP-02`; Anti-Fraud Rule: `AR-02`, `AR-03`, `AR-04`, `AR-05`; Analysis: `AN-SD-05`, `AN-CD-05`, `StudentAppForm`; Design: `AttendanceController.SubmitPINAttendance`, `AttendanceService.ProcessPinCheckin`; Verification: `TC-IT-005`. |
@@ -484,12 +483,12 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Description:** | Lecturer starts the attendance session for a class, generating a dynamic QR and PIN displayed on the projector screen for students. |
 | **Trigger:** | The lecturer selects a scheduled session and clicks "Start Attendance". |
 | **Preconditions:** | Lecturer is logged in (UC01) and currently within the scheduled session time window. |
-| **Postconditions:** | **POST-1 Success:** `AttendanceVersion` is activated, WebSocket channel is opened, and dynamic QR begins refreshing.<br>**POST-2 Failure:** Session is not started, and an error is displayed. |
-| **Normal Flow:** | 1. Lecturer navigates to "My Scheduled Classes" on Web Portal.<br>2. System displays assigned classes and scheduled sessions.<br>3. Lecturer selects the current session and clicks "Start Attendance".<br>4. Server validates that the current time is within the session's scheduled window.<br>5. Server sets `AttendanceVersion.is_active = True`.<br>6. Server initiates a background loop generating a unique `DynamicToken` every 10s and a `PINCode` every 30s.<br>7. Web Portal establishes a WebSocket connection and displays the projector view with the dynamic QR, PIN, and real-time attendance table. |
-| **Alternative Flows:** | **A8.1 Lecturer stops session early:** Lecturer clicks "Stop Attendance" before class ends. Server sets `is_active = False` and closes connection. |
+| **Postconditions:** | **POST-1 Success:** Attendance session tracking is activated, and dynamic QR begins refreshing.<br>**POST-2 Failure:** Session is not started, and an error is displayed. |
+| **Normal Flow:** | 1. Lecturer navigates to "My Scheduled Classes" on Web Portal.<br>2. System displays assigned classes and scheduled sessions.<br>3. Lecturer selects the current session and clicks "Start Attendance".<br>4. System validates that the current time is within the session's scheduled window.<br>5. System marks the session's attendance tracking as active.<br>6. System begins generating a unique QR validation token every 10s and a PIN code every 30s.<br>7. Web Portal displays the projector view with the dynamic QR, PIN, and real-time attendance table, establishing a connection to receive updates. |
+| **Alternative Flows:** | **A8.1 Lecturer stops session early:** Lecturer clicks "Stop Attendance" before class ends. System marks the session's attendance tracking as inactive and stops updates. |
 | **Exceptions:** | **E4.1 Outside scheduled hours:** If lecturer tries to start session outside the class time slot, system denies activation. |
 | **Priority:** | High |
-| **Business Rules:** | **BR-01:** Only one `AttendanceVersion` per class session (`SessionId`) can be active (`IsActive = True`) at any given moment. |
+| **Business Rules:** | **BR-01:** Only one attendance session configuration per class session can be active at any given moment. |
 | **Trace:** | Source: `SRC-FR-05`, `SRC-FR-06`, `SRC-AF-01`; Feature: `F07`; Business Process: `BP-01`; Anti-Fraud Rule: `AR-01`; Analysis: `AN-AD-06`, `AN-SD-06`, `AN-CD-06`, `AttendanceVersionState`; Design: `SessionController`, `SessionService`, `QRRefreshTimer`, `PINRefreshTimer`, `RedisCacheManager`; Verification: `TC-IT-002`. |
 
 ---
@@ -502,11 +501,11 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Primary Actor:** | Lecturer |
 | **Description:** | Lecturer monitors the check-in progress on a live grid where student names turn green in real-time as they successfully scan the QR. |
 | **Trigger:** | The lecturer initiates a dynamic QR session (UC06). |
-| **Preconditions:** | Session must be active (`is_active = True`). |
+| **Preconditions:** | Session must be active. |
 | **Postconditions:** | Lecturer has real-time visualization of class attendance. |
-| **Normal Flow:** | 1. Lecturer opens the dynamic presentation view on the projector screen.<br>2. System displays a grid representing all students enrolled in the class section.<br>3. As a student successfully submits their check-in (UC03), Server processes and validates it.<br>4. Server broadcasts a WebSocket event containing the student's ID and status.<br>5. The lecturer's web interface receives the event and instantly changes the student's tile to green (Present) or orange (Late) with a chime sound.<br>6. Attendance count updates dynamically. |
+| **Normal Flow:** | 1. Lecturer opens the dynamic presentation view on the projector screen.<br>2. System displays a grid representing all students enrolled in the class section.<br>3. As a student successfully submits their check-in (UC03), System processes and validates it.<br>4. System sends a real-time notification event containing the student's ID and status.<br>5. The lecturer's web interface receives the event and instantly changes the student's tile to green (Present) or orange (Late) with a chime sound.<br>6. Attendance count updates dynamically. |
 | **Alternative Flows:** | None. |
-| **Exceptions:** | **E5.1 WebSocket Disconnect:** If connection drops, Web Portal displays a red warning icon and attempts to reconnect. |
+| **Exceptions:** | **E5.1 Connection Interrupted:** If the connection drops, Web Portal displays a warning icon and attempts to reconnect. |
 | **Priority:** | High |
 | **Business Rules:** | None. |
 | **Trace:** | Source: `SRC-FR-09`; Feature: `F11`; Business Process: `BP-04`; Anti-Fraud Rule: None; Analysis: `AN-SD-10`, `AN-CD-10`, `AdminWebPortal`; Design: `CatalogController`, `CatalogService`; Verification: `TC-CAT-001`. |
@@ -522,9 +521,9 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Primary Actor:** | Lecturer |
 | **Description:** | Allows the lecturer to manually change a student's check-in status (e.g., overriding a fake GPS fraud flag if there is a hardware error, or marking an absent student manually). |
 | **Trigger:** | Lecturer selects a student name from the list and clicks "Adjust Status". |
-| **Preconditions:** | Lecturer is authenticated (UC01) and an `AttendanceRecord` or session roster exists for the target student and session. |
-| **Postconditions:** | Student status is updated in the database and audit logged. |
-| **Normal Flow:** | 1. Lecturer views the student roster for the active/past session.<br>2. Lecturer clicks on a specific student tile and selects "Adjust Status".<br>3. System displays a modal with status options: `Present`, `Late`, `Absent`, `Fraud_Declined`.<br>4. Lecturer selects the new status and enters a reason (e.g., "GPS device hardware error").<br>5. Lecturer clicks "Save".<br>6. Server updates `AttendanceRecord.status` and `verification_mode = 'Manual'`.<br>7. Server logs the lecturer's action in `SystemLogs`. |
+| **Preconditions:** | Lecturer is authenticated (UC01) and an attendance record or session roster exists for the target student and session. |
+| **Postconditions:** | Student status is updated in the system and logged to the administrative audit log. |
+| **Normal Flow:** | 1. Lecturer views the student roster for the active/past session.<br>2. Lecturer clicks on a specific student tile and selects "Adjust Status".<br>3. System displays a form with status options: `Present`, `Late`, `Absent`, `Fraud_Declined`.<br>4. Lecturer selects the new status and enters a reason (e.g., "GPS device hardware error").<br>5. Lecturer clicks "Save".<br>6. System updates the student's attendance status and notes the verification method as `Manual`.<br>7. System logs the lecturer's action in the administrative audit log. |
 | **Alternative Flows:** | None. |
 | **Exceptions:** | **E5.1 Missing reason:** If the lecturer changes status without inputting a mandatory reason, the system prompts them to write a reason before saving. |
 | **Priority:** | High |
@@ -539,11 +538,11 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **ID and Name:** | **UC09: Export Attendance Report** |
 | **Created By:** | SWD392 Team |
 | **Primary Actor:** | Lecturer |
-| **Description:** | Exports the attendance statistics sheet for a specific class section or semester into an Excel format (.xlsx) for grading and academic records. |
-| **Trigger:** | The lecturer clicks the "Export Excel" button on the class details screen. |
+| **Description:** | Exports the attendance statistics sheet for a specific class section or semester into a spreadsheet format for grading and academic records. |
+| **Trigger:** | The lecturer clicks the "Export Report" button on the class details screen. |
 | **Preconditions:** | Lecturer is logged in (UC01). |
-| **Postconditions:** | Excel file is downloaded to the lecturer's local computer. |
-| **Normal Flow:** | 1. Lecturer navigates to class detail view.<br>2. Lecturer clicks "Export Excel".<br>3. System compiles all session records of that class from `attendance_records` and `class_section_students`.<br>4. System formats the data into a grid containing student info, date of sessions, check-in mode, and aggregate attendance percentage.<br>5. System generates a `.xlsx` spreadsheet download stream.<br>6. Lecturer saves the spreadsheet locally. |
+| **Postconditions:** | Spreadsheet file is downloaded to the lecturer's local computer. |
+| **Normal Flow:** | 1. Lecturer navigates to class detail view.<br>2. Lecturer clicks "Export Report".<br>3. System compiles all session records of that class from the class rosters and student history.<br>4. System formats the data into a grid containing student info, date of sessions, check-in mode, and aggregate attendance percentage.<br>5. System generates a spreadsheet download stream.<br>6. Lecturer saves the spreadsheet file locally. |
 | **Alternative Flows:** | None. |
 | **Exceptions:** | **E3.1 No records exist:** If no attendance sessions have been run for the class, system displays an empty-state message and disables the export button. |
 | **Priority:** | Medium |
@@ -562,9 +561,9 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Description:** | Allows administrative staff to create, update, or delete system raw catalog records: User accounts (Students/Lecturers), Subjects, and Class Sections. |
 | **Trigger:** | Admin clicks on any catalog link in the Admin Portal menu. |
 | **Preconditions:** | Admin is logged in (UC01). |
-| **Postconditions:** | Catalog data is updated in PostgreSQL. |
-| **Normal Flow:** | 1. Admin logs into the Admin Portal.<br>2. Admin clicks on a catalog menu option (e.g., "Students", "Subjects").<br>3. System displays a grid with search/add/edit/delete actions.<br>4. Admin inputs new student details (Student ID, Full Name, Email) and submits.<br>5. Server validates input and writes record to `Accounts` and `Students` tables. |
-| **Alternative Flows:** | **A4.1 Batch Import:** Admin uploads a `.csv` or `.xlsx` spreadsheet containing hundreds of student/subject rows. System parses, runs validation, and performs batch writes to the DB. |
+| **Postconditions:** | Catalog data is updated in the central data store. |
+| **Normal Flow:** | 1. Admin logs into the Admin Portal.<br>2. Admin clicks on a catalog menu option (e.g., "Students", "Subjects").<br>3. System displays a grid with search/add/edit/delete actions.<br>4. Admin inputs new student details (Student ID, Full Name, Email) and submits.<br>5. System validates the input and records the new student information and user profile. |
+| **Alternative Flows:** | **A4.1 Batch Import:** Admin uploads a structured data file (e.g. CSV) containing student/subject rows. System parses the file, runs validation, and performs batch writes to the system database. |
 | **Exceptions:** | **E5.1 Duplicate ID:** If Admin attempts to add a student ID that already exists, system displays a validation error: "ID already exists". |
 | **Priority:** | High |
 | **Business Rules:** | None. |
@@ -582,9 +581,9 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Description:** | Admin configures the exact Latitude, Longitude, and allowed geofence radius for classrooms on campus, which serves as the coordinates source for geofencing. |
 | **Trigger:** | Admin clicks "Room Management" on the dashboard. |
 | **Preconditions:** | Admin is logged in (UC01). |
-| **Postconditions:** | Room geo-coordinates are updated in `Rooms` table. |
-| **Normal Flow:** | 1. Admin navigates to "Room Management".<br>2. System displays all physical classrooms on campus.<br>3. Admin selects a room (e.g., `AL-L402`) and clicks "Configure Geo".<br>4. System opens a configuration form with an integrated satellite map view.<br>5. Admin clicks on the exact classroom center point on the satellite map or manually inputs decimals into the `Latitude` and `Longitude` fields.<br>6. Admin enters the `Allowed Radius` parameter (e.g., 20 meters).<br>7. Admin clicks "Save Configuration".<br>8. Server verifies coordinate bounds, writes values to the `Rooms` table, and logs the administrative action. |
-| **Alternative Flows:** | **A5.1 On-site Mobile Calibration:** Admin visits the room physically on-site, opens the Admin web view on a tablet, and clicks "Capture Current GPS". The tablet's high-precision hardware GPS coordinates are automatically populated. |
+| **Postconditions:** | Room geo-coordinates are updated in the room configurations. |
+| **Normal Flow:** | 1. Admin navigates to "Room Management".<br>2. System displays all physical classrooms on campus.<br>3. Admin selects a room (e.g., `AL-L402`) and clicks "Configure Geo".<br>4. System opens a configuration form with an integrated satellite map view.<br>5. Admin clicks on the exact classroom center point on the satellite map or manually inputs decimals into the `Latitude` and `Longitude` fields.<br>6. Admin enters the `Allowed Radius` parameter (e.g., 20 meters).<br>7. Admin clicks "Save Configuration".<br>8. System verifies coordinate boundaries, updates the room configurations, and logs the administrative action in the audit log. |
+| **Alternative Flows:** | **A5.1 On-site Mobile Calibration:** Admin visits the room physically on-site, opens the Admin web view on a tablet, and clicks "Capture Current GPS". The tablet's coordinates are automatically populated. |
 | **Exceptions:** | **E8.1 Out-of-bounds Coordinates:** If Admin inputs coordinates that are not within the university's bounding box, system prompts a warning to verify the number. |
 | **Priority:** | High |
 | **Business Rules:** | **BR-01:** The default `AllowedRadius` is 20 meters if no value is configured, compensating for normal indoor GPS hardware drift. |
@@ -882,77 +881,77 @@ The entity class diagram (Figure I-4) specifies the domain entities and their re
 
 ### **Table I-12: Data Description (Data dictionary)**
 
-| **Name** | **Data Type** | **Length / Constraint** | **Description** |
-| :--- | :--- | :--- | :--- |
-| **Account** | | | **User accounts credential catalog** |
-| Id | String | 36, PK | Unique account identifier (UUID v4). |
-| Email | String | 100, Unique, Not Null | Registered FPT school email. |
-| PasswordHash | String | 255, Not Null | Securely hashed password using bcrypt. |
-| FullName | String | 100, Not Null | Full display name of the user. |
-| Role | String | 20, Not Null | System role: `Student`, `Lecturer`, `Admin`. |
-| CreatedAt | DateTime | Not Null | Date and time the account was registered. |
-| **Student** | | | **Student profile mapping** |
-| StudentId | String | 20, PK | Unique student roll number (e.g. `SE170123`). |
-| AccountId | String | 36, FK (Account.Id), Unique | Linking 1-1 to credential account. |
-| DeviceUUID | String | 100, Nullable | Device identifier (UUID collected by mobile app) linked to this student account. |
-| RegisteredFaceTemplate | Text | Nullable | Encoded 128-dimensional biometric face vector. |
-| **Lecturer** | | | **Lecturer profile mapping** |
-| LecturerId | String | 20, PK | Assigned school lecturer ID (e.g. `HueCTM`). |
-| AccountId | String | 36, FK (Account.Id), Unique | Linking 1-1 to credential account. |
-| Department | String | 100 | Faculty department name. |
-| **Room** | | | **Classroom geo catalog** |
-| RoomId | String | 20, PK | Physical classroom ID (e.g., `AL-L402`). |
-| RoomName | String | 50, Not Null | Easy-to-read room display name. |
-| Latitude | Double | Not Null | Standard room geographic latitude decimal. |
-| Longitude | Double | Not Null | Standard room geographic longitude decimal. |
-| AllowedRadius | Double | Not Null, Default 20.0 | Maximum allowed check-in geofence radius in meters. |
-| **Subject** | | | **University subject catalog** |
-| SubjectCode | String | 20, PK | Subject code identifier (e.g., `SWD392`). |
-| SubjectName | String | 150, Not Null | Detailed subject name. |
-| Credits | Int | Not Null | Credit value of the course. |
-| **ClassSection** | | | **Assigned course class section** |
-| ClassSectionId | String | 30, PK | Class section code (e.g., `SWD392_SU26_SE1701`). |
-| ClassSectionName | String | 100, Not Null | Friendly class segment name. |
-| SubjectCode | String | 20, FK (Subject.SubjectCode) | Reference subject code. |
-| LecturerId | String | 20, FK (Lecturer.LecturerId) | Lecturer assigned to teach. |
-| Semester | String | 20, Not Null | Academic semester name. |
-| **ClassSectionStudent** | | | **Many-to-Many course class roster map** |
-| ClassSectionId | String | 30, PK, FK | Reference class section ID. |
-| StudentId | String | 20, PK, FK | Enrolled student roll number. |
-| **Session** | | | **Scheduled study session date/time** |
-| SessionId | String | 36, PK | Scheduled session unique ID (UUID v4). |
-| ClassSectionId | String | 30, FK | Belongs to class section code. |
-| RoomId | String | 20, FK | Physical room location of the session. |
-| SessionDate | Date | Not Null | Scheduled calendar date (YYYY-MM-DD). |
-| StartTime | Time | Not Null | Scheduled class start hourly timestamp. |
-| EndTime | Time | Not Null | Scheduled class end hourly timestamp. |
-| **AttendanceVersion** | | | **Dynamic QR/PIN session version** |
-| SessionId | String | 36, PK, FK (Session.SessionId)| Ties 1-1 to the active session. |
-| DynamicToken | String | 255, Nullable | Dynamic active token encrypted inside QR. |
-| QRRefreshedAt | DateTime | Nullable | Exact timestamp the token was refreshed on server. |
-| PINCode | String | 6, Nullable | 6-digit backup fallback validation PIN. |
-| PINRefreshedAt | DateTime | Nullable | Exact timestamp the PIN was last refreshed on server. Used to validate 30s expiry window. |
-| IsActive | Boolean | Not Null, Default False | Active attendance check status flag. |
-| **AttendanceRecord** | | | **Check-in telemetry audit result** |
-| RecordId | String | 36, PK | Unique record ID (UUID v4). |
-| StudentId | String | 20, FK | Referencing checking student. |
-| SessionId | String | 36, FK | Referencing active checking session. |
-| CheckedInAt | DateTime | Not Null | Device submit timestamp. |
-| CheckedInLat | Double | Not Null | Lat GPS telemetry sent by device. |
-| CheckedInLong | Double | Not Null | Long GPS telemetry sent by device. |
-| Distance | Double | Not Null | Haversine calculated distance from classroom center. |
-| WifiSSID | String | 100, Nullable | SSID of Wi-Fi router device was connected to. |
-| PublicIP | String | 45, Nullable | Public IP gateway address during check-in. |
-| DeviceUUID | String | 100, Not Null | Device identifier (UUID collected by mobile app) submitted during check-in. |
-| SelfiePath | String | 255, Nullable | Temporary path to face audit image used as fallback proof. Deleted immediately after server verification; null in normal Face ID flow. |
-| Status | String | 20, Not Null | Final checked status: `Present`, `Late`, `Absent`, `Fraud_Declined`. |
-| VerificationMode | String | 20, Not Null | Selected check-in method: `QR`, `PIN`, `Offline_Cached`, `Manual`. |
-| **SystemLog** | | | **Administrative audit history log** |
-| LogId | Serial | PK | Auto-incrementing log index. |
-| AccountId | String | 36, FK (Account.Id) | Performing staff account ID. |
-| Timestamp | DateTime | Not Null | Audit action precise timestamp. |
-| Action | String | 50, Not Null | Triggered action category (e.g. `Configure_Room`). |
-| Description | String | 255, Not Null | Detailed audit explanation. |
+| **Name (Attribute)** | **Logical Data Type** | **Validation Rules / Business Description** |
+| :--- | :--- | :--- |
+| **Account** | | **User credentials account data** |
+| Id | Text | Unique identifier for the account (UUID format). |
+| Email | Text | Registered school email address. Must end with `@fpt.edu.vn` or `@fe.edu.vn` and be unique. |
+| PasswordHash | Text | Securely hashed credentials of the user for authentication. |
+| FullName | Text | Full display name of the user. |
+| Role | Text | System access role. Must be one of: `Student`, `Lecturer`, `Admin`. |
+| CreatedAt | Date/Time | The date and time when the account was first registered. |
+| **Student** | | **Student profile data** |
+| StudentId | Text | Unique student roll number (e.g. `SE170123`). |
+| AccountId | Text | Links the student profile to their credential account. |
+| DeviceUUID | Text | Unique hardware device identifier bound to the student account (null if unbound). |
+| RegisteredFaceTemplate | Biometric Vector | Encoded biometric face signature for local or fallback verification. |
+| **Lecturer** | | **Lecturer profile data** |
+| LecturerId | Text | Assigned school lecturer ID (e.g. `HueCTM`). |
+| AccountId | Text | Links the lecturer profile to their credential account. |
+| Department | Text | Faculty department name. |
+| **Room** | | **Classroom geographic configurations** |
+| RoomId | Text | Physical classroom identifier (e.g., `AL-L402`). |
+| RoomName | Text | Display name of the room. |
+| Latitude | Decimal | Room geographic latitude coordinate. |
+| Longitude | Decimal | Room geographic longitude coordinate. |
+| AllowedRadius | Decimal | Maximum allowed geofence boundary radius in meters (defaults to 20m). |
+| **Subject** | | **University subject course details** |
+| SubjectCode | Text | Subject code identifier (e.g., `SWD392`). |
+| SubjectName | Text | Detailed course name. |
+| Credits | Number | Credit value of the course (must be greater than 0). |
+| **ClassSection** | | **Assigned course class section** |
+| ClassSectionId | Text | Class section code (e.g., `SWD392_SU26_SE1701`). |
+| ClassSectionName | Text | Friendly segment name of the class. |
+| SubjectCode | Text | Reference subject code. |
+| LecturerId | Text | Reference lecturer teaching this class. |
+| Semester | Text | Academic semester name. |
+| **ClassSectionStudent** | | **Class enrollment roster** |
+| ClassSectionId | Text | Reference class section ID. |
+| StudentId | Text | Enrolled student roll number. |
+| **Session** | | **Scheduled study session date/time** |
+| SessionId | Text | Unique identifier of the class session. |
+| ClassSectionId | Text | Belongs to class section code. |
+| RoomId | Text | Physical room location of the session. |
+| SessionDate | Date | Scheduled calendar date. |
+| StartTime | Time | Scheduled class start hour. |
+| EndTime | Time | Scheduled class end hour. |
+| **AttendanceVersion** | | **Dynamic QR/PIN session version** |
+| SessionId | Text | Ties the version 1-to-1 to a specific class session. |
+| DynamicToken | Text | Dynamic active token encoded inside QR for verification. |
+| QRRefreshedAt | Date/Time | Exact timestamp the token was last refreshed. |
+| PINCode | Text | 6-digit backup fallback verification PIN code. |
+| PINRefreshedAt | Date/Time | Exact timestamp the PIN code was last refreshed (valid for 30s). |
+| IsActive | Boolean | Indicates whether the attendance check session is currently active. |
+| **AttendanceRecord** | | **Check-in telemetry audit records** |
+| RecordId | Text | Unique identifier for the check-in record. |
+| StudentId | Text | Referencing the checked student. |
+| SessionId | Text | Referencing the active checking session. |
+| CheckedInAt | Date/Time | Timestamp when the check-in request was submitted. |
+| CheckedInLat | Decimal | Latitude coordinate telemetry submitted by the mobile device. |
+| CheckedInLong | Decimal | Longitude coordinate telemetry submitted by the mobile device. |
+| Distance | Decimal | Calculated distance from classroom coordinates. |
+| WifiSSID | Text | Wi-Fi network SSID submitted during check-in. |
+| PublicIP | Text | Public IP address gateway captured during check-in. |
+| DeviceUUID | Text | Device identifier submitted during check-in. |
+| SelfiePath | Text | Logical path to the temporary face verification selfie (deleted immediately after verification). |
+| Status | Text | Final checked status: `Present`, `Late`, `Absent`, or `Fraud_Declined`. |
+| VerificationMode | Text | Selected check-in method: `QR`, `PIN`, `Offline_Cached`, or `Manual`. |
+| **SystemLog** | | **Administrative audit history log** |
+| LogId | Text | Unique log entry identifier. |
+| AccountId | Text | Account ID of the user performing the action. |
+| Timestamp | Date/Time | Precise timestamp of the action. |
+| Action | Text | Category of action performed. |
+| Description | Text | Detailed description of the logged action. |
 
 ---
 
