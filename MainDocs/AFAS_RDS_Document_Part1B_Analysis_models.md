@@ -367,12 +367,13 @@ In this section, we analyze the objects and their interactions to realize the co
 #### **Figure II-1A: Sequence Diagram for UC01 - Login**
 ```plantuml
 @startuml
+skinparam style strictuml
 autonumber
 actor User as "Student/Lecturer/Admin"
-participant LGG as "GoogleAuthGateway\n«boundary»"
-participant LAF as "LoginForm\n«boundary»"
-participant AC as "AuthenticationController\n«control»"
-participant ACC as "Account\n«entity»"
+boundary LGG as "GoogleAuthGateway"
+boundary LAF as "LoginForm"
+control AC as "AuthenticationController"
+entity ACC as "Account"
 
 alt Option A: Login via Google OAuth
     User -> LGG : Select "Login via Google OAuth"
@@ -406,6 +407,23 @@ deactivate AC
 @enduml
 ```
 
+##### **Table II-1A: Message Description for UC01 - Login**
+
+| Step (Seq) | Source Object | Target Object | Message Signature | Type | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **1 (Option A)** | `User` | `LGG: GoogleAuthGateway «boundary»` | `Select "Login via Google OAuth"` | Synchronous | User initiates the login process via Google OAuth. |
+| **2** | `LGG: GoogleAuthGateway «boundary»` | `LGG: GoogleAuthGateway «boundary»` | `RedirectToGoogle()` | Self-message | Gateway redirects user browser to Google's sign-in page. |
+| **3** | `LGG: GoogleAuthGateway «boundary»` | `User` | `Google Auth Form displayed` | Return | The Google login screen is presented to the user. |
+| **4** | `User` | `LGG: GoogleAuthGateway «boundary»` | `Authenticate with FPT Email` | Synchronous | User chooses their FPT school email account and enters credentials. |
+| **5** | `LGG: GoogleAuthGateway «boundary»` | `AC: AuthenticationController «control»` | `AuthenticateFPTUser(Email, OAuthToken)` | Synchronous | Google authentication token and email are forwarded to the internal controller. |
+| **1 (Option B)** | `User` | `LAF: LoginForm «boundary»` | `Enter Credentials & Submit` | Synchronous | Alternatively, User enters MSSV and password in the credential fields and submits. |
+| **2** | `LAF: LoginForm «boundary»` | `AC: AuthenticationController «control»` | `AuthenticateCredentials(Username, Password)` | Synchronous | Form inputs are validated on the client and transmitted securely to the controller. |
+| **6** | `AC: AuthenticationController «control»` | `ACC: Account «entity»` | `VerifyAccount(Email/Username)` | Synchronous | Controller queries the Account entity using the provided unique identifier. |
+| **7** | `ACC: Account «entity»` | `AC: AuthenticationController «control»` | `AccountExists(PasswordHash, Role)` | Return | Entity returns account metadata including password hash and user role. |
+| **8** | `AC: AuthenticationController «control»` | `AC: AuthenticationController «control»` | `GenerateSessionToken()` | Self-message | Controller verifies the password hash or OAuth token validity and generates a JWT session token. |
+| **9a** | `AC: AuthenticationController «control»` | `User` | `Return Session Token & Redirect` | Return | Successful Case: Controller returns the generated session token to the client and redirects to the appropriate role-based dashboard. |
+| **9b** | `AC: AuthenticationController «control»` | `User` | `Display Error` | Return | Exception Case: If validation fails, an error message is returned and displayed to the user. |
+
 #### **Figure II-1B: Communication Diagram for UC01 - Login**
 ```plantuml
 @startuml
@@ -427,6 +445,7 @@ AC --> User : 3: Return Session Token / Redirect
 @enduml
 ```
 
+
 ---
 
 ### **2. UC02: Register Device UUID**
@@ -434,14 +453,15 @@ AC --> User : 3: Return Session Token / Redirect
 #### **Figure II-2A: Sequence Diagram for UC02 - Register Device UUID**
 ```plantuml
 @startuml
+skinparam style strictuml
 autonumber
 actor SV as "Student"
-participant SAF as "StudentAppForm\n«user interaction»"
-participant MD as "MobileDeviceHardware\n«device I/O»"
-participant DBC as "DeviceBindingController\n«coordinator»"
-participant ST as "Student\n«entity»"
-participant OTP as "EmailOtpGateway\n«proxy»"
-participant SL as "SystemLog\n«entity»"
+boundary SAF as "StudentAppForm"
+boundary MD as "MobileDeviceHardware"
+control DBC as "DeviceBindingController"
+entity ST as "Student"
+boundary OTP as "EmailOtpGateway"
+entity SL as "SystemLog"
 
 SV -> SAF : Login on mobile device
 activate SAF
@@ -495,6 +515,40 @@ deactivate SAF
 @enduml
 ```
 
+##### **Table II-2A: Message Description for UC02 - Register Device UUID**
+
+| Step (Seq) | Source Object | Target Object | Message Signature | Type | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **1** | `SV: Student` | `SAF: StudentAppForm «boundary»` | `Login on mobile device` | Synchronous | Student opens mobile app and triggers login sequence. |
+| **2** | `SAF: StudentAppForm «boundary»` | `MD: MobileDeviceHardware «boundary»` | `GetDeviceUUID()` | Synchronous | Student app form requests physical UUID from mobile device. |
+| **3** | `MD: MobileDeviceHardware «boundary»` | `SAF: StudentAppForm «boundary»` | `DeviceUUID` | Return | Mobile hardware returns device-specific unique identifier. |
+| **4** | `SAF: StudentAppForm «boundary»` | `DBC: DeviceBindingController «control»` | `CheckBinding(StudentId, DeviceUUID)` | Synchronous | App requests binding check from the backend coordinator. |
+| **5** | `DBC: DeviceBindingController «control»` | `ST: Student «entity»` | `ReadStudentBinding(StudentId)` | Synchronous | Controller checks registered device identifier for student. |
+| **6** | `ST: Student «entity»` | `DBC: DeviceBindingController «control»` | `Current DeviceUUID or null` | Return | Student entity returns existing UUID or null if not yet bound. |
+| **[Case A] 7** | `DBC: DeviceBindingController «control»` | `ST: Student «entity»` | `SaveDeviceUUID(DeviceUUID)` | Synchronous | First login: Controller writes new UUID mapping to Student entity. |
+| **[Case A] 8** | `DBC: DeviceBindingController «control»` | `SL: SystemLog «entity»` | `WriteLog(StudentId, Action="Device_Bound")` | Synchronous | Controller creates audit log entry for device binding. |
+| **[Case A] 9** | `DBC: DeviceBindingController «control»` | `SAF: StudentAppForm «boundary»` | `Binding success` | Return | Controller notifies frontend application that binding succeeded. |
+| **[Case A] 10** | `SAF: StudentAppForm «boundary»` | `SV: Student` | `Redirect to mobile dashboard` | Return | Mobile application redirects user to dashboard. |
+| **[Case B] 7** | `DBC: DeviceBindingController «control»` | `SAF: StudentAppForm «boundary»` | `Device trusted` | Return | Known device: Controller trusts device and returns success status. |
+| **[Case B] 8** | `SAF: StudentAppForm «boundary»` | `SV: Student` | `Redirect to mobile dashboard` | Return | Mobile application redirects user to dashboard. |
+| **[Case C] 7** | `DBC: DeviceBindingController «control»` | `SAF: StudentAppForm «boundary»` | `Device mismatch, reset required` | Return | Different device: Controller returns mismatch exception. |
+| **[Case C] 8** | `SAF: StudentAppForm «boundary»` | `SV: Student` | `Display "Device mismatch, request reset"` | Return | Frontend displays prompt to request device reset via email OTP. |
+| **[Case C] 9** | `SV: Student` | `SAF: StudentAppForm «boundary»` | `Click "Request Reset"` | Synchronous | Student requests a resetting code. |
+| **[Case C] 10** | `SAF: StudentAppForm «boundary»` | `DBC: DeviceBindingController «control»` | `RequestResetOTP(StudentId)` | Synchronous | Application requests OTP generation. |
+| **[Case C] 11** | `DBC: DeviceBindingController «control»` | `OTP: EmailOtpGateway «boundary»` | `SendOtpEmail(StudentEmail)` | Synchronous | Controller commands OTP proxy to send a secure code via email. |
+| **[Case C] 12** | `OTP: EmailOtpGateway «boundary»` | `DBC: DeviceBindingController «control»` | `Email sent` | Return | Proxy confirms email transmission. |
+| **[Case C] 13** | `DBC: DeviceBindingController «control»` | `SAF: StudentAppForm «boundary»` | `OTP sent successfully` | Return | Controller notifies application that OTP has been dispatched. |
+| **[Case C] 14** | `SAF: StudentAppForm «boundary»` | `SV: Student` | `Display OTP input screen` | Return | Frontend renders form for OTP verification. |
+| **[Case C] 15** | `SV: Student` | `SAF: StudentAppForm «boundary»` | `Enter OTP and click "Submit"` | Synchronous | Student submits the OTP code. |
+| **[Case C] 16** | `SAF: StudentAppForm «boundary»` | `DBC: DeviceBindingController «control»` | `VerifyOtpAndRebind(...)` | Synchronous | Application submits verification and registration request. |
+| **[Case C] 17** | `DBC: DeviceBindingController «control»` | `OTP: EmailOtpGateway «boundary»` | `VerifyOTP(StudentEmail, OTP)` | Synchronous | Controller checks OTP token against active tokens in cache/proxy. |
+| **[Case C] 18** | `OTP: EmailOtpGateway «boundary»` | `DBC: DeviceBindingController «control»` | `OTP Valid` | Return | Proxy validates correctness of OTP token. |
+| **[Case C] 19** | `DBC: DeviceBindingController «control»` | `ST: Student «entity»` | `ReplaceDeviceUUID(DeviceUUID)` | Synchronous | Controller replaces student's bound device UUID with the new one. |
+| **[Case C] 20** | `DBC: DeviceBindingController «control»` | `SL: SystemLog «entity»` | `WriteLog(StudentId, Action="Device_Reset_Success")` | Synchronous | Controller creates audit log entry for successful device reset. |
+| **[Case C] 21** | `DBC: DeviceBindingController «control»` | `SAF: StudentAppForm «boundary»` | `Rebind success` | Return | Controller returns verification success to frontend. |
+| **[Case C] 22** | `SAF: StudentAppForm «boundary»` | `SV: Student` | `Rebind successful, redirect to dashboard` | Return | Application confirms success and navigates student to dashboard. |
+
+
 #### **Figure II-2B: Communication Diagram for UC02 - Register Device UUID**
 ```plantuml
 @startuml
@@ -525,14 +579,15 @@ To ensure clarity and handle complex anti-fraud logic without cluttering the dia
 #### **Figure II-3A1: Sequence Diagram for UC03 - Happy Path Scenario**
 ```plantuml
 @startuml
+skinparam style strictuml
 autonumber
 actor Student as "Student"
-participant SAF as "StudentAppForm\n«boundary»"
-participant AC as "AttendanceController\n«control»"
-participant V as "AttendanceVersion\n«entity»"
-participant R as "Room\n«entity»"
-participant ST as "Student\n«entity»"
-participant AR as "AttendanceRecord\n«entity»"
+boundary SAF as "StudentAppForm"
+control AC as "AttendanceController"
+entity V as "AttendanceVersion"
+entity R as "Room"
+entity ST as "Student"
+entity AR as "AttendanceRecord"
 
 Student -> SAF : Tap "Scan QR Check-in"
 activate SAF
@@ -571,11 +626,12 @@ deactivate SAF
 #### **Figure II-3A2: Sequence Diagram for UC03 - Exception Scenario: Token Expired**
 ```plantuml
 @startuml
+skinparam style strictuml
 autonumber
 actor Student as "Student"
-participant SAF as "StudentAppForm\n«boundary»"
-participant AC as "AttendanceController\n«control»"
-participant V as "AttendanceVersion\n«entity»"
+boundary SAF as "StudentAppForm"
+control AC as "AttendanceController"
+entity V as "AttendanceVersion"
 
 Student -> SAF : Scan QR on screen
 activate SAF
@@ -597,13 +653,14 @@ deactivate SAF
 #### **Figure II-3A3: Sequence Diagram for UC03 - Exception Scenario: Location Fraud (Out of Geofence)**
 ```plantuml
 @startuml
+skinparam style strictuml
 autonumber
 actor Student as "Student"
-participant SAF as "StudentAppForm\n«boundary»"
-participant AC as "AttendanceController\n«control»"
-participant V as "AttendanceVersion\n«entity»"
-participant R as "Room\n«entity»"
-participant AR as "AttendanceRecord\n«entity»"
+boundary SAF as "StudentAppForm"
+control AC as "AttendanceController"
+entity V as "AttendanceVersion"
+entity R as "Room"
+entity AR as "AttendanceRecord"
 
 Student -> SAF : Scan QR on screen
 activate SAF
@@ -635,13 +692,14 @@ deactivate SAF
 #### **Figure II-3A4: Sequence Diagram for UC03 - Exception Scenario: Device UUID Mismatch**
 ```plantuml
 @startuml
+skinparam style strictuml
 autonumber
 actor Student as "Student"
-participant SAF as "StudentAppForm\n«boundary»"
-participant AC as "AttendanceController\n«control»"
-participant V as "AttendanceVersion\n«entity»"
-participant R as "Room\n«entity»"
-participant ST as "Student\n«entity»"
+boundary SAF as "StudentAppForm"
+control AC as "AttendanceController"
+entity V as "AttendanceVersion"
+entity R as "Room"
+entity ST as "Student"
 
 Student -> SAF : Scan QR on screen
 activate SAF
@@ -669,6 +727,30 @@ SAF --> Student : Show error "Device UUID mismatch. Attendance must be logged on
 deactivate SAF
 @enduml
 ```
+
+##### **Table II-3A: Message Description for UC03 - Scan Dynamic QR Check-in**
+
+| Step (Seq) | Source Object | Target Object | Message Signature | Type | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **1** | `Student` | `SAF: StudentAppForm «boundary»` | `Tap "Scan QR Check-in"` | Synchronous | Student opens scanner view. App verifies Face ID, gets GPS, Wifi SSID, IP, and scans QR. |
+| **2** | `SAF: StudentAppForm «boundary»` | `AC: AttendanceController «control»` | `SubmitAttendance(...)` | Synchronous | Form submits credentials, scanned QR token, GPS coordinates, Device UUID, SSID, and IP. |
+| **3** | `AC: AttendanceController «control»` | `V: AttendanceVersion «entity»` | `ValidateToken(DynamicToken)` | Synchronous | Controller checks if the scanned dynamic token is valid and active. |
+| **4** | `V: AttendanceVersion «entity»` | `AC: AttendanceController «control»` | `TokenStatus` | Return | Returns token status (`Valid` or `Expired`). |
+| **[Exception A] 5** | `AC: AttendanceController «control»` | `SAF: StudentAppForm «boundary»` | `Result = Failure("QR token expired")` | Return | Exception Case (Token Expired): Controller aborts flow and returns failure result. |
+| **[Exception A] 6** | `SAF: StudentAppForm «boundary»` | `Student` | `Show error "QR code expired..."` | Return | App displays code expiration error screen to the student. |
+| **5 (Happy Flow)** | `AC: AttendanceController «control»` | `R: Room «entity»` | `VerifyProximity(Coordinates)` | Synchronous | Controller verifies student's GPS coordinates against Room's location boundary. |
+| **6** | `R: Room «entity»` | `AC: AttendanceController «control»` | `ProximityResult` | Return | Returns proximity result (within or outside allowed radius). |
+| **[Exception B] 7** | `AC: AttendanceController «control»` | `AR: AttendanceRecord «entity»` | `CreateRecord(..., Status="Fraud_Declined", Mode="QR")` | Synchronous | Exception Case (Location Fraud): Controller writes a declined record to database. |
+| **[Exception B] 8** | `AC: AttendanceController «control»` | `SAF: StudentAppForm «boundary»` | `Result = Failure("Outside geofence")` | Return | Controller returns location failure result to application interface. |
+| **[Exception B] 9** | `SAF: StudentAppForm «boundary»` | `Student` | `Show error "Fail: Outside classroom"` | Return | Frontend notifies student that they are outside the classroom boundary. |
+| **7 (Happy Flow)** | `AC: AttendanceController «control»` | `ST: Student «entity»` | `VerifyDeviceBinding(DeviceUUID)` | Synchronous | Controller checks if the submitted UUID matches the student's bound device. |
+| **8** | `ST: Student «entity»` | `AC: AttendanceController «control»` | `IsMatched` | Return | Returns device verification status (`True` or `False`). |
+| **[Exception C] 9** | `AC: AttendanceController «control»` | `SAF: StudentAppForm «boundary»` | `Result = Failure("Device UUID mismatch")` | Return | Exception Case (Device Mismatch): Controller aborts flow and returns device mismatch failure. |
+| **[Exception C] 10** | `SAF: StudentAppForm «boundary»` | `Student` | `Show error "Device UUID mismatch"` | Return | Frontend displays error that attendance must be logged on bound device. |
+| **9 (Happy Flow)** | `AC: AttendanceController «control»` | `AR: AttendanceRecord «entity»` | `CreateRecord(..., Status="Present", Mode="QR")` | Synchronous | Happy Path: Controller creates and persists a successful attendance record. |
+| **10** | `AR: AttendanceRecord «entity»` | `AC: AttendanceController «control»` | `RecordSaved = True` | Return | Database confirms record creation success. |
+| **11** | `AC: AttendanceController «control»` | `SAF: StudentAppForm «boundary»` | `Result = Success(CheckedInAt)` | Return | Controller returns success payload with timestamp. |
+| **12** | `SAF: StudentAppForm «boundary»` | `Student` | `Display "Checked-in successfully..."` | Return | Frontend shows check-in success confirmation. |
 
 #### **Figure II-3B: Communication Diagram for UC03 - Scan Dynamic QR Check-in**
 ```plantuml
@@ -698,13 +780,14 @@ AC --> SAF : 3: Return Result
 #### **Figure II-4A: Sequence Diagram for UC04 - View Attendance History**
 ```plantuml
 @startuml
+skinparam style strictuml
 autonumber
 actor SV as "Student"
-participant SAF as "StudentAppForm\n«user interaction»"
-participant AC as "AttendanceController\n«coordinator»"
-participant CSS as "ClassSectionStudent\n«entity»"
-participant CS as "ClassSection\n«entity»"
-participant AR as "AttendanceRecord\n«entity»"
+boundary SAF as "StudentAppForm"
+control AC as "AttendanceController"
+entity CSS as "ClassSectionStudent"
+entity CS as "ClassSection"
+entity AR as "AttendanceRecord"
 
 SV -> SAF : Open Attendance History tab
 activate SAF
@@ -728,6 +811,22 @@ SAF --> SV : Render calendar view and stats
 deactivate SAF
 @enduml
 ```
+
+##### **Table II-4A: Message Description for UC04 - View Attendance History**
+
+| Step (Seq) | Source Object | Target Object | Message Signature | Type | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **1** | `SV: Student` | `SAF: StudentAppForm «boundary»` | `Open Attendance History tab` | Synchronous | Student opens the attendance history tab on the mobile app. |
+| **2** | `SAF: StudentAppForm «boundary»` | `AC: AttendanceController «control»` | `GetHistory(StudentId)` | Synchronous | Frontend requests attendance history details for student. |
+| **3** | `AC: AttendanceController «control»` | `CSS: ClassSectionStudent «entity»` | `ReadEnrolledClassSections(StudentId)` | Synchronous | Controller checks academic enrollment records for the student. |
+| **4** | `CSS: ClassSectionStudent «entity»` | `AC: AttendanceController «control»` | `ClassSectionIds` | Return | Returns list of class section identifiers student is enrolled in. |
+| **5** | `AC: AttendanceController «control»` | `CS: ClassSection «entity»` | `ReadClassSectionDetails(ClassSectionIds)` | Synchronous | Controller retrieves course metadata (subject name, scheduler times) for classes. |
+| **6** | `CS: ClassSection «entity»` | `AC: AttendanceController «control»` | `Class metadata details` | Return | Returns metadata details for all queried class sections. |
+| **7** | `AC: AttendanceController «control»` | `AR: AttendanceRecord «entity»` | `ReadAttendanceRecords(StudentId, ClassSectionIds)` | Synchronous | Controller queries historical attendance statuses (Present, Late, Absent, Fraud) for student. |
+| **8** | `AR: AttendanceRecord «entity»` | `AC: AttendanceController «control»` | `Attendance records (status list)` | Return | Database returns list of student's past check-in statuses. |
+| **9** | `AC: AttendanceController «control»` | `SAF: StudentAppForm «boundary»` | `Return history summary and list` | Return | Controller aggregates information and returns a summary DTO to frontend. |
+| **10** | `SAF: StudentAppForm «boundary»` | `SV: Student` | `Render calendar view and stats` | Return | Mobile app renders a clean calendar and summary statistics (e.g. 80% Present). |
+
 
 #### **Figure II-4B: Communication Diagram for UC04 - View Attendance History**
 ```plantuml
@@ -757,14 +856,15 @@ This use case provides a manual fallback when the projector QR scanner cannot be
 #### **Figure II-5A: Sequence Diagram for UC05 - PIN Fallback Check-in (Happy Path Scenario)**
 ```plantuml
 @startuml
+skinparam style strictuml
 autonumber
 actor Student as "Student"
-participant SAF as "StudentAppForm\n«boundary»"
-participant AC as "AttendanceController\n«control»"
-participant V as "AttendanceVersion\n«entity»"
-participant R as "Room\n«entity»"
-participant ST as "Student\n«entity»"
-participant AR as "AttendanceRecord\n«entity»"
+boundary SAF as "StudentAppForm"
+control AC as "AttendanceController"
+entity V as "AttendanceVersion"
+entity R as "Room"
+entity ST as "Student"
+entity AR as "AttendanceRecord"
 
 Student -> SAF : Tap "PIN Check-in"
 activate SAF
@@ -801,6 +901,25 @@ deactivate SAF
 @enduml
 ```
 
+##### **Table II-5A: Message Description for UC05 - PIN Fallback Check-in (Happy Path Scenario)**
+
+| Step (Seq) | Source Object | Target Object | Message Signature | Type | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **1** | `Student` | `SAF: StudentAppForm «boundary»` | `Tap "PIN Check-in"` | Synchronous | Student selects PIN fallback option. App verifies Face ID and queries GPS location/UUID. |
+| **2** | `Student` | `SAF: StudentAppForm «boundary»` | `Enter PIN code "847291"` | Synchronous | Student inputs the 6-digit numeric PIN visible on the classroom projector screen. |
+| **3** | `SAF: StudentAppForm «boundary»` | `AC: AttendanceController «control»` | `SubmitPINAttendance(...)` | Synchronous | Application submits the PIN payload along with device metrics for validation. |
+| **4** | `AC: AttendanceController «control»` | `V: AttendanceVersion «entity»` | `ValidatePIN(PINCode)` | Synchronous | Controller checks database to verify that the entered PIN matches the active session PIN. |
+| **5** | `V: AttendanceVersion «entity»` | `AC: AttendanceController «control»` | `PINStatus = Valid` | Return | Returns verification status of the PIN token as valid. |
+| **6** | `AC: AttendanceController «control»` | `R: Room «entity»` | `VerifyProximity(Coordinates)` | Synchronous | Controller verifies student's GPS coordinate proximity bounds. |
+| **7** | `R: Room «entity»` | `AC: AttendanceController «control»` | `ProximityResult = InRadius(Distance)` | Return | Room verifies coordinates are inside allowed circle. |
+| **8** | `AC: AttendanceController «control»` | `ST: Student «entity»` | `VerifyDeviceBinding(DeviceUUID)` | Synchronous | Controller checks matching UUID against student registry. |
+| **9** | `ST: Student «entity»` | `AC: AttendanceController «control»` | `IsMatched = True` | Return | Confirms device binding is authentic and matched. |
+| **10** | `AC: AttendanceController «control»` | `AR: AttendanceRecord «entity»` | `CreateRecord(..., Status="Present", Mode="PIN")` | Synchronous | Controller stores attendance record marked as checked-in via PIN fallback. |
+| **11** | `AR: AttendanceRecord «entity»` | `AC: AttendanceController «control»` | `RecordSaved = True` | Return | Confirms record has been written to persistence. |
+| **12** | `AC: AttendanceController «control»` | `SAF: StudentAppForm «boundary»` | `Result = Success(CheckedInAt)` | Return | Controller sends successful check-in response. |
+| **13** | `SAF: StudentAppForm «boundary»` | `Student` | `Display "Checked-in successfully..."` | Return | Frontend app notifies the student of check-in success. |
+
+
 *Note: The alternative flow exception paths (PIN Expired, Location Out of Geofence, and Device Mismatch) follow the exact corresponding logic structures depicted in Figures II-3A2, II-3A3, and II-3A4, with the dynamic token verification replaced by the 6-digit PIN check.*
 
 #### **Figure II-5B: Communication Diagram for UC05 - PIN Fallback Check-in**
@@ -831,14 +950,15 @@ AC --> SAF : 3: Return Result
 #### **Figure II-6A: Sequence Diagram for UC06 - Activate Dynamic QR Session**
 ```plantuml
 @startuml
+skinparam style strictuml
 autonumber
 actor GV as "Lecturer"
-participant LWP as "LecturerWebPortal\n«boundary»"
-participant SC as "SessionController\n«control»"
-participant S as "Session\n«entity»"
-participant V as "AttendanceVersion\n«entity»"
-participant QT as "QRRefreshTimer\n«control»"
-participant PT as "PINRefreshTimer\n«control»"
+boundary LWP as "LecturerWebPortal"
+control SC as "SessionController"
+entity S as "Session"
+entity V as "AttendanceVersion"
+control QT as "QRRefreshTimer"
+control PT as "PINRefreshTimer"
 
 GV -> LWP : Select Class Section & Session
 activate LWP
@@ -902,6 +1022,39 @@ end
 @enduml
 ```
 
+##### **Table II-6A: Message Description for UC06 - Activate Dynamic QR Session**
+
+| Step (Seq) | Source Object | Target Object | Message Signature | Type | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **1** | `GV: Lecturer` | `LWP: LecturerWebPortal «boundary»` | `Select Class Section & Session` | Synchronous | Lecturer selects class details and class session on the web portal. |
+| **2** | `LWP: LecturerWebPortal «boundary»` | `SC: SessionController «control»` | `GetSessionDetails(SessionId)` | Synchronous | Frontend requests session information from the controller. |
+| **3** | `SC: SessionController «control»` | `S: Session «entity»` | `ReadSessionInfo()` | Synchronous | Controller reads metadata and schedule window for the session. |
+| **4** | `S: Session «entity»` | `SC: SessionController «control»` | `SessionInfo` | Return | Returns details like subject code, room number, scheduled time. |
+| **5** | `SC: SessionController «control»` | `LWP: LecturerWebPortal «boundary»` | `Display Session details` | Return | Controller sends details back, which are rendered on screen. |
+| **6** | `LWP: LecturerWebPortal «boundary»` | `GV: Lecturer` | `Show session detail screen...` | Return | Lecturer is presented with the "Start Attendance" button. |
+| **7** | `GV: Lecturer` | `LWP: LecturerWebPortal «boundary»` | `Click "Start Attendance"` | Synchronous | Lecturer clicks button to initiate attendance checking session. |
+| **8** | `LWP: LecturerWebPortal «boundary»` | `SC: SessionController «control»` | `ActivateAttendanceSession(SessionId)` | Synchronous | Portal sends request to start active attendance checking. |
+| **9** | `SC: SessionController «control»` | `SC: SessionController «control»` | `VerifySessionTimeWindow()` | Self-message | Controller validates that the current time falls within allowable range. |
+| **10** | `SC: SessionController «control»` | `V: AttendanceVersion «entity»` | `InitializeVersion(SessionId)` | Synchronous | Controller initializes a new active attendance checking version instance. |
+| **11** | `V: AttendanceVersion «entity»` | `SC: SessionController «control»` | `AttendanceVersion Created` | Return | Entity confirms creation and marks version status as active. |
+| **12** | `SC: SessionController «control»` | `QT: QRRefreshTimer «control»` | `StartTimer(Interval=10s)` | Synchronous | Controller starts background timer for refreshing QR tokens. |
+| **13** | `QT: QRRefreshTimer «control»` | `SC: SessionController «control»` | `Timer started` | Return | Timer confirms background cycle initiation. |
+| **14** | `SC: SessionController «control»` | `PT: PINRefreshTimer «control»` | `StartTimer(Interval=30s)` | Synchronous | Controller starts background timer for refreshing PIN tokens. |
+| **15** | `PT: PINRefreshTimer «control»` | `SC: SessionController «control»` | `Timer started` | Return | Timer confirms background cycle initiation. |
+| **16** | `SC: SessionController «control»` | `LWP: LecturerWebPortal «boundary»` | `Session Activated Successfully` | Return | Controller returns success message to portal. |
+| **17** | `LWP: LecturerWebPortal «boundary»` | `GV: Lecturer` | `Open dynamic presentation...` | Return | Lecturer's display redirects to check-in screen, opening WebSocket. |
+| **[Loop QR] 18** | `QT: QRRefreshTimer «control»` | `SC: SessionController «control»` | `OnTimerTick()` | Synchronous | Every 10 seconds, QR timer triggers tick event on controller. |
+| **[Loop QR] 19** | `SC: SessionController «control»` | `SC: SessionController «control»` | `GenerateNewDynamicToken()` | Self-message | Controller creates a new dynamic, cryptographically signed token. |
+| **[Loop QR] 20** | `SC: SessionController «control»` | `V: AttendanceVersion «entity»` | `UpdateDynamicToken(...)` | Synchronous | Controller stores new active token in AttendanceVersion entity. |
+| **[Loop QR] 21** | `SC: SessionController «control»` | `LWP: LecturerWebPortal «boundary»` | `PushNewQRToken(DynamicToken)` | Asynchronous | Controller pushes token over WebSocket channel to lecturer portal. |
+| **[Loop QR] 22** | `LWP: LecturerWebPortal «boundary»` | `GV: Lecturer` | `Display new QR Code...` | Return | Portal updates screen to display new QR code for students to scan. |
+| **[Loop PIN] 23** | `PT: PINRefreshTimer «control»` | `SC: SessionController «control»` | `OnTimerTick()` | Synchronous | Every 30 seconds, PIN timer triggers tick event on controller. |
+| **[Loop PIN] 24** | `SC: SessionController «control»` | `SC: SessionController «control»` | `GenerateNewPINCode()` | Self-message | Controller creates a new 6-digit PIN string. |
+| **[Loop PIN] 25** | `SC: SessionController «control»` | `V: AttendanceVersion «entity»` | `UpdatePINCode(PINCode)` | Synchronous | Controller stores new PIN code in AttendanceVersion entity. |
+| **[Loop PIN] 26** | `SC: SessionController «control»` | `LWP: LecturerWebPortal «boundary»` | `PushNewPINCode(PINCode)` | Asynchronous | Controller pushes code over WebSocket channel to lecturer portal. |
+| **[Loop PIN] 27** | `LWP: LecturerWebPortal «boundary»` | `GV: Lecturer` | `Display new 6-digit PIN...` | Return | Portal updates screen corner to display new PIN fallback code. |
+
+
 #### **Figure II-6B: Communication Diagram for UC06 - Activate Dynamic QR Session**
 ```plantuml
 @startuml
@@ -934,13 +1087,14 @@ PT --> LWP : 3: OnTimerTick() / PushPIN()
 #### **Figure II-7A: Sequence Diagram for UC07 - Real-time Attendance Monitor**
 ```plantuml
 @startuml
+skinparam style strictuml
 autonumber
 actor GV as "Lecturer"
-participant LWP as "LecturerWebPortal\n«user interaction»"
-participant SC as "SessionController\n«state dependent control»"
-participant CS as "ClassSectionStudent\n«entity»"
-participant AR as "AttendanceRecord\n«entity»"
-participant WSH as "AttendanceRealtimeHub\n«coordinator»"
+boundary LWP as "LecturerWebPortal"
+control SC as "SessionController"
+entity CS as "ClassSectionStudent"
+entity AR as "AttendanceRecord"
+control WSH as "AttendanceRealtimeHub"
 
 GV -> LWP : Open Dynamic Presentation View
 activate LWP
@@ -977,6 +1131,26 @@ end
 @enduml
 ```
 
+##### **Table II-7A: Message Description for UC07 - Real-time Attendance Monitor**
+
+| Step (Seq) | Source Object | Target Object | Message Signature | Type | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **1** | `GV: Lecturer` | `LWP: LecturerWebPortal «boundary»` | `Open Dynamic Presentation View` | Synchronous | Lecturer opens the real-time presentation dashboard on the portal. |
+| **2** | `LWP: LecturerWebPortal «boundary»` | `SC: SessionController «control»` | `GetStudentRosterForSession(SessionId)` | Synchronous | Portal requests student roster metadata for this session. |
+| **3** | `SC: SessionController «control»` | `CS: ClassSectionStudent «entity»` | `ReadEnrolledStudents(ClassSectionId)` | Synchronous | Controller queries enrolled student records from the database. |
+| **4** | `CS: ClassSectionStudent «entity»` | `SC: SessionController «control»` | `List of Students (35 records)` | Return | Database returns list of enrolled students. |
+| **5** | `SC: SessionController «control»` | `LWP: LecturerWebPortal «boundary»` | `Student Grid Data` | Return | Controller sends grid DTO with status as Pending (all students initially absent). |
+| **6** | `LWP: LecturerWebPortal «boundary»` | `GV: Lecturer` | `Render student tiles grid...` | Return | Portal renders grid tiles with default gray/pending states. |
+| **[Loop Checkin] 7** | `WSH: AttendanceRealtimeHub «control»` | `WSH: AttendanceRealtimeHub «control»` | `OnStudentCheckedIn(StudentId, Status)` | Self-message | Hub receives WebSocket check-in notification from Student check-in process. |
+| **[Loop Checkin] 8** | `WSH: AttendanceRealtimeHub «control»` | `LWP: LecturerWebPortal «boundary»` | `BroadcastAttendanceUpdate(...)` | Asynchronous | Hub broadcasts updated check-in status (Present/Late) to the lecturer portal. |
+| **[Loop Checkin] 9** | `LWP: LecturerWebPortal «boundary»` | `LWP: LecturerWebPortal «boundary»` | `UpdateStudentTile(StudentId, Color)` | Self-message | Portal updates specific student grid tile color dynamically. |
+| **[Loop Checkin] 10** | `LWP: LecturerWebPortal «boundary»` | `LWP: LecturerWebPortal «boundary»` | `UpdateAttendanceCounter(++checkedIn)` | Self-message | Portal increments checked-in count. |
+| **[Loop Checkin] 11** | `LWP: LecturerWebPortal «boundary»` | `GV: Lecturer` | `Student tile turns 🟢 Green / 🟡 Orange` | Return | Lecturer sees tile color transition in real-time. |
+| **[Disconnect] 12** | `LWP: LecturerWebPortal «boundary»` | `LWP: LecturerWebPortal «boundary»` | `ShowReconnectWarning()` | Self-message | If connection breaks, portal triggers a local reconnection alert. |
+| **[Disconnect] 13** | `LWP: LecturerWebPortal «boundary»` | `GV: Lecturer` | `Display warning` | Return | Renders warning on UI. |
+| **[Disconnect] 14** | `LWP: LecturerWebPortal «boundary»` | `WSH: AttendanceRealtimeHub «control»` | `AttemptReconnection()` | Synchronous | Portal attempts to re-establish WebSocket connection with the hub. |
+
+
 #### **Figure II-7B: Communication Diagram for UC07 - Real-time Attendance Monitor**
 ```plantuml
 @startuml
@@ -1003,12 +1177,13 @@ LWP --> LWP : 2.1: UpdateStudentTile() / UpdateCounter()
 #### **Figure II-8A: Sequence Diagram for UC08 - Manual Attendance Adjustment**
 ```plantuml
 @startuml
+skinparam style strictuml
 autonumber
 actor GV as "Lecturer"
-participant LWP as "LecturerWebPortal\n«user interaction»"
-participant AC as "AttendanceController\n«coordinator»"
-participant AR as "AttendanceRecord\n«entity»"
-participant SL as "SystemLog\n«entity»"
+boundary LWP as "LecturerWebPortal"
+control AC as "AttendanceController"
+entity AR as "AttendanceRecord"
+entity SL as "SystemLog"
 
 GV -> LWP : Click on student tile "SE170789"
 activate LWP
@@ -1044,6 +1219,25 @@ deactivate LWP
 @enduml
 ```
 
+##### **Table II-8A: Message Description for UC08 - Manual Attendance Adjustment**
+
+| Step (Seq) | Source Object | Target Object | Message Signature | Type | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **1** | `GV: Lecturer` | `LWP: LecturerWebPortal «boundary»` | `Click on student tile "SE170789"` | Synchronous | Lecturer clicks on a student cell in the grid to manually adjust status. |
+| **2** | `LWP: LecturerWebPortal «boundary»` | `GV: Lecturer` | `Show Adjustment Modal` | Return | Portal displays adjustment options form (Present/Late/Absent) and mandatory Reason text box. |
+| **3** | `GV: Lecturer` | `LWP: LecturerWebPortal «boundary»` | `Select Status, Enter Reason & Save` | Synchronous | Lecturer fills in new status, types reason, and submits form. |
+| **4** | `LWP: LecturerWebPortal «boundary»` | `AC: AttendanceController «control»` | `AdjustAttendanceStatus(...)` | Synchronous | Frontend submits adjustment payload to controller. |
+| **5** | `AC: AttendanceController «control»` | `AC: AttendanceController «control»` | `ValidateReasonNotEmpty(Reason)` | Self-message | Controller verifies that reason string is not empty. |
+| **[Exception] 6** | `AC: AttendanceController «control»` | `LWP: LecturerWebPortal «boundary»` | `Return Error: Reason is mandatory` | Return | Exception Case (Empty Reason): Controller rejects adjustment request. |
+| **[Exception] 7** | `LWP: LecturerWebPortal «boundary»` | `GV: Lecturer` | `Highlight reason field` | Return | Frontend validation highlights field. |
+| **6 (Happy Flow)** | `AC: AttendanceController «control»` | `AR: AttendanceRecord «entity»` | `UpdateRecordStatus(...)` | Synchronous | Happy Path: Controller writes updated status to AttendanceRecord entity. |
+| **7** | `AR: AttendanceRecord «entity»` | `AC: AttendanceController «control»` | `Record Updated` | Return | Entity confirms update success. |
+| **8** | `AC: AttendanceController «control»` | `SL: SystemLog «entity»` | `WriteAuditLog(...)` | Synchronous | Controller registers manual action log in audit trails for accountability. |
+| **9** | `SL: SystemLog «entity»` | `AC: AttendanceController «control»` | `Log Written` | Return | Confirm log written to persistence. |
+| **10** | `AC: AttendanceController «control»` | `LWP: LecturerWebPortal «boundary»` | `Return Success: Status Updated` | Return | Controller returns success notification payload. |
+| **11** | `LWP: LecturerWebPortal «boundary»` | `GV: Lecturer` | `Close modal & update student tile` | Return | Frontend closes modal, plays sound cue, and turns student tile color. |
+
+
 #### **Figure II-8B: Communication Diagram for UC08 - Manual Attendance Adjustment**
 ```plantuml
 @startuml
@@ -1068,16 +1262,16 @@ AC --> LWP : 2: Return Success
 #### **Figure II-9A: Sequence Diagram for UC09 - Export Attendance Report**
 ```plantuml
 @startuml
-autonumber
 skinparam style strictuml
+autonumber
 
 actor GV as "Lecturer"
-participant LWP as "LecturerWebPortal\n«user interaction»"
-participant RC as "ReportController\n«coordinator»"
-participant CSS as "ClassSectionStudent\n«entity»"
-participant AR as "AttendanceRecord\n«entity»"
-participant REP as "ReportGenerator\n«coordinator»"
-participant SL as "SystemLog\n«entity»"
+boundary LWP as "LecturerWebPortal"
+control RC as "ReportController"
+entity CSS as "ClassSectionStudent"
+entity AR as "AttendanceRecord"
+control REP as "ReportGenerator"
+entity SL as "SystemLog"
 
 GV -> LWP: Click Export Report for class section
 activate LWP
@@ -1112,6 +1306,26 @@ deactivate LWP
 @enduml
 ```
 
+##### **Table II-9A: Message Description for UC09 - Export Attendance Report**
+
+| Step (Seq) | Source Object | Target Object | Message Signature | Type | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **1** | `GV: Lecturer` | `LWP: LecturerWebPortal «boundary»` | `Click Export Report for class section` | Synchronous | Lecturer clicks export report button. |
+| **2** | `LWP: LecturerWebPortal «boundary»` | `RC: ReportController «control»` | `ExportClassReport(ClassSectionId, Semester)` | Synchronous | Portal requests class attendance report generation from controller. |
+| **3** | `RC: ReportController «control»` | `CSS: ClassSectionStudent «entity»` | `ReadRoster(ClassSectionId)` | Synchronous | Controller reads student roster for the target class section. |
+| **4** | `CSS: ClassSectionStudent «entity»` | `RC: ReportController «control»` | `Student roster` | Return | Returns roster dataset. |
+| **5** | `RC: ReportController «control»` | `AR: AttendanceRecord «entity»` | `ReadSessionAttendanceRecords(ClassSectionId, Semester)` | Synchronous | Controller retrieves past attendance records for all sessions in this course. |
+| **6** | `AR: AttendanceRecord «entity»` | `RC: ReportController «control»` | `Attendance matrix records` | Return | Returns historical attendance matrix dataset. |
+| **[Case A] 7** | `RC: ReportController «control»` | `LWP: LecturerWebPortal «boundary»` | `Return error (No records found)` | Return | Error Case: If no check-ins exist, controller returns empty error state. |
+| **[Case A] 8** | `LWP: LecturerWebPortal «boundary»` | `GV: Lecturer` | `Show "No records available..." alert` | Return | Frontend alerts lecturer that there is no data to export. |
+| **7 (Happy Flow)** | `RC: ReportController «control»` | `REP: ReportGenerator «control»` | `GenerateReport(Roster, AttendanceRecords)` | Synchronous | Happy Path: Controller requests report generation utility to format data. |
+| **8** | `REP: ReportGenerator «control»` | `RC: ReportController «control»` | `Report file stream` | Return | Report generator creates and returns Excel file stream. |
+| **9** | `RC: ReportController «control»` | `SL: SystemLog «entity»` | `WriteLog(LecturerId, Action="Export_Report", ...)` | Synchronous | Controller logs audit trail record of report export action. |
+| **10** | `SL: SystemLog «entity»` | `RC: ReportController «control»` | `Log written` | Return | Confirms audit log written. |
+| **11** | `RC: ReportController «control»` | `LWP: LecturerWebPortal «boundary»` | `Return file stream` | Return | Controller sends Excel file stream to browser. |
+| **12** | `LWP: LecturerWebPortal «boundary»` | `GV: Lecturer` | `Download report file` | Return | Web browser initiates file download to lecturer device. |
+
+
 #### **Figure II-9B: Communication Diagram for UC09 - Export Attendance Report**
 ```plantuml
 @startuml
@@ -1140,16 +1354,17 @@ RC --> LWP : 2: Return file stream
 #### **Figure II-10A: Sequence Diagram for UC10 - Manage System Catalog**
 ```plantuml
 @startuml
+skinparam style strictuml
 autonumber
 actor AD as "Admin"
-participant AWP as "AdminWebPortal\n«user interaction»"
-participant CC as "CatalogController\n«coordinator»"
-participant ACC as "Account\n«entity»"
-participant ST as "Student\n«entity»"
-participant LT as "Lecturer\n«entity»"
-participant SUB as "Subject\n«entity»"
-participant CLS as "ClassSection\n«entity»"
-participant SL as "SystemLog\n«entity»"
+boundary AWP as "AdminWebPortal"
+control CC as "CatalogController"
+entity ACC as "Account"
+entity ST as "Student"
+entity LT as "Lecturer"
+entity SUB as "Subject"
+entity CLS as "ClassSection"
+entity SL as "SystemLog"
 
 AD -> AWP : Open catalog screen (e.g. Students)
 activate AWP
@@ -1192,6 +1407,31 @@ deactivate AWP
 @enduml
 ```
 
+##### **Table II-10A: Message Description for UC10 - Manage System Catalog**
+
+| Step (Seq) | Source Object | Target Object | Message Signature | Type | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **1** | `AD: Admin` | `AWP: AdminWebPortal «boundary»` | `Open catalog screen` | Synchronous | Admin opens the system catalog management screen. |
+| **2** | `AWP: AdminWebPortal «boundary»` | `CC: CatalogController «control»` | `GetCatalog(catalogType)` | Synchronous | Portal requests system catalog rows based on category type (Students, Subjects, etc). |
+| **3** | `CC: CatalogController «control»` | `AWP: AdminWebPortal «boundary»` | `Return list of rows` | Return | Controller returns records list. |
+| **4** | `AWP: AdminWebPortal «boundary»` | `AD: Admin` | `Render catalog table` | Return | Portal displays records in a grid table. |
+| **5 (Add Path)** | `AD: Admin` | `AWP: AdminWebPortal «boundary»` | `Input details and click "Save"` | Synchronous | Admin fills in catalog form details and clicks save. |
+| **6** | `AWP: AdminWebPortal «boundary»` | `CC: CatalogController «control»` | `SaveCatalogChange(catalogType, payload)` | Synchronous | Portal sends catalog addition payload to controller. |
+| **7** | `CC: CatalogController «control»` | `CC: CatalogController «control»` | `ValidatePayloadFields()` | Self-message | Controller validates fields (email structure, non-empty codes, etc.). |
+| **[Exception] 8** | `CC: CatalogController «control»` | `AWP: AdminWebPortal «boundary»` | `Return validation error` | Return | Exception Case: Validation fails. |
+| **[Exception] 9** | `AWP: AdminWebPortal «boundary»` | `AD: Admin` | `Display error highlighting fields` | Return | Frontend displays errors. |
+| **8 (Happy Student)** | `CC: CatalogController «control»` | `ACC: Account «entity»` | `CreateAccount(payload)` | Synchronous | Happy Path: Creates base credentials account. |
+| **9** | `CC: CatalogController «control»` | `ST: Student «entity»` | `CreateStudent(payload)` | Synchronous | Writes student-specific metadata (MSSV, class). |
+| **8 (Happy Lecturer)** | `CC: CatalogController «control»` | `ACC: Account «entity»` | `CreateAccount(payload)` | Synchronous | Happy Path: Creates base credentials account. |
+| **9** | `CC: CatalogController «control»` | `LT: Lecturer «entity»` | `CreateLecturer(payload)` | Synchronous | Writes lecturer-specific metadata (department). |
+| **8 (Happy Subject)** | `CC: CatalogController «control»` | `SUB: Subject «entity»` | `CreateSubject(payload)` | Synchronous | Happy Path: Creates a new subject catalog entry. |
+| **8 (Happy Section)** | `CC: CatalogController «control»` | `CLS: ClassSection «entity»` | `CreateClassSection(payload)` | Synchronous | Happy Path: Creates class section (associating teacher, class). |
+| **10** | `CC: CatalogController «control»` | `SL: SystemLog «entity»` | `WriteLog(AdminId, Action="Catalog_Change")` | Synchronous | Controller logs audit trail of admin catalog management. |
+| **11** | `SL: SystemLog «entity»` | `CC: CatalogController «control»` | `Log written` | Return | Confirms audit log saved. |
+| **12** | `CC: CatalogController «control»` | `AWP: AdminWebPortal «boundary»` | `Save successful` | Return | Controller reports success to frontend portal. |
+| **13** | `AWP: AdminWebPortal «boundary»` | `AD: Admin` | `Refresh table with success message` | Return | Portal displays confirmation alert and refreshes database table rows. |
+
+
 #### **Figure II-10B: Communication Diagram for UC10 - Manage System Catalog**
 ```plantuml
 @startuml
@@ -1223,24 +1463,20 @@ CC --> AWP : 2: Return success/refresh
 #### **Figure II-11A: Sequence Diagram for UC11 - Configure Room Coordinates**
 ```plantuml
 @startuml UC11_Sequence_Diagram
+skinparam style strictuml
 autonumber
-skinparam ParticipantBackgroundColor #F9F9F9
-skinparam ParticipantBorderColor #2E86C1
-skinparam ActorBackgroundColor #F9F9F9
-skinparam ActorBorderColor #2E86C1
-skinparam ArrowColor #2E86C1
 
 actor AD as "Admin"
-participant AWP as "AdminWebPortal\n«boundary»"
-participant RCC as "RoomConfigurationController\n«control»"
-participant R as "Room\n«entity»"
-participant SL as "SystemLog\n«entity»"
+boundary AWP as "AdminWebPortal"
+control RCC as "RoomConfigurationController"
+entity R as "Room"
+entity SL as "SystemLog"
 
-AD->>AWP: Click "Room Management"
+AD->AWP: Click "Room Management"
 activate AWP
-AWP->>RCC: GetRoomsList()
+AWP->RCC: GetRoomsList()
 activate RCC
-RCC->>R: ReadAllRooms()
+RCC->R: ReadAllRooms()
 activate R
 R-->>RCC: List of Rooms
 deactivate R
@@ -1249,43 +1485,43 @@ deactivate RCC
 AWP-->>AD: Show room table with config buttons
 deactivate AWP
 
-AD->>AWP: Click "Edit Coordinates" for specific Room
+AD->AWP: Click "Edit Coordinates" for specific Room
 activate AWP
 AWP-->>AD: Open RoomConfigForm with integrated satellite map
 deactivate AWP
 
 alt Option A: Click on satellite map
-    AD->>AWP: Click exact classroom location on map
+    AD->AWP: Click exact classroom location on map
     activate AWP
-    AWP->>AWP: ExtractLatLongFromMapClick()
+    AWP->AWP: ExtractLatLongFromMapClick()
     AWP-->>AD: Automatically populate Lat & Long fields
     deactivate AWP
 else Option B: Get current GPS (Mobile device at site)
-    AD->>AWP: Tap "Get Current GPS Location"
+    AD->AWP: Tap "Get Current GPS Location"
     activate AWP
-    AWP->>AWP: RequestBrowserGeoLocationAPI()
+    AWP->AWP: RequestBrowserGeoLocationAPI()
     AWP-->>AD: Populate Lat & Long fields with hardware coordinates
     deactivate AWP
 end
 
-AD->>AWP: Enter "Allowed Radius" (e.g. 20m) & click "Save Config"
+AD->AWP: Enter "Allowed Radius" (e.g. 20m) & click "Save Config"
 activate AWP
-AWP->>RCC: SaveGeoConfiguration(RoomId, Latitude, Longitude, AllowedRadius)
+AWP->RCC: SaveGeoConfiguration(RoomId, Latitude, Longitude, AllowedRadius)
 activate RCC
 
-RCC->>RCC: ValidateCoordinates(Latitude, Longitude)
-RCC->>RCC: ValidateRadius(AllowedRadius)
+RCC->RCC: ValidateCoordinates(Latitude, Longitude)
+RCC->RCC: ValidateRadius(AllowedRadius)
 
 alt If coordinates or radius are invalid
     RCC-->>AWP: Return Error: Invalid Geo-data
     AWP-->>AD: Highlight error fields & request correction
 else If configuration is valid
-    RCC->>R: UpdateGeoConfig(Latitude, Longitude, AllowedRadius)
+    RCC->R: UpdateGeoConfig(Latitude, Longitude, AllowedRadius)
     activate R
     R-->>RCC: Update Success
     deactivate R
     
-    RCC->>SL: WriteLog(AdminId, Action="Configure_Room", RoomId)
+    RCC->SL: WriteLog(AdminId, Action="Configure_Room", RoomId)
     
     RCC-->>AWP: Return Success: Configurations Saved
     AWP-->>AD: Show confirmation popup & return to room table
@@ -1294,6 +1530,37 @@ deactivate RCC
 deactivate AWP
 @enduml
 ```
+
+##### **Table II-11A: Message Description for UC11 - Configure Room Coordinates & Allowed Radius**
+
+| Step (Seq) | Source Object | Target Object | Message Signature | Type | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **1** | `AD: Admin` | `AWP: AdminWebPortal «boundary»` | `Click "Room Management"` | Synchronous | Admin clicks on the Room Management menu in the admin panel. |
+| **2** | `AWP: AdminWebPortal «boundary»` | `RCC: RoomConfigurationController «control»` | `GetRoomsList()` | Synchronous | Portal requests current room coordinates and radius settings from controller. |
+| **3** | `RCC: RoomConfigurationController «control»` | `R: Room «entity»` | `ReadAllRooms()` | Synchronous | Controller reads list of rooms with their latitude, longitude, and allowed checking radius. |
+| **4** | `R: Room «entity»` | `RCC: RoomConfigurationController «control»` | `List of Rooms` | Return | Returns list of configured room entities. |
+| **5** | `RCC: RoomConfigurationController «control»` | `AWP: AdminWebPortal «boundary»` | `Display room table` | Return | Controller returns room table data to portal. |
+| **6** | `AWP: AdminWebPortal «boundary»` | `AD: Admin` | `Show room table...` | Return | Admin sees table showing rooms and their current coordinate configurations. |
+| **7** | `AD: Admin` | `AWP: AdminWebPortal «boundary»` | `Click "Edit Coordinates" for specific Room` | Synchronous | Admin clicks edit button for a classroom room entry. |
+| **8** | `AWP: AdminWebPortal «boundary»` | `AD: Admin` | `Open RoomConfigForm...` | Return | Portal displays form containing embedded satellite map centered on campus coordinates. |
+| **[Option A] 9** | `AD: Admin` | `AWP: AdminWebPortal «boundary»` | `Click exact classroom location on map` | Synchronous | Admin visually identifies classroom on satellite imagery and clicks to pin it. |
+| **[Option A] 10** | `AWP: AdminWebPortal «boundary»` | `AWP: AdminWebPortal «boundary»` | `ExtractLatLongFromMapClick()` | Self-message | Portal calculates coordinates from coordinates of the map click. |
+| **[Option A] 11** | `AWP: AdminWebPortal «boundary»` | `AD: Admin` | `Automatically populate Lat & Long fields` | Return | Form fields are updated with extracted map coordinates. |
+| **[Option B] 9** | `AD: Admin` | `AWP: AdminWebPortal «boundary»` | `Tap "Get Current GPS Location"` | Synchronous | Admin stands in classroom physically and taps button to grab telemetry. |
+| **[Option B] 10** | `AWP: AdminWebPortal «boundary»` | `AWP: AdminWebPortal «boundary»` | `RequestBrowserGeoLocationAPI()` | Self-message | Portal accesses the browser HTML5 Geolocation API. |
+| **[Option B] 11** | `AWP: AdminWebPortal «boundary»` | `AD: Admin` | `Populate Lat & Long fields` | Return | Coordinates from GPS hardware are written to form fields. |
+| **12** | `AD: Admin` | `AWP: AdminWebPortal «boundary»` | `Enter "Allowed Radius" & click "Save Config"` | Synchronous | Admin updates allowed checking radius limit and clicks Save. |
+| **13** | `AWP: AdminWebPortal «boundary»` | `RCC: RoomConfigurationController «control»` | `SaveGeoConfiguration(...)` | Synchronous | Form details (Latitude, Longitude, Radius) are posted to controller. |
+| **14** | `RCC: RoomConfigurationController «control»` | `RCC: RoomConfigurationController «control»` | `ValidateCoordinates(...)` | Self-message | Controller ensures coordinates are mathematically valid numbers. |
+| **15** | `RCC: RoomConfigurationController «control»` | `RCC: RoomConfigurationController «control»` | `ValidateRadius(AllowedRadius)` | Self-message | Controller ensures radius is within a reasonable range (10m - 100m). |
+| **[Exception] 16** | `RCC: RoomConfigurationController «control»` | `AWP: AdminWebPortal «boundary»` | `Return Error: Invalid Geo-data` | Return | Exception Case: Validation fails due to bad radius or coordinates. |
+| **[Exception] 17** | `AWP: AdminWebPortal «boundary»` | `AD: Admin` | `Highlight error fields...` | Return | Portal informs admin and highlights invalid fields. |
+| **16 (Happy Flow)** | `RCC: RoomConfigurationController «control»` | `R: Room «entity»` | `UpdateGeoConfig(...)` | Synchronous | Happy Path: Controller writes new geo-fence parameters to Room entity. |
+| **17** | `R: Room «entity»` | `RCC: RoomConfigurationController «control»` | `Update Success` | Return | Database confirms record update success. |
+| **18** | `RCC: RoomConfigurationController «control»` | `SL: SystemLog «entity»` | `WriteLog(...)` | Synchronous | Controller logs admin geo-fence modification action. |
+| **19** | `RCC: RoomConfigurationController «control»` | `AWP: AdminWebPortal «boundary»` | `Return Success: Configurations Saved` | Return | Controller notifies portal that settings have been saved. |
+| **20** | `AWP: AdminWebPortal «boundary»` | `AD: Admin` | `Show confirmation popup...` | Return | Portal displays confirmation alert and redirects back to room table view. |
+
 
 #### **Figure II-11B: Communication Diagram for UC11 - Configure Room Coordinates**
 ```plantuml
