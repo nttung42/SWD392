@@ -1050,14 +1050,50 @@ AC --> LWP : 2: Return Success
 ### **9. UC09: Export Attendance Report**
 
 #### **Figure II-9A: Sequence Diagram for UC09 - Export Attendance Report**
-        activate SL
-        SL-->>RC: Log written
-        deactivate SL
-        RC-->>LWP: Return file stream
-        deactivate RC
-        LWP-->>GV: Download report file
-    end
-    deactivate LWP
+```plantuml
+@startuml
+autonumber
+skinparam style strictuml
+
+actor GV as "Lecturer"
+participant LWP as "LecturerWebPortal\n«user interaction»"
+participant RC as "ReportController\n«coordinator»"
+participant CSS as "ClassSectionStudent\n«entity»"
+participant AR as "AttendanceRecord\n«entity»"
+participant REP as "ReportGenerator\n«coordinator»"
+participant SL as "SystemLog\n«entity»"
+
+GV -> LWP: Click Export Report for class section
+activate LWP
+LWP -> RC: ExportClassReport(ClassSectionId, Semester)
+activate RC
+RC -> CSS: ReadRoster(ClassSectionId)
+activate CSS
+CSS --> RC: Student roster
+deactivate CSS
+RC -> AR: ReadSessionAttendanceRecords(ClassSectionId, Semester)
+activate AR
+AR --> RC: Attendance matrix records
+deactivate AR
+
+alt Case A: No attendance records exist
+    RC --> LWP: Return error (No records found)
+    LWP --> GV: Show "No records available for export" alert
+else Case B: Records exist
+    RC -> REP: GenerateReport(Roster, AttendanceRecords)
+    activate REP
+    REP --> RC: Report file stream
+    deactivate REP
+    RC -> SL: WriteLog(LecturerId, Action="Export_Report", ClassSectionId)
+    activate SL
+    SL --> RC: Log written
+    deactivate SL
+    RC --> LWP: Return file stream
+    deactivate RC
+    LWP --> GV: Download report file
+end
+deactivate LWP
+@enduml
 ```
 
 #### **Figure II-9B: Communication Diagram for UC09 - Export Attendance Report**
