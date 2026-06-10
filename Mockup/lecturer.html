@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lecturer Portal - Uni Portal</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    body {
+      background-color: var(--bg-dark);
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    .dashboard-header {
+      border-bottom: 1px solid var(--border-glass);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .profile-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .profile-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--secondary), var(--primary));
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: 700;
+      color: #fff;
+      font-size: 18px;
+    }
+
+    /* Grid Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 24px;
+    }
+
+    /* Left QR Panel */
+    .qr-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .qr-container {
+      width: 200px;
+      height: 200px;
+      background: #fff;
+      border-radius: var(--radius-lg);
+      padding: 12px;
+      margin: 16px 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+    }
+
+    .qr-placeholder-svg {
+      width: 100%;
+      height: 100%;
+      color: #0d0e12;
+    }
+
+    /* Session timer progress ring */
+    .timer-ring-container {
+      position: relative;
+      width: 50px;
+      height: 50px;
+      margin-top: 10px;
+    }
+
+    .timer-svg {
+      transform: rotate(-90deg);
+      width: 50px;
+      height: 50px;
+    }
+
+    .timer-bg {
+      fill: none;
+      stroke: var(--border-glass);
+      stroke-width: 4;
+    }
+
+    .timer-progress {
+      fill: none;
+      stroke: var(--primary);
+      stroke-width: 4;
+      stroke-linecap: round;
+      stroke-dasharray: 126;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 1s linear;
+    }
+
+    .timer-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    /* Stats Dashboard Row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      text-align: center;
+    }
+
+    .stat-val {
+      font-size: 28px;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    /* Table styling */
+    .monitor-table-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      margin-top: 16px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      padding: 12px 16px;
+      color: var(--text-muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid var(--border-glass);
+    }
+
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-glass);
+      font-size: 13px;
+    }
+
+    tr:hover td {
+      background: hsla(225, 20%, 30%, 0.05);
+    }
+
+    /* Action Modal Wrapper */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+
+    .modal-card {
+      width: 420px;
+      animation: modalSlideUp 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+    }
+
+    @keyframes modalSlideUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .excel-loading-bar {
+      display: none;
+      height: 4px;
+      background: var(--border-glass);
+      width: 100%;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .excel-loading-progress {
+      height: 100%;
+      background: var(--success);
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ADJUSTMENT MODAL -->
+  <div class="modal-backdrop" id="adjust-modal">
+    <div class="glass-card modal-card">
+      <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">Manual Adjustment Override</h3>
+      <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 20px;">
+        Override attendance status for <strong id="modal-student-name">Student Name</strong> (<span id="modal-student-id">HE170000</span>).
+      </p>
+
+      <div style="margin-bottom: 16px;">
+        <label for="select-status">New Attendance Status</label>
+        <select id="select-status">
+          <option value="Present">Present</option>
+          <option value="Late">Late</option>
+          <option value="Absent">Absent</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label for="adjust-reason">Justification / Audit Reason</label>
+        <textarea id="adjust-reason" rows="3" placeholder="e.g. Student reported GPS signal drift inside concrete classroom structure, verified manually."></textarea>
+      </div>
+
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button class="btn btn-secondary" id="btn-modal-cancel">Cancel</button>
+        <button class="btn btn-primary" id="btn-modal-save">Save Adjustment</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-header">
+    <div class="profile-info">
+      <div class="profile-avatar">HG</div>
+      <div>
+        <h1 style="font-size: 18px; font-weight: 700;">Dr. Hassan Gomaa</h1>
+        <p style="color: var(--text-muted); font-size: 12px;">Software Engineering Department • Lecturer</p>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <div style="width: 220px;">
+        <select id="course-selector" style="padding: 8px 12px; font-size: 13px; border-radius: var(--radius-sm);">
+          <option value="SE302">SE302 - Software Architecture</option>
+          <option value="SWT301">SWT301 - Software Testing</option>
+        </select>
+      </div>
+      <button class="btn btn-success" id="btn-export" style="padding: 8px 16px; font-size: 13px;">
+        <!-- Export Icon -->
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Export Report
+      </button>
+    </div>
+  </div>
+  
+  <div class="excel-loading-bar" id="excel-progress-bar">
+    <div class="excel-loading-progress" id="excel-progress-fill"></div>
+  </div>
+
+  <div class="dashboard-grid">
+
+    <!-- LEFT SESSION PANEL -->
+    <div class="glass-card qr-panel">
+      <h3 style="font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--primary);">
+        Attendance Session
+      </h3>
+      
+      <!-- Session Switch -->
+      <div style="margin: 16px 0; display: flex; align-items: center; justify-content: center; gap: 10px;">
+        <span id="session-status-text" class="text-alert" style="font-weight: 700; font-size: 13px;">INACTIVE</span>
+        <button class="btn btn-primary" id="btn-toggle-session" style="padding: 6px 16px; font-size: 12px;">
+          Start Session
+        </button>
+      </div>
+
+      <!-- QR Visualizer -->
+      <div class="qr-container">
+        <!-- SVG Mockup representing dynamic QR -->
+        <svg class="qr-placeholder-svg" id="qr-code-graphic" viewBox="0 0 100 100">
+          <rect width="100" height="100" fill="#f8f9fa"/>
+          <!-- Outlines of QR modules -->
+          <rect x="5" y="5" width="25" height="25" fill="#000" stroke="#fff" stroke-width="2"/>
+          <rect x="10" y="10" width="15" height="15" fill="#fff"/>
+          <rect x="70" y="5" width="25" height="25" fill="#000" stroke="#fff" stroke-width="2"/>
+          <rect x="75" y="10" width="15" height="15" fill="#fff"/>
+          <rect x="5" y="70" width="25" height="25" fill="#000" stroke="#fff" stroke-width="2"/>
+          <rect x="10" y="75" width="15" height="15" fill="#fff"/>
+          <!-- Random tiny QR modules -->
+          <rect x="40" y="40" width="20" height="20" fill="#000" id="qr-middle"/>
+          <rect x="45" y="15" width="10" height="10" fill="#000"/>
+          <rect x="15" y="45" width="10" height="10" fill="#000"/>
+          <rect x="70" y="70" width="15" height="15" fill="#000" id="qr-bottom-right"/>
+        </svg>
+      </div>
+
+      <!-- Fallsback PIN -->
+      <div style="margin-bottom: 12px;">
+        <span style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 2px;">
+          Backup PIN Code
+        </span>
+        <strong style="font-size: 28px; font-family: monospace; letter-spacing: 2px; color: var(--secondary);" id="label-pin">
+          ------
+        </strong>
+      </div>
+
+      <!-- Countdown ring -->
+      <div class="timer-ring-container">
+        <svg class="timer-svg">
+          <circle class="timer-bg" cx="25" cy="25" r="20"/>
+          <circle class="timer-progress" id="timer-progress-fill" cx="25" cy="25" r="20"/>
+        </svg>
+        <div class="timer-text" id="timer-countdown">15</div>
+      </div>
+      <p style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">Next token refresh</p>
+    </div>
+
+    <!-- RIGHT MONITORING PANEL -->
+    <div style="display: flex; flex-direction: column;">
+
+      <!-- STATS DISPLAY -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Enrolled</div>
+          <div class="stat-val text-primary">35</div>
+        </div>
+        <div class="stat-card">
+          <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Present</div>
+          <div class="stat-val text-success" id="count-present">0</div>
+        </div>
+        <div class="stat-card">
+          <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Late</div>
+          <div class="stat-val text-warning" id="count-late">0</div>
+        </div>
+        <div class="stat-card">
+          <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Fraud Block</div>
+          <div class="stat-val text-alert" id="count-fraud">0</div>
+        </div>
+        <div class="stat-card">
+          <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Absent</div>
+          <div class="stat-val" style="color: #8f9bb3;" id="count-absent">35</div>
+        </div>
+      </div>
+
+      <!-- MONITOR GRID -->
+      <div class="glass-card monitor-table-card">
+        <h3 style="font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+          Live Attendance Logs
+        </h3>
+        
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Student ID</th>
+                <th>Full Name</th>
+                <th>Check-in Time</th>
+                <th>Method</th>
+                <th>GPS offset</th>
+                <th>Wi-Fi SSID</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="attendance-tbody">
+              <!-- Dynamically populated rows -->
+              <tr id="no-attendance-row">
+                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                  Session inactive. Click "Start Session" to open check-in gate.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // State Variables
+    let sessionActive = false;
+    let timerValue = 15;
+    let timerInterval = null;
+    let simulatedArrivalsInterval = null;
+    let currentPin = "246810";
+    
+    // Stats Count
+    let stats = {
+      present: 0,
+      late: 0,
+      fraud: 0,
+      absent: 35
+    };
+
+    // Simulated Roster Students (for random generation)
+    const mockRoster = [
+      { id: "HE170564", name: "Le Hoang Anh" },
+      { id: "HE171243", name: "Tran Minh Tri" },
+      { id: "HE170321", name: "Pham Bao Ngoc" },
+      { id: "HE170984", name: "Vo Hoang Duy" },
+      { id: "HE170012", name: "Do Phuong Thao" },
+      { id: "HE170756", name: "Nguyen Quoc Khanh" },
+      { id: "HE170233", name: "Le Hai Nam" },
+      { id: "HE170155", name: "Nguyen Hoai Thuong" },
+      { id: "HE171109", name: "Dang Tuan Minh" },
+      { id: "HE170432", name: "Bui Minh Duc" }
+    ];
+
+    let checkinRecords = [];
+
+    // DOM Elements
+    const btnToggle = document.getElementById('btn-toggle-session');
+    const statusText = document.getElementById('session-status-text');
+    const labelPin = document.getElementById('label-pin');
+    const countdownText = document.getElementById('timer-countdown');
+    const progressFill = document.getElementById('timer-progress-fill');
+    const tbody = document.getElementById('attendance-tbody');
+    const noRow = document.getElementById('no-attendance-row');
+    const qrMiddle = document.getElementById('qr-middle');
+    const qrBottomRight = document.getElementById('qr-bottom-right');
+
+    const countPresent = document.getElementById('count-present');
+    const countLate = document.getElementById('count-late');
+    const countFraud = document.getElementById('count-fraud');
+    const countAbsent = document.getElementById('count-absent');
+
+    // Modal elements
+    const adjustModal = document.getElementById('adjust-modal');
+    const modalStudentName = document.getElementById('modal-student-name');
+    const modalStudentId = document.getElementById('modal-student-id');
+    const selectStatus = document.getElementById('select-status');
+    const adjustReason = document.getElementById('adjust-reason');
+    let activeAdjustRowIndex = null;
+
+    // Logger postMessage utility
+    function logEvent(action, desc) {
+      window.parent.postMessage({
+        source: 'lecturer_portal',
+        action: action,
+        description: desc,
+        timestamp: new Date().toLocaleTimeString()
+      }, '*');
+    }
+
+    // Toggle Session State
+    btnToggle.addEventListener('click', () => {
+      if (!sessionActive) {
+        startSession();
+      } else {
+        stopSession();
+      }
+    });
+
+    function startSession() {
+      sessionActive = true;
+      statusText.innerText = "ACTIVE";
+      statusText.className = "text-success";
+      btnToggle.innerText = "Stop Session";
+      btnToggle.className = "btn btn-danger";
+      noRow.style.display = 'none';
+
+      logEvent('SESSION_START', 'Initialized attendance slot. Redis cache key generated (expires in 90m).');
+      
+      generateNewToken();
+      startCountdown();
+      startSimulatedArrivals();
+    }
+
+    function stopSession() {
+      sessionActive = false;
+      statusText.innerText = "INACTIVE";
+      statusText.className = "text-alert";
+      btnToggle.innerText = "Start Session";
+      btnToggle.className = "btn btn-primary";
+      
+      logEvent('SESSION_STOP', 'Attendance session closed. Redis session tokens expired.');
+      
+      clearInterval(timerInterval);
+      clearInterval(simulatedArrivalsInterval);
+      
+      labelPin.innerText = "------";
+      countdownText.innerText = "15";
+      progressFill.style.strokeDashoffset = 0;
+    }
+
+    // Generate Dynamic Token
+    function generateNewToken() {
+      // Create random 6 digit PIN
+      currentPin = Math.floor(100000 + Math.random() * 900000).toString();
+      labelPin.innerText = currentPin;
+
+      // Randomize QR graphic slightly to simulate refresh
+      const colors = ['#8844ee', '#ee4488', '#22c55e', '#000'];
+      qrMiddle.style.fill = colors[Math.floor(Math.random() * colors.length)];
+      qrBottomRight.style.fill = colors[Math.floor(Math.random() * colors.length)];
+
+      logEvent('TOKEN_REFRESH', `SignalR broadcasted fresh token & PIN (${currentPin}) to connected clients.`);
+
+      // Broadcast the PIN code to student.html (if open in same window context)
+      window.parent.postMessage({
+        source: 'lecturer_portal',
+        action: 'PIN_UPDATE',
+        pin: currentPin
+      }, '*');
+    }
+
+    // Circular Countdown
+    function startCountdown() {
+      timerValue = 15;
+      countdownText.innerText = timerValue;
+      progressFill.style.strokeDashoffset = 0;
+
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        timerValue--;
+        countdownText.innerText = timerValue;
+
+        // Circular dash offset math: perimeter = 2 * PI * r = 2 * 3.14 * 20 = 125.6
+        const offset = 126 - (126 * (timerValue / 15));
+        progressFill.style.strokeDashoffset = offset;
+
+        if (timerValue <= 0) {
+          generateNewToken();
+          timerValue = 15;
+          progressFill.style.strokeDashoffset = 0;
+        }
+      }, 1000);
+    }
+
+    // Simulated student attendance inserts
+    function startSimulatedArrivals() {
+      clearInterval(simulatedArrivalsInterval);
+      simulatedArrivalsInterval = setInterval(() => {
+        if (mockRoster.length === 0) return;
+        
+        // Randomly pick a student
+        const index = Math.floor(Math.random() * mockRoster.length);
+        const student = mockRoster.splice(index, 1)[0];
+
+        // Randomize checking parameters
+        const rand = Math.random();
+        let status = 'Present';
+        let method = 'QR';
+        let gpsOffset = Math.floor(Math.random() * 8) + 'm';
+        let wifi = 'FPTU_Academic';
+
+        if (rand > 0.85) {
+          status = 'Late';
+          gpsOffset = Math.floor(Math.random() * 12) + 8 + 'm';
+        } else if (rand > 0.7) {
+          status = 'Fraud_Declined';
+          gpsOffset = Math.floor(Math.random() * 80) + 40 + 'm';
+          wifi = 'Home_Wifi_Guest';
+        }
+
+        const now = new Date();
+        const record = {
+          studentId: student.id,
+          studentName: student.name,
+          time: now.toLocaleTimeString(),
+          method: method,
+          gpsOffset: gpsOffset,
+          wifi: wifi,
+          status: status
+        };
+
+        addRecordToGrid(record);
+      }, 6000);
+    }
+
+    function addRecordToGrid(record) {
+      checkinRecords.push(record);
+      
+      // Update Stats
+      if (record.status === 'Present') {
+        stats.present++;
+      } else if (record.status === 'Late') {
+        stats.late++;
+      } else if (record.status === 'Fraud_Declined') {
+        stats.fraud++;
+      }
+      stats.absent = Math.max(0, 35 - stats.present - stats.late);
+      updateStatsUI();
+
+      // Append row to table
+      const row = document.createElement('tr');
+      row.id = `row-${record.studentId}`;
+      
+      const badgeClass = record.status === 'Present' ? 'present' : 
+                         record.status === 'Late' ? 'late' : 'fraud';
+      
+      row.innerHTML = `
+        <td style="font-weight: 600;">${record.studentId}</td>
+        <td>${record.studentName}</td>
+        <td>${record.time}</td>
+        <td><span style="font-family: monospace; font-size:11px;">${record.method}</span></td>
+        <td>${record.gpsOffset}</td>
+        <td>${record.wifi}</td>
+        <td><span class="status-badge ${badgeClass}">${record.status.replace('_', ' ')}</span></td>
+        <td>
+          <button class="btn btn-secondary" onclick="openAdjustmentModal('${record.studentId}', '${record.studentName}')" style="padding: 4px 8px; font-size: 11px;">
+            Adjust
+          </button>
+        </td>
+      `;
+      
+      // Prepend to top of table
+      if (tbody.firstChild && tbody.firstChild.id !== 'no-attendance-row') {
+        tbody.insertBefore(row, tbody.firstChild);
+      } else {
+        tbody.appendChild(row);
+      }
+
+      logEvent('CHECKIN_RECEIVED', `Check-in record for ${record.studentName} (${record.studentId}) processed as ${record.status.toUpperCase()}`);
+    }
+
+    function updateStatsUI() {
+      countPresent.innerText = stats.present;
+      countLate.innerText = stats.late;
+      countFraud.innerText = stats.fraud;
+      countAbsent.innerText = stats.absent;
+    }
+
+    // Modal Actions
+    window.openAdjustmentModal = function(id, name) {
+      modalStudentName.innerText = name;
+      modalStudentId.innerText = id;
+      
+      // Pre-select current status
+      const record = checkinRecords.find(r => r.studentId === id);
+      selectStatus.value = record.status === 'Fraud_Declined' ? 'Absent' : record.status;
+      adjustReason.value = "";
+      
+      adjustModal.style.display = 'flex';
+      logEvent('MODAL_OPEN', `Launched manual override form for student ID: ${id}`);
+    }
+
+    document.getElementById('btn-modal-cancel').addEventListener('click', () => {
+      adjustModal.style.display = 'none';
+    });
+
+    document.getElementById('btn-modal-save').addEventListener('click', () => {
+      const studentId = modalStudentId.innerText;
+      const newStatus = selectStatus.value;
+      const reason = adjustReason.value.trim();
+
+      if (!reason) {
+        alert("Please specify adjustment justification for the system audit log.");
+        return;
+      }
+
+      // Update local state record
+      const record = checkinRecords.find(r => r.studentId === studentId);
+      const oldStatus = record.status;
+      record.status = newStatus;
+      record.method = 'Manual';
+      record.gpsOffset = '0m (Overridden)';
+      record.wifi = 'Authorized Bypass';
+
+      // Recalculate stats
+      stats.present = checkinRecords.filter(r => r.status === 'Present').length;
+      stats.late = checkinRecords.filter(r => r.status === 'Late').length;
+      stats.fraud = checkinRecords.filter(r => r.status === 'Fraud_Declined').length;
+      stats.absent = Math.max(0, 35 - stats.present - stats.late);
+      updateStatsUI();
+
+      // Update Row UI
+      const row = document.getElementById(`row-${studentId}`);
+      const badgeClass = newStatus === 'Present' ? 'present' : 
+                         newStatus === 'Late' ? 'late' : 'absent';
+      
+      row.innerHTML = `
+        <td style="font-weight: 600;">${record.studentId}</td>
+        <td>${record.studentName}</td>
+        <td>${record.time}</td>
+        <td><span style="font-family: monospace; font-size:11px; color:var(--primary);">Manual</span></td>
+        <td>${record.gpsOffset}</td>
+        <td>${record.wifi}</td>
+        <td><span class="status-badge ${badgeClass}">${newStatus}</span></td>
+        <td>
+          <button class="btn btn-secondary" onclick="openAdjustmentModal('${record.studentId}', '${record.studentName}')" style="padding: 4px 8px; font-size: 11px;" disabled>
+            Adjusted
+          </button>
+        </td>
+      `;
+
+      adjustModal.style.display = 'none';
+
+      logEvent('AUDIT_LOG', `Manual override: ${record.studentName} status changed from ${oldStatus.toUpperCase()} to ${newStatus.toUpperCase()}. Reason: "${reason}"`);
+    });
+
+    // Excel Export Simulation
+    const btnExport = document.getElementById('btn-export');
+    const progressBar = document.getElementById('excel-progress-bar');
+    const progressFillBar = document.getElementById('excel-progress-fill');
+
+    btnExport.addEventListener('click', () => {
+      if (checkinRecords.length === 0) {
+        alert("No attendance records in current session to export.");
+        return;
+      }
+
+      progressBar.style.display = 'block';
+      progressFillBar.style.width = '0%';
+      btnExport.disabled = true;
+      logEvent('EXPORT_START', 'Querying database. Initializing Excel XML Document generator...');
+
+      let p = 0;
+      const interval = setInterval(() => {
+        p += 10;
+        progressFillBar.style.width = `${p}%`;
+        
+        if (p >= 100) {
+          clearInterval(interval);
+          progressBar.style.display = 'none';
+          btnExport.disabled = false;
+          logEvent('EXPORT_COMPLETE', 'Roster file structured. Streamed ClosedXML spreadsheet: UniPortal_Attendance_Report_SE302.xlsx');
+          alert("Excel attendance report downloaded successfully.");
+        }
+      }, 150);
+    });
+
+    // Listening for checkins submitted by student.html
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.action === 'DB_SUBMIT' && sessionActive) {
+        // Build a record from incoming postMessage
+        const now = new Date();
+        const record = {
+          studentId: event.data.studentId,
+          studentName: event.data.studentName,
+          time: now.toLocaleTimeString(),
+          method: event.data.mode,
+          gpsOffset: event.data.status === 'Fraud_Declined' ? '124m (Violation)' : '2m',
+          wifi: event.data.status === 'Fraud_Declined' ? 'Home_Wifi_Guest' : 'FPTU_Academic',
+          status: event.data.status
+        };
+
+        // Check if student ID already has a checkin row to prevent duplicates
+        if (checkinRecords.some(r => r.studentId === record.studentId)) {
+          logEvent('DB_DUPLICATE', `Blocked duplicate insert for Student ID: ${record.studentId}`);
+          return;
+        }
+
+        addRecordToGrid(record);
+      }
+    });
+
+  </script>
+</body>
+</html>

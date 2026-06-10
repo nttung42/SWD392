@@ -15,7 +15,7 @@
 | **Version** | **Date** | **A/M/D*** | **In charge** | **Change Description** |
 | :--- | :--- | :--- | :--- | :--- |
 | V1.0 | 26/05/2026 | A | SWD392 Team | Initial release of Requirement Specification (Section I) for AFAS including Problem Description, Features, Context, NFRs, Use Cases, Activity Diagrams, and Data Dictionary. |
-| V1.1 | 27/05/2026 | A | SWD392 Team | Added Analysis Models (Section II): Interaction Diagrams (Sequence & Communication) for UC01, UC03, UC05, UC06, UC07, UC08, UC11; State Diagrams for AttendanceVersion, AttendanceRecord, DeviceBinding; Static Analysis (Contextual Boundary Class Diagram, Object Structuring Criteria, UI Wireframes). |
+| V1.1 | 27/05/2026 | A | SWD392 Team | Added Analysis Models (Section II): Interaction Diagrams (Sequence & Communication) for UC01, UC03, UC05, UC06, UC07, UC08, UC11; State Diagrams for AttendanceVersion, AttendanceRecord, DeviceBinding; Static Analysis (Contextual Boundary Class Diagram, Object Structuring Criteria, UI Mockups). |
 | V1.2 | 27/05/2026 | A | SWD392 Team | Added Design Specification (Section III): Integrated Communication Diagram, 3-View Architecture, Component/Package Diagrams, Detailed Class Design, Database Schema. Added Implementation Mapping (Section IV) and Verification/Testing (Section V). |
 | V1.3 | 09/06/2026 | M | SWD392 Team | Added cross-phase traceability framework: source-to-feature matrix, business process model, anti-fraud rule catalog, missing dynamic analysis diagrams for UC02/UC04/UC09/UC10, analysis-to-design transformation matrices, NFR realization matrix, DB rule mappings, implementation traceability, and verification coverage matrix. |
 
@@ -46,7 +46,7 @@
     *   [II.0 Static Analysis](#ii0-static-analysis)
         *   [II.0.1 Contextual Boundary Class Diagram](#ii01-contextual-boundary-class-diagram)
         *   [II.0.2 Object Structuring Criteria](#ii02-object-structuring-criteria)
-        *   [II.0.3 UI Wireframes](#ii03-ui-wireframes)
+        *   [II.0.3 UI Mockups](#ii03-ui-mockups)
     *   [II.1 Interaction diagrams](#ii1-interaction-diagrams)
     *   [II.2 State diagrams](#ii2-state-diagram)
 *   [III. Design Specification](#iii-design-specification)
@@ -95,7 +95,7 @@ To maintain consistency and rigorous linkage, the following prefix scheme is app
 | `BP-*` | Core business process | `BP-02` |
 | `AR-*` | Business anti-fraud validation rule | `AR-02` |
 | `NFR-*` | Non-functional performance requirement | `NFR-01` |
-| `AN-*` | Analysis phase artifact (diagrams, wireframes) | `AN-SD-03` |
+| `AN-*` | Analysis phase artifact (diagrams, mockups) | `AN-SD-03` |
 | `DS-*` | Design phase structural/detailed class artifact | `DS-CMP-02` |
 | `DB-*` | Database physical table schema artifact | `DB-T10` |
 | `IM-*` | Implementation code file/module mapping | `IM-SVC-01` |
@@ -123,7 +123,7 @@ The master matrix traces every single source requirement from the brief to its c
 | **SRC-AF-03** | Device Handoff Protection | `AR-03`, `AR-04`, `UC02`, `UC03`, `UC05` | `AN-SD-02`, `AN-SD-03`, `AN-SD-05`, `DeviceBindingState` | `DeviceBindingController`, `AttendanceService.ProcessCheckin` | `students`, `attendance_records` | `IM-DEV-01`, `IM-SVC-01` | `TC-IT-004`, `TC-IT-006`, `TC-BIO-001` | Covered |
 | **SRC-NFR-01** | Concurrency Capability | `NF-01` | Object structuring, `RedisCacheManager` | `RedisCacheManager` on API nodes | indexes on `attendance_records` & `students` | `IM-CACHE-01` | `TC-NFR-001` | Covered |
 | **SRC-NFR-02** | GPS Coordinate Deviation | `NF-02` | GPS calculations in UC03/UC05/UC11 | `rooms.allowed_radius` custom configuration | `rooms`, `attendance_records` | `IM-SVC-01` | `TC-NFR-002` | Covered |
-| **SRC-NFR-03** | UI Usability & Fast Response | `NF-03` | Minimal app wireframes, Face ID sensor | Local Face ID reader, immediate selfie purge | none direct | `IM-MOB-01`, `IM-SVC-01` | `TC-NFR-003` | Covered |
+| **SRC-NFR-03** | UI Usability & Fast Response | `NF-03` | Minimal app mockups, Face ID sensor | Local Face ID reader, immediate selfie purge | none direct | `IM-MOB-01`, `IM-SVC-01` | `TC-NFR-003` | Covered |
 | **SRC-NFR-04** | Solution Maintainability | `NF-04` | BCE Object structuring | Clean Architecture 4 layers, DI, repositories | repositories schema | `IM-ARCH-01` | `TC-UNIT-001`-`003` | Covered |
 
 ---

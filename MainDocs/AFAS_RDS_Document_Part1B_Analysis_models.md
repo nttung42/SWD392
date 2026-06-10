@@ -162,11 +162,11 @@ graph TD
 
 ---
 
-### **II.0.3 UI Wireframes**
+### **II.0.3 UI Mockups**
 
-The following wireframes describe the key user interface screens for the three system portals: Student Mobile App, Lecturer Web Portal, and Admin Web Portal.
+The following mockups describe the key user interface screens for the three system portals: Student Mobile App, Lecturer Web Portal, and Admin Web Portal.
 
-#### **Wireframe WF-01: Student Mobile App — Login Screen**
+#### **Mockup WF-01: Student Mobile App — Login Screen**
 ```
 ┌─────────────────────────────┐
 │         AFAS Login          │
@@ -193,7 +193,7 @@ The following wireframes describe the key user interface screens for the three s
 └─────────────────────────────┘
 ```
 
-#### **Wireframe WF-02: Student Mobile App — Dashboard & QR Scanner**
+#### **Mockup WF-02: Student Mobile App — Dashboard & QR Scanner**
 ```
 ┌─────────────────────────────┐
 │ ☰  AFAS Dashboard     👤   │
@@ -220,7 +220,7 @@ The following wireframes describe the key user interface screens for the three s
 └──────┴──────┴──────┴────────┘
 ```
 
-#### **Wireframe WF-03: Student Mobile App — QR Camera View**
+#### **Mockup WF-03: Student Mobile App — QR Camera View**
 ```
 ┌─────────────────────────────┐
 │  ← Back        QR Scanner   │
@@ -246,7 +246,7 @@ The following wireframes describe the key user interface screens for the three s
 └─────────────────────────────┘
 ```
 
-#### **Wireframe WF-04: Student Mobile App — Attendance History**
+#### **Mockup WF-04: Student Mobile App — Attendance History**
 ```
 ┌─────────────────────────────┐
 │  ← Back    Attendance History│
@@ -272,7 +272,7 @@ The following wireframes describe the key user interface screens for the three s
 └─────────────────────────────┘
 ```
 
-#### **Wireframe WF-05: Lecturer Web Portal — Dynamic QR Projector View**
+#### **Mockup WF-05: Lecturer Web Portal — Dynamic QR Projector View**
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  AFAS Lecturer Portal  │ SWD392 - SE1701 │ Session: 27/05/2026 │
@@ -296,7 +296,7 @@ The following wireframes describe the key user interface screens for the three s
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-#### **Wireframe WF-06: Lecturer Web Portal — Manual Adjustment Modal**
+#### **Mockup WF-06: Lecturer Web Portal — Manual Adjustment Modal**
 ```
 ┌───────────────────────────────────────────┐
 │  Adjust Attendance Status                 │
@@ -322,7 +322,7 @@ The following wireframes describe the key user interface screens for the three s
 └───────────────────────────────────────────┘
 ```
 
-#### **Wireframe WF-07: Admin Web Portal — Room GPS Configuration**
+#### **Mockup WF-07: Admin Web Portal — Room GPS Configuration**
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  AFAS Admin Portal  │  Room Management                         │
@@ -357,7 +357,7 @@ The following wireframes describe the key user interface screens for the three s
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-#### **Wireframe WF-08: Student Mobile App — PIN Fallback Input**
+#### **Mockup WF-08: Student Mobile App — PIN Fallback Input**
 ```
 ┌─────────────────────────────┐
 │  ← Back      PIN Check-in   │

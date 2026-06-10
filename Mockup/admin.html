@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Portal - Uni Portal</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    body {
+      background-color: var(--bg-dark);
+      padding: 24px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .admin-container {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 24px;
+      flex: 1;
+    }
+
+    .sidebar-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-right: 1px solid var(--border-glass);
+      padding-right: 16px;
+    }
+
+    .menu-item {
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--text-muted);
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .menu-item:hover, .menu-item.active {
+      color: var(--text-main);
+      background: hsla(250, 85%, 65%, 0.15);
+      border-left: 3px solid var(--primary);
+    }
+
+    .admin-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      min-height: 540px;
+      box-shadow: var(--shadow-glow);
+    }
+
+    .admin-tab {
+      display: none;
+      animation: tabFadeIn 0.3s ease-out forwards;
+    }
+    .admin-tab.active {
+      display: block;
+    }
+
+    @keyframes tabFadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* SVG Map Visualizer */
+    .map-simulator {
+      width: 100%;
+      height: 250px;
+      background: #0d0e12;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-glass);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Subtabs inside Catalog */
+    .subtabs {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-glass);
+      padding-bottom: 8px;
+    }
+
+    .subtab {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 6px 12px;
+      border-bottom: 2px solid transparent;
+      transition: var(--transition);
+    }
+    .subtab.active {
+      color: var(--secondary);
+      border-bottom-color: var(--secondary);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      padding: 10px 14px;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-align: left;
+      border-bottom: 2px solid var(--border-glass);
+    }
+
+    td {
+      padding: 12px 14px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border-glass);
+    }
+
+    tr:hover td {
+      background: hsla(225, 20%, 30%, 0.05);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="dashboard-header" style="margin-bottom: 16px; border-bottom: 1px solid var(--border-glass); padding-bottom: 12px;">
+    <div>
+      <h1 style="font-size: 18px; font-weight: 700; color: var(--secondary);">Uni Portal Administration</h1>
+      <p style="color: var(--text-muted); font-size: 12px;">Core Configuration & Infrastructure Settings</p>
+    </div>
+  </div>
+
+  <div class="admin-container">
+    
+    <!-- Left Navigation -->
+    <div class="sidebar-menu">
+      <div class="menu-item active" onclick="switchTab('rooms')" id="menu-rooms">
+        <!-- Room Icon -->
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M3 21h18M3 7v14M21 7v14M12 3L3 7M12 3l9 4M12 3v18"/></svg>
+        Rooms Geofence
+      </div>
+      <div class="menu-item" onclick="switchTab('catalog')" id="menu-catalog">
+        <!-- Roster Icon -->
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 14v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Entity Catalog
+      </div>
+      <div class="menu-item" onclick="switchTab('logs')" id="menu-logs">
+        <!-- Audit Icon -->
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 6v6l4 2"/></svg>
+        Audit Log Trails
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="admin-content">
+
+      <!-- TAB 1: GEOFENCE ROOMS -->
+      <div class="admin-tab active" id="tab-rooms">
+        <h2 style="font-size: 16px; font-weight: 700; margin-bottom: 16px;">Classroom GPS Geofencing Configuration</h2>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 24px;">
+          <!-- Config Inputs -->
+          <div>
+            <div style="margin-bottom: 12px;">
+              <label for="select-room">Select Classroom</label>
+              <select id="select-room">
+                <option value="R402" selected>Room 402 (Building Alpha)</option>
+                <option value="R305">Room 305 (Building Beta)</option>
+                <option value="R101">Room 101 (Building Gamma)</option>
+              </select>
+            </div>
+
+            <div class="grid-cols-2" style="margin-bottom: 12px;">
+              <div>
+                <label for="input-lat">Latitude</label>
+                <input type="number" id="input-lat" step="0.000001" value="10.841243">
+              </div>
+              <div>
+                <label for="input-long">Longitude</label>
+                <input type="number" id="input-long" step="0.000001" value="106.809761">
+              </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+              <div class="flex-between" style="margin-bottom: 4px;">
+                <label style="margin-bottom: 0;">Allowed Radius Geofence</label>
+                <span id="radius-val" style="font-size: 13px; font-weight: 700; color: var(--primary);">20 meters</span>
+              </div>
+              <input type="range" id="input-radius-slider" min="10" max="100" value="20" step="5">
+            </div>
+
+            <button class="btn btn-primary" id="btn-save-geofence" style="width: 100%;">
+              Save Geo-Configuration
+            </button>
+          </div>
+
+          <!-- Interactive SVG visual map -->
+          <div>
+            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 8px;">
+              Real-time Geofence Boundary Visualizer
+            </div>
+            
+            <div class="map-simulator">
+              <!-- SVG Map Rendering -->
+              <svg width="100%" height="100%" viewBox="0 0 300 250">
+                <!-- Grid background lines -->
+                <line x1="0" y1="125" x2="300" y2="125" stroke="#1d222e" stroke-dasharray="5,5"/>
+                <line x1="150" y1="0" x2="150" y2="250" stroke="#1d222e" stroke-dasharray="5,5"/>
+                
+                <!-- Allowed Geofence Circle -->
+                <circle cx="150" cy="125" r="40" fill="hsla(250, 85%, 65%, 0.15)" stroke="var(--primary)" stroke-width="2" id="svg-geofence-circle"/>
+                
+                <!-- Center Node (Room Router) -->
+                <circle cx="150" cy="125" r="6" fill="var(--secondary)"/>
+                <text x="150" y="112" fill="#fff" font-size="10" font-weight="700" text-anchor="middle">Room Center</text>
+
+                <!-- Student Node A (Inside Geofence) -->
+                <circle cx="130" cy="135" r="4" fill="var(--success)"/>
+                <text x="130" y="152" fill="var(--text-muted)" font-size="9" text-anchor="middle">Student (12m offset)</text>
+
+                <!-- Student Node B (Outside Geofence) -->
+                <circle cx="230" cy="70" r="4" fill="var(--alert)"/>
+                <text x="230" y="60" fill="var(--alert)" font-size="9" font-weight="600" text-anchor="middle">Fraud Attempt (85m)</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: ENTITY CATALOG -->
+      <div class="admin-tab" id="tab-catalog">
+        <div class="subtabs">
+          <div class="subtab active" onclick="switchCatalogTab('students')" id="subtab-students">Students</div>
+          <div class="subtab" onclick="switchCatalogTab('lecturers')" id="subtab-lecturers">Lecturers</div>
+          <div class="subtab" onclick="switchCatalogTab('subjects')" id="subtab-subjects">Subjects</div>
+        </div>
+
+        <!-- Catalog Sections -->
+        <div id="catalog-students" class="catalog-section">
+          <div class="flex-between" style="margin-bottom: 12px;">
+            <h3 style="font-size: 14px; font-weight: 700;">Active Student Device Mappings</h3>
+            <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="alert('Student catalog CSV roster uploading simulated!')">
+              Upload CSV Roster
+            </button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Student ID</th>
+                <th>Full Name</th>
+                <th>FPT Email</th>
+                <th>Device UUID</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight: 600;">HE170123</td>
+                <td>Nguyen Thanh Tung</td>
+                <td>tungnthe170123@fpt.edu.vn</td>
+                <td style="font-family: monospace; font-size:11px;" id="val-bind-uuid">UUID-MOBILE-8A2D5C4</td>
+                <td>
+                  <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" id="btn-clear-bind">
+                    Clear Binding
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600;">HE170564</td>
+                <td>Le Hoang Anh</td>
+                <td>anhlhhe170564@fpt.edu.vn</td>
+                <td style="font-family: monospace; font-size:11px; color:var(--text-muted);">Unbound</td>
+                <td>
+                  <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" disabled>
+                    No Binding
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600;">HE171243</td>
+                <td>Tran Minh Tri</td>
+                <td>tritmhe171243@fpt.edu.vn</td>
+                <td style="font-family: monospace; font-size:11px;">UUID-MOBILE-F3E481D</td>
+                <td>
+                  <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="clearOtherBind(this, 'HE171243')">
+                    Clear Binding
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="catalog-lecturers" class="catalog-section" style="display: none;">
+          <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 12px;">Lecturer Faculty Assignments</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Lecturer ID</th>
+                <th>Full Name</th>
+                <th>FPT Email</th>
+                <th>Department</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight: 600;">GV0012</td>
+                <td>Dr. Hassan Gomaa</td>
+                <td>gomaah@fpt.edu.vn</td>
+                <td>Software Engineering</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600;">GV0035</td>
+                <td>Dr. Jack Dongarra</td>
+                <td>jackd@fpt.edu.vn</td>
+                <td>Distributed Systems</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="catalog-subjects" class="catalog-section" style="display: none;">
+          <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 12px;">Curricular Subject Catalog</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Subject Code</th>
+                <th>Subject Name</th>
+                <th>Credits</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight: 600;">SE302</td>
+                <td>Software Architecture & Design Patterns</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600;">SWT301</td>
+                <td>Software Testing Processes</td>
+                <td>3</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600;">PRN211</td>
+                <td>Basic Cross-Platform .NET Programming</td>
+                <td>3</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 3: AUDIT TRAIL LOGS -->
+      <div class="admin-tab" id="tab-logs">
+        <h2 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">Security & Transactional Audit Trails</h2>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Operator</th>
+              <th>Action Category</th>
+              <th>Entity Affected</th>
+              <th>Audit Description</th>
+            </tr>
+          </thead>
+          <tbody id="logs-tbody">
+            <tr>
+              <td style="color:var(--text-muted);">09:02:14</td>
+              <td>admin@fpt.edu.vn</td>
+              <td><span class="status-badge" style="background:hsla(200,80%,55%,0.15); color:var(--info);">SYSTEM_INIT</span></td>
+              <td>CORE_DB</td>
+              <td>PostgreSQL tables loaded, Redis cache connections online.</td>
+            </tr>
+            <tr>
+              <td style="color:var(--text-muted);">09:05:40</td>
+              <td>admin@fpt.edu.vn</td>
+              <td><span class="status-badge" style="background:hsla(145,80%,45%,0.15); color:var(--success);">ROSTER_SEED</span></td>
+              <td>CLASS_SECTIONS</td>
+              <td>Imported roster list (35 students) into class section SE302_S2.</td>
+            </tr>
+            <tr>
+              <td style="color:var(--text-muted);">09:15:32</td>
+              <td>gomaah@fpt.edu.vn</td>
+              <td><span class="status-badge" style="background:hsla(38,95%,55%,0.15); color:var(--warning);">DEVICE_CLEAR</span></td>
+              <td>STUDENT:HE170321</td>
+              <td>Cleared bound device UUID mapping at student request.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // Tab switching logic
+    const tabs = {
+      rooms: document.getElementById('tab-rooms'),
+      catalog: document.getElementById('tab-catalog'),
+      logs: document.getElementById('tab-logs')
+    };
+
+    const menuItems = {
+      rooms: document.getElementById('menu-rooms'),
+      catalog: document.getElementById('menu-catalog'),
+      logs: document.getElementById('menu-logs')
+    };
+
+    function logEvent(action, desc) {
+      window.parent.postMessage({
+        source: 'admin_portal',
+        action: action,
+        description: desc,
+        timestamp: new Date().toLocaleTimeString()
+      }, '*');
+    }
+
+    window.switchTab = function(tabKey) {
+      Object.keys(tabs).forEach(key => {
+        if (key === tabKey) {
+          tabs[key].classList.add('active');
+          menuItems[key].classList.add('active');
+        } else {
+          tabs[key].classList.remove('active');
+          menuItems[key].classList.remove('active');
+        }
+      });
+      logEvent('TAB_SWITCH', `Admin toggled tab to: ${tabKey.toUpperCase()}`);
+    };
+
+    // Subtabs switcher inside Catalog tab
+    const catalogTabs = {
+      students: document.getElementById('catalog-students'),
+      lecturers: document.getElementById('catalog-lecturers'),
+      subjects: document.getElementById('catalog-subjects')
+    };
+
+    const subtabBtns = {
+      students: document.getElementById('subtab-students'),
+      lecturers: document.getElementById('subtab-lecturers'),
+      subjects: document.getElementById('subtab-subjects')
+    };
+
+    window.switchCatalogTab = function(subKey) {
+      Object.keys(catalogTabs).forEach(key => {
+        if (key === subKey) {
+          catalogTabs[key].style.display = 'block';
+          subtabBtns[key].classList.add('active');
+        } else {
+          catalogTabs[key].style.display = 'none';
+          subtabBtns[key].classList.remove('active');
+        }
+      });
+      logEvent('CATALOG_TAB', `Viewed ${subKey.toUpperCase()} catalog database table`);
+    };
+
+    // Slider SVG Update
+    const radiusSlider = document.getElementById('input-radius-slider');
+    const radiusLabel = document.getElementById('radius-val');
+    const svgCircle = document.getElementById('svg-geofence-circle');
+
+    radiusSlider.addEventListener('input', () => {
+      const radius = radiusSlider.value;
+      radiusLabel.innerText = `${radius} meters`;
+      
+      // Map radius 20m -> 40px in SVG. Math: radius * 2
+      svgCircle.setAttribute('r', radius * 2);
+    });
+
+    // Save configurations
+    document.getElementById('btn-save-geofence').addEventListener('click', () => {
+      const room = document.getElementById('select-room').value;
+      const lat = document.getElementById('input-lat').value;
+      const lng = document.getElementById('input-long').value;
+      const radius = radiusSlider.value;
+
+      logEvent('GEOFENCE_SAVE', `Saved room ${room} configuration. Coordinates: ${lat}, ${lng}, Radius: ${radius}m`);
+      addAuditRow('GEOFENCE_UPDATE', `ROOM:${room}`, `Updated boundary parameters: Lat:${lat}, Long:${lng}, Radius:${radius}m.`);
+      
+      alert(`Geofencing boundary parameters for ${room} saved to database successfully.`);
+    });
+
+    // Clear binding simulator
+    document.getElementById('btn-clear-bind').addEventListener('click', () => {
+      document.getElementById('val-bind-uuid').innerText = "Unbound";
+      document.getElementById('val-bind-uuid').style.color = "var(--text-muted)";
+      document.getElementById('btn-clear-bind').disabled = true;
+      document.getElementById('btn-clear-bind').innerText = "Cleared";
+
+      logEvent('DEVICE_UNBIND', 'Administrator cleared hardware binding mapping UUID for student HE170123.');
+      addAuditRow('DEVICE_UNBIND', 'STUDENT:HE170123', 'Cleared device UUID mapping from account.');
+      
+      alert("Hardware device UUID binding for student HE170123 cleared successfully. Student is now allowed to bind a new mobile device.");
+    });
+
+    window.clearOtherBind = function(btn, studentId) {
+      const td = btn.closest('tr').querySelector('td:nth-child(4)');
+      td.innerText = "Unbound";
+      td.style.color = "var(--text-muted)";
+      btn.disabled = true;
+      btn.innerText = "Cleared";
+
+      logEvent('DEVICE_UNBIND', `Administrator cleared hardware binding mapping UUID for student ${studentId}.`);
+      addAuditRow('DEVICE_UNBIND', `STUDENT:${studentId}`, 'Cleared device UUID mapping from account.');
+    };
+
+    // Helper to add audit log rows
+    const logsTbody = document.getElementById('logs-tbody');
+    function addAuditRow(category, entity, desc) {
+      const row = document.createElement('tr');
+      const now = new Date();
+      const timestamp = now.toLocaleTimeString();
+
+      row.innerHTML = `
+        <td style="color:var(--text-muted);">${timestamp}</td>
+        <td>admin@fpt.edu.vn</td>
+        <td><span class="status-badge" style="background:hsla(320, 80%, 60%, 0.15); color:var(--secondary);">${category}</span></td>
+        <td style="font-weight:600;">${entity}</td>
+        <td>${desc}</td>
+      `;
+
+      if (logsTbody.firstChild) {
+        logsTbody.insertBefore(row, logsTbody.firstChild);
+      } else {
+        logsTbody.appendChild(row);
+      }
+    }
+  </script>
+</body>
+</html>

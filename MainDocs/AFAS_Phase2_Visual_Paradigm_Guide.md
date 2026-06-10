@@ -1246,9 +1246,9 @@ UML > State Machine Diagram
 
 ---
 
-# II.0.3 UI Wireframes — Optional Visual Paradigm Mockup
+# II.0.3 UI Mockups — Optional Visual Paradigm Mockup
 
-Mục `II.0.3 UI Wireframes` hiện là ASCII wireframe, không phải UML. Nếu cần chuyển sang Visual Paradigm, dùng:
+Mục `II.0.3 UI Mockups` hiện là ASCII mockup, không phải UML. Nếu cần chuyển sang Visual Paradigm, dùng:
 
 ```text
 Diagram > New > UX / Wireframe / Mockup Diagram
@@ -1256,7 +1256,7 @@ Diagram > New > UX / Wireframe / Mockup Diagram
 
 Tạo các mockup sau:
 
-| Wireframe | Visual Paradigm diagram type | Main components |
+| Mockup | Visual Paradigm diagram type | Main components |
 |---|---|---|
 | WF-01 Login Screen | Mobile Wireframe | Text fields, login button, Google login button |
 | WF-02 Dashboard & QR Scanner | Mobile Wireframe | Header, scan QR button, PIN check-in button, bottom nav |
@@ -1267,7 +1267,7 @@ Tạo các mockup sau:
 | WF-07 Admin Room GPS Config | Web Wireframe | Room table, map placeholder, coordinate fields, save button |
 | WF-08 PIN Fallback Input | Mobile Wireframe | PIN six slots, GPS/UUID info, submit button |
 
-Nếu thầy chỉ yêu cầu UML, giữ phần wireframe ASCII cũng được. Không bắt buộc vẽ bằng UML.
+Nếu thầy chỉ yêu cầu UML, giữ phần mockup ASCII cũng được. Không bắt buộc vẽ bằng UML.
 
 ---
 
