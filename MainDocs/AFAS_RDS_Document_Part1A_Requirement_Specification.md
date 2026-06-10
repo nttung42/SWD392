@@ -199,63 +199,62 @@ The requirements from the assignment brief map directly to the system features (
 
 The system context diagram models the boundaries between the Anti-Fraud Attendance System (AFAS) and the external actors or systems it communicates with.
 
-```mermaid
-classDiagram
-    class Anti_Fraud_Attendance_System {
-        <<Central System>>
-        -VerifyDynamicQR()
-        -CalculateGeofenceDistance()
-        -MatchFaceBiometrics()
-        -CheckSchoolWifiGateway()
-    }
+```plantuml
+@startuml System_Context_Class_Diagram
+skinparam ClassBackgroundColor #F9F9F9
+skinparam ClassBorderColor #2E86C1
+skinparam ArrowColor #2E86C1
+skinparam ClassFontSize 12
 
-    class Student {
-        <<external user>>
-        +Login()
-        +ScanDynamicQR()
-        +SubmitBiometrics()
-        +ViewAttendanceHistory()
-    }
+class Anti_Fraud_Attendance_System <<Central System>> {
+    -VerifyDynamicQR()
+    -CalculateGeofenceDistance()
+    -MatchFaceBiometrics()
+    -CheckSchoolWifiGateway()
+}
 
-    class Lecturer {
-        <<external user>>
-        +ManageClassSections()
-        +GenerateDynamicQR()
-        +ViewRealtimeAttendance()
-        +ManualCheckinAdjustment()
-        +ExportExcelReport()
-    }
+class Student <<external user>> {
+    +Login()
+    +ScanDynamicQR()
+    +SubmitBiometrics()
+    +ViewAttendanceHistory()
+}
 
-    class Admin {
-        <<external user>>
-        +ManageUsers()
-        +ConfigureRoomCoordinates()
-    }
+class Lecturer <<external user>> {
+    +ManageClassSections()
+    +GenerateDynamicQR()
+    +ViewRealtimeAttendance()
+    +ManualCheckinAdjustment()
+    +ExportExcelReport()
+}
 
-    class MobileDeviceHardware {
-        <<external I/O device>>
-        +GetGPSCoordinates()
-        +GetDeviceUUID()
-        +TriggerNativeFaceID()
-    }
+class Admin <<external user>> {
+    +ManageUsers()
+    +ConfigureRoomCoordinates()
+}
 
-    class Google_OAuth_Service {
-        <<external system>>
-        +AuthenticateFPTUser()
-    }
+class MobileDeviceHardware <<external I/O device>> {
+    +GetGPSCoordinates()
+    +GetDeviceUUID()
+    +TriggerNativeFaceID()
+}
 
-    class School_Network_Gateway {
-        <<external system>>
-        +VerifyPublicIP()
-    }
+class Google_OAuth_Service <<external system>> {
+    +AuthenticateFPTUser()
+}
 
-    Student --> Anti_Fraud_Attendance_System : Quét QR, xem lịch sử chuyên cần
-    Lecturer --> Anti_Fraud_Attendance_System : Tạo phiên QR, chốt sổ, xuất Excel
-    Admin --> Anti_Fraud_Attendance_System : Cấu hình phòng học, quản lý tài khoản
+class School_Network_Gateway <<external system>> {
+    +VerifyPublicIP()
+}
 
-    Anti_Fraud_Attendance_System --> MobileDeviceHardware : Yêu cầu GPS, UUID, Xác thực Face ID
-    Anti_Fraud_Attendance_System --> Google_OAuth_Service : Xác thực email @fpt.edu.vn
-    Anti_Fraud_Attendance_System --> School_Network_Gateway : Kiểm tra chéo IP nội bộ mạng trường
+Student --> Anti_Fraud_Attendance_System : Quét QR, xem lịch sử chuyên cần
+Lecturer --> Anti_Fraud_Attendance_System : Tạo phiên QR, chốt sổ, xuất Excel
+Admin --> Anti_Fraud_Attendance_System : Cấu hình phòng học, quản lý tài khoản
+
+Anti_Fraud_Attendance_System --> MobileDeviceHardware : Yêu cầu GPS, UUID, Xác thực Face ID
+Anti_Fraud_Attendance_System --> Google_OAuth_Service : Xác thực email @fpt.edu.vn
+Anti_Fraud_Attendance_System --> School_Network_Gateway : Kiểm tra chéo IP nội bộ mạng trường
+@enduml
 ```
 
 ---
@@ -326,51 +325,59 @@ The following business processes define the end-to-end operational workflows of 
 The functional requirements are mapped to three main use case diagrams representing the Student, Lecturer, and Admin subsystems.
 
 #### **Overview Use Case Diagram**
-```mermaid
-flowchart LR
-    Student((Student))
-    Lecturer((Lecturer))
-    Admin((Admin))
+```plantuml
+@startuml Overview_Use_Case_Diagram
+left to right direction
+skinparam ActorBackgroundColor #F9F9F9
+skinparam ActorBorderColor #2E86C1
+skinparam UseCaseBackgroundColor #AED6F1
+skinparam UseCaseBorderColor #2E86C1
+skinparam ArrowColor #2E86C1
 
-    subgraph Student_Subsystem [Student Mobile & Web Portal]
-        UC01[UC01: Login via Credentials/OAuth]
-        UC02[UC02: Register Device UUID]
-        UC03[UC03: Scan Dynamic QR Check-in]
-        UC04[UC04: View Attendance History]
-        UC05[UC05: PIN Fallback Check-in]
-    end
+actor Student
+actor Lecturer
+actor Admin
 
-    subgraph Lecturer_Subsystem [Lecturer Web Portal]
-        UC06[UC06: Activate Dynamic QR Session]
-        UC07[UC07: Real-time Attendance Monitor]
-        UC08[UC08: Manual Attendance Adjustment]
-        UC09[UC09: Export Attendance Report]
-    end
+rectangle "Student Mobile & Web Portal" as Student_Subsystem {
+    usecase "UC01: Login via Credentials/OAuth" as UC01
+    usecase "UC02: Register Device UUID" as UC02
+    usecase "UC03: Scan Dynamic QR Check-in" as UC03
+    usecase "UC04: View Attendance History" as UC04
+    usecase "UC05: PIN Fallback Check-in" as UC05
+}
 
-    subgraph Admin_Subsystem [Admin Web Portal]
-        UC10[UC10: Manage System Catalog]
-        UC11[UC11: Configure Room Coordinates]
-    end
+rectangle "Lecturer Web Portal" as Lecturer_Subsystem {
+    usecase "UC06: Activate Dynamic QR Session" as UC06
+    usecase "UC07: Real-time Attendance Monitor" as UC07
+    usecase "UC08: Manual Attendance Adjustment" as UC08
+    usecase "UC09: Export Attendance Report" as UC09
+}
 
-    Student --> UC01
-    Student --> UC02
-    Student --> UC03
-    Student --> UC04
-    Student --> UC05
+rectangle "Admin Web Portal" as Admin_Subsystem {
+    usecase "UC10: Manage System Catalog" as UC10
+    usecase "UC11: Configure Room Coordinates" as UC11
+}
 
-    Lecturer --> UC01
-    Lecturer --> UC06
-    Lecturer --> UC07
-    Lecturer --> UC08
-    Lecturer --> UC09
+Student --> UC01
+Student --> UC02
+Student --> UC03
+Student --> UC04
+Student --> UC05
 
-    Admin --> UC01
-    Admin --> UC10
-    Admin --> UC11
+Lecturer --> UC01
+Lecturer --> UC06
+Lecturer --> UC07
+Lecturer --> UC08
+Lecturer --> UC09
 
-    UC03 -.-> |include| UC02
-    UC05 -.-> |extend| UC03
-    UC07 -.-> |include| UC06
+Admin --> UC01
+Admin --> UC10
+Admin --> UC11
+
+UC03 ..> UC02 : <<include>>
+UC05 ..> UC03 : <<extend>>
+UC07 ..> UC06 : <<include>>
+@enduml
 ```
 
 ---
@@ -764,115 +771,121 @@ This catalog centralizes all business anti-fraud checking rules implemented by t
 
 ### **Figure I-4: Entity class diagram modeling data requirements**
 
-```mermaid
-classDiagram
-    class Account {
-        -Id: string
-        -Email: string
-        -PasswordHash: string
-        -FullName: string
-        -Role: string
-        -CreatedAt: DateTime
-    }
+```plantuml
+@startuml Entity_Class_Diagram
+skinparam ClassBackgroundColor #F9F9F9
+skinparam ClassBorderColor #2E86C1
+skinparam ArrowColor #2E86C1
+skinparam ClassFontSize 12
 
-    class Student {
-        -StudentId: string
-        -AccountId: string
-        -DeviceUUID: string
-        -RegisteredFaceTemplate: string
-    }
+class Account {
+    -Id: string
+    -Email: string
+    -PasswordHash: string
+    -FullName: string
+    -Role: string
+    -CreatedAt: DateTime
+}
 
-    class Lecturer {
-        -LecturerId: string
-        -AccountId: string
-        -Department: string
-    }
+class Student {
+    -StudentId: string
+    -AccountId: string
+    -DeviceUUID: string
+    -RegisteredFaceTemplate: string
+}
 
-    class Room {
-        -RoomId: string
-        -RoomName: string
-        -Latitude: double
-        -Longitude: double
-        -AllowedRadius: double
-    }
+class Lecturer {
+    -LecturerId: string
+    -AccountId: string
+    -Department: string
+}
 
-    class Subject {
-        -SubjectCode: string
-        -SubjectName: string
-        -Credits: int
-    }
+class Room {
+    -RoomId: string
+    -RoomName: string
+    -Latitude: double
+    -Longitude: double
+    -AllowedRadius: double
+}
 
-    class ClassSection {
-        -ClassSectionId: string
-        -ClassSectionName: string
-        -SubjectCode: string
-        -LecturerId: string
-        -Semester: string
-    }
+class Subject {
+    -SubjectCode: string
+    -SubjectName: string
+    -Credits: int
+}
 
-    class ClassSectionStudent {
-        -ClassSectionId: string
-        -StudentId: string
-    }
+class ClassSection {
+    -ClassSectionId: string
+    -ClassSectionName: string
+    -SubjectCode: string
+    -LecturerId: string
+    -Semester: string
+}
 
-    class Session {
-        -SessionId: string
-        -ClassSectionId: string
-        -RoomId: string
-        -SessionDate: DateTime
-        -StartTime: TimeSpan
-        -EndTime: TimeSpan
-    }
+class ClassSectionStudent {
+    -ClassSectionId: string
+    -StudentId: string
+}
 
-    class AttendanceVersion {
-        -SessionId: string
-        -DynamicToken: string
-        -QRRefreshedAt: DateTime
-        -PINCode: string
-        -PINRefreshedAt: DateTime
-        -IsActive: bool
-    }
+class Session {
+    -SessionId: string
+    -ClassSectionId: string
+    -RoomId: string
+    -SessionDate: DateTime
+    -StartTime: TimeSpan
+    -EndTime: TimeSpan
+}
 
-    class AttendanceRecord {
-        -RecordId: string
-        -StudentId: string
-        -SessionId: string
-        -CheckedInAt: DateTime
-        -CheckedInLat: double
-        -CheckedInLong: double
-        -Distance: double
-        -WifiSSID: string
-        -PublicIP: string
-        -DeviceUUID: string
-        -SelfiePath: string
-        -Status: string
-        -VerificationMode: string
-    }
+class AttendanceVersion {
+    -SessionId: string
+    -DynamicToken: string
+    -QRRefreshedAt: DateTime
+    -PINCode: string
+    -PINRefreshedAt: DateTime
+    -IsActive: bool
+}
 
-    class SystemLog {
-        -LogId: string
-        -AccountId: string
-        -Timestamp: DateTime
-        -Action: string
-        -Description: string
-    }
+class AttendanceRecord {
+    -RecordId: string
+    -StudentId: string
+    -SessionId: string
+    -CheckedInAt: DateTime
+    -CheckedInLat: double
+    -CheckedInLong: double
+    -Distance: double
+    -WifiSSID: string
+    -PublicIP: string
+    -DeviceUUID: string
+    -SelfiePath: string
+    -Status: string
+    -VerificationMode: string
+}
 
-    Account "1" -- "0..1" Student
-    Account "1" -- "0..1" Lecturer
-    Account "1" -- "0..*" SystemLog
-    
-    Lecturer "1" -- "0..*" ClassSection
-    Subject "1" -- "0..*" ClassSection
-    
-    ClassSection "1" -- "0..*" ClassSectionStudent
-    Student "1" -- "0..*" ClassSectionStudent
-    
-    ClassSection "1" -- "0..*" Session
-    Room "1" -- "0..*" Session
-    
-    Session "1" -- "0..1" AttendanceVersion
-    Session "1" -- "0..*" AttendanceRecord
-    Student "1" -- "0..*" AttendanceRecord
+class SystemLog {
+    -LogId: string
+    -AccountId: string
+    -Timestamp: DateTime
+    -Action: string
+    -Description: string
+}
+
+Account "1" -- "0..1" Student
+Account "1" -- "0..1" Lecturer
+Account "1" -- "0..*" SystemLog
+
+Lecturer "1" -- "0..*" ClassSection
+Subject "1" -- "0..*" ClassSection
+
+ClassSection "1" -- "0..*" ClassSectionStudent
+Student "1" -- "0..*" ClassSectionStudent
+
+ClassSection "1" -- "0..*" Session
+Room "1" -- "0..*" Session
+
+Session "1" -- "0..1" AttendanceVersion
+Session "1" -- "0..*" AttendanceRecord
+Student "1" -- "0..*" AttendanceRecord
+@enduml
 ```
 
 ---

@@ -70,48 +70,42 @@ The non-functional requirements (Section I.4) are mapped to specific engineering
 To transition from analysis to design, we integrate the separate communication diagrams developed during the analysis phase into a single, unified view. This synthesis helps identify the complete set of dependencies and methods required on each class to implement the system.
 
 #### **Figure III-1: Integrated Communication Diagram**
-```mermaid
-graph TD
-    %% Actors
-    AD((Admin))
-    GV((Lecturer))
-    SV((Student))
+```plantuml
+@startuml
+skinparam style strictuml
+object Admin as "Admin\n«actor»"
+object Lecturer as "Lecturer\n«actor»"
+object Student as "Student\n«actor»"
 
-    %% Boundary Classes (Web & Mobile Ports)
-    AWP["«boundary»<br>AdminWebPortal"]
-    LWP["«boundary»<br>LecturerWebPortal"]
-    SAF["«boundary»<br>StudentAppForm"]
+object AWP as "AdminWebPortal\n«boundary»"
+object LWP as "LecturerWebPortal\n«boundary»"
+object SAF as "StudentAppForm\n«boundary»"
 
-    %% Control Classes (Application Services)
-    RCC["«control»<br>RoomConfigurationController"]
-    SC["«control»<br>SessionController"]
-    AC["«control»<br>AttendanceController"]
+object RCC as "RoomConfigurationController\n«control»"
+object SC as "SessionController\n«control»"
+object AC as "AttendanceController\n«control»"
 
-    %% Entity Classes (Domain Core)
-    R[("«entity»<br>Room")]
-    S[("«entity»<br>Session")]
-    V[("«entity»<br>AttendanceVersion")]
-    AR[("«entity»<br>AttendanceRecord")]
+object R as "Room\n«entity»"
+object S as "Session\n«entity»"
+object V as "AttendanceVersion\n«entity»"
+object AR as "AttendanceRecord\n«entity»"
 
-    %% Actor to Boundary Interactions
-    AD -->|"1: Edit Room / 2: Save Geo Config"| AWP
-    GV -->|"1: Get Session Details / 2: Click Start Attendance"| LWP
-    SV -->|"1: Trigger Face ID / 2: Scan QR / 3: Check-in"| SAF
+Admin --> AWP : 1: Edit Room / 2: Save Geo Config
+Lecturer --> LWP : 1: Get Session / 2: Start Attendance
+Student --> SAF : 1: Trigger Face ID / 2: Scan QR / 3: Check-in
 
-    %% Boundary to Control API Calls
-    AWP -->|"1.1: GetRoomsList() / 2.1: SaveGeoConfiguration()"| RCC
-    LWP -->|"1.1: GetSessionDetails() / 2.1: ActivateAttendanceSession()"| SC
-    SAF -->|"3.1: SubmitAttendance()"| AC
+AWP --> RCC : 1.1: GetRoomsList() / 2.1: SaveGeoConfiguration()
+LWP --> SC : 1.1: GetSessionDetails() / 2.1: ActivateAttendanceSession()
+SAF --> AC : 3.1: SubmitAttendance()
 
-    %% Control to Entity operations
-    RCC -->|"2.2: UpdateGeoConfig()"| R
-    
-    SC -->|"1.2: ReadSessionInfo()"| S
-    SC -->|"2.2: InitializeVersion() / 2.3: UpdateDynamicToken()"| V
-    
-    AC -->|"3.2: GetActiveTokenForSession()"| V
-    AC -->|"3.3: GetRoomGeoConfig()"| R
-    AC -->|"3.4: CreateRecord()"| AR
+RCC --> R : 2.2: UpdateGeoConfig()
+SC --> S : 1.2: ReadSessionInfo()
+SC --> V : 2.2: InitializeVersion() / 2.3: UpdateDynamicToken()
+
+AC --> V : 3.2: GetActiveTokenForSession()
+AC --> R : 3.3: GetRoomGeoConfig()
+AC --> AR : 3.4: CreateRecord()
+@enduml
 ```
 
 ### **Transition from Analysis-level to Design-level Specification**
@@ -133,105 +127,127 @@ In the design phase (Phase 3), the Platform-Independent Model (PIM) is mapped in
 The AFAS system is designed using a **Clean Architecture** (4-layer concentric system), ensuring ease of maintenance (**NF-04**) and loose coupling.
 
 ### **2.1 Static View (Kiến Trúc Phân Tầng)**
-```mermaid
-graph TD
-    subgraph Presentation_Layer [Presentation Layer / WebAPI]
-        Controllers[API Controllers]
-        SignalRHubs[SignalR WebSockets Hubs]
-    end
+```plantuml
+@startuml
+skinparam style strictuml
+package "Presentation Layer (WebAPI)" as Pres {
+    [API Controllers]
+    [SignalR WebSockets Hubs]
+}
+package "Application Layer" as App {
+    [AttendanceService]
+    [SessionService]
+    [AuthService]
+    interface IUseCaseInterfaces
+}
+package "Domain Layer (Core)" as Domain {
+    [Student]
+    [Session]
+    [Room]
+    [AttendanceRecord]
+    interface IStudentRepository
+    interface IAttendanceRepository
+}
+package "Infrastructure Layer" as Infra {
+    [PostgreSQL EF Core Context]
+    [Redis Cache Manager]
+    [Google OAuth Provider]
+}
 
-    subgraph Application_Layer [Application Layer]
-        Services[AttendanceService, SessionService, AuthService]
-        Interfaces_App[IUseCaseInterfaces, DtoClasses]
-    end
-
-    subgraph Domain_Layer [Domain Layer - LÕI]
-        Entities[Student, Session, Room, AttendanceRecord]
-        Interfaces_Domain[IStudentRepository, IAttendanceRepository]
-    end
-
-    subgraph Infrastructure_Layer [Infrastructure Layer]
-        EFCore[PostgreSQL Persistence via EF Core]
-        RedisCache[Redis Cache Manager]
-        GoogleAuth[Google OAuth Provider]
-    end
-
-    Presentation_Layer --> Application_Layer
-    Infrastructure_Layer --> Domain_Layer
-    Infrastructure_Layer --> Application_Layer
-    Application_Layer --> Domain_Layer
+Pres ..> App : "depends on"
+Infra ..> Domain : "implements interfaces"
+Infra ..> App : "provides services"
+App ..> Domain : "orchestrates"
+@enduml
 ```
 
 ### **2.2 Dynamic View (Luồng Gọi Xuyên Tầng)**
-```mermaid
-sequenceDiagram
-    autonumber
-    actor SV as Student App
-    participant C as Presentation: AttendanceController
-    participant S as Application: AttendanceService
-    participant R as Domain: IAttendanceRepository
-    participant DB as Infrastructure: EFCorePostgreSQL
+```plantuml
+@startuml
+autonumber
+actor SV as "Student App"
 
-    SV->>C: POST /api/attendance/submit (Payload)
-    activate C
-    C->>S: SubmitAttendance(StudentId, DynamicToken, GPS, IP, UUID)
-    activate S
-    S->>S: RunAntiFraudValidation(GPS, DynamicToken, UUID)
-    S->>R: SaveRecord(AttendanceRecord)
-    activate R
-    R->>DB: SaveChangesAsync()
-    activate DB
-    DB-->>R: Transaction committed
-    deactivate DB
-    R-->>S: Record Saved Successfully
-    deactivate R
-    S-->>C: Return ProcessResult (Success)
-    deactivate S
-    C-->>SV: HTTP 200 OK (Checked-in successfully)
-    deactivate C
+box "Presentation Layer" #LightBlue
+participant C as "AttendanceController\n«boundary»"
+end box
+
+box "Application Layer" #LightGreen
+participant S as "AttendanceService\n«control»"
+end box
+
+box "Domain Layer" #LightYellow
+participant R as "IAttendanceRepository\n«interface»"
+end box
+
+box "Infrastructure Layer" #LightPink
+participant DB as "EFCorePostgreSQL\n«database»"
+end box
+
+SV -> C: POST /api/attendance/submit (Payload)
+activate C
+C -> S: SubmitAttendance(StudentId, DynamicToken, GPS, IP, UUID)
+activate S
+S -> S: RunAntiFraudValidation(GPS, DynamicToken, UUID)
+S -> R: SaveRecord(AttendanceRecord)
+activate R
+R -> DB: SaveChangesAsync()
+activate DB
+DB --> R: Transaction committed
+deactivate DB
+R --> S: Record Saved Successfully
+deactivate R
+S --> C: Return ProcessResult (Success)
+deactivate S
+C --> SV: HTTP 200 OK (Checked-in successfully)
+deactivate C
+@enduml
 ```
 
 ### **2.3 Deployment View (Figure III-2: Sơ đồ Triển khai)**
-```mermaid
-flowchart TB
-    %% Clients
-    subgraph User_Devices [User Devices]
-        Mobile_App[Mobile Phone <br> React Native App]
-        Web_Browser[Lecturer & Admin PC <br> Next.js Portal]
-    end
+```plantuml
+@startuml
+skinparam style strictuml
 
-    %% Network and Hosting
-    subgraph Cloud_Hosting [Docker Containers Cluster]
-        Nginx[Nginx Reverse Proxy / Load Balancer]
-        
-        subgraph WebAPI_Pod_1 [API Node 1]
-            API_1[.NET 8 WebAPI Container 1]
-        end
-        subgraph WebAPI_Pod_2 [API Node 2]
-            API_2[.NET 8 WebAPI Container 2]
-        end
-        
-        subgraph Caching_Node [Caching Store]
-            Redis[Redis Cluster <br> In-Memory Token Cache]
-        end
-        
-        subgraph Persistent_Node [Persistent Storage]
-            Postgres[PostgreSQL DB Server]
-        end
-    end
+node "User Devices" {
+    node "Mobile Phone" as Mobile {
+        artifact "React Native App" as App
+    }
+    node "Lecturer & Admin PC" as PC {
+        artifact "Next.js Web Portal" as Web
+    }
+}
 
-    %% Network Connections
-    Mobile_App -->|HTTPS / Port 443| Nginx
-    Web_Browser -->|WSS / Port 443| Nginx
+node "Cloud Hosting (Docker Cluster)" as Cloud {
+    node "Nginx Container" as Nginx <<load balancer>>
     
-    Nginx -->|Round Robin HTTP| API_1
-    Nginx -->|Round Robin HTTP| API_2
+    node "API Server Node 1" as Node1 {
+        artifact ".NET 8 API Cont. 1" as API1
+    }
+    node "API Server Node 2" as Node2 {
+        artifact ".NET 8 API Cont. 2" as API2
+    }
     
-    API_1 -->|Port 6379| Redis
-    API_2 -->|Port 6379| Redis
+    node "Caching Node" as Cache {
+        database "Redis Cluster" as Redis
+    }
     
-    API_1 -->|Port 5432| Postgres
-    API_2 -->|Port 5432| Postgres
+    node "Database Node" as DBNode {
+        database "PostgreSQL DB" as PG
+    }
+}
+
+App --> Nginx : "HTTPS / Port 443"
+Web --> Nginx : "WSS / Port 443"
+
+Nginx --> API1 : "HTTP / Round Robin"
+Nginx --> API2 : "HTTP / Round Robin"
+
+API1 --> Redis : "TCP / Port 6379"
+API2 --> Redis : "TCP / Port 6379"
+
+API1 --> PG : "TCP / Port 5432"
+API2 --> PG : "TCP / Port 5432"
+@enduml
 ```
 
 ---
@@ -241,89 +257,73 @@ flowchart TB
 The static structural organization of source code packages and structural interaction interfaces.
 
 ### **3.1 Package Diagram (Figure III-3)**
-```mermaid
-graph TD
-    subgraph Solution_AFAS [Solution: AFAS]
-        subgraph Domain_Pkg [Package: AFAS.Domain]
-            Entities[Entities]
-            Exceptions[Domain Exceptions]
-            DomainInterfaces[IRepositories, IDomainServices]
-        end
+```plantuml
+@startuml
+skinparam style strictuml
 
-        subgraph Application_Pkg [Package: AFAS.Application]
-            Services[Application Services]
-            DTOs[Data Transfer Objects]
-            AppInterfaces[ISessionNotifier, IIdentityService]
-        end
+package "Solution: AFAS" {
+    package "AFAS.Domain" as Domain {
+        [Entities]
+        [Domain Exceptions]
+        [IRepositories]
+        [IDomainServices]
+    }
+    package "AFAS.Application" as App {
+        [Application Services]
+        [Data Transfer Objects (DTOs)]
+        [ISessionNotifier]
+        [IIdentityService]
+    }
+    package "AFAS.Infrastructure" as Infra {
+        [Persistence / EF Core]
+        [Caching / Redis]
+        [Identity Providers]
+    }
+    package "AFAS.Presentation" as Pres {
+        [API Controllers]
+        [SignalR Realtime Hubs]
+        [Custom Middleware]
+    }
+}
 
-        subgraph Infrastructure_Pkg [Package: AFAS.Infrastructure]
-            Persistence[Persistence / EF Core DBContext]
-            Caching[Caching / Redis Persistent Store]
-            Identity[Identity Providers]
-        end
-
-        subgraph Presentation_Pkg [Package: AFAS.Presentation]
-            Controllers[API Controllers]
-            Hubs[SignalR Realtime Hubs]
-            Middleware[Custom Exception Middleware]
-        end
-    end
-
-    Presentation_Pkg --> Application_Pkg
-    Presentation_Pkg --> Domain_Pkg
-    
-    Application_Pkg --> Domain_Pkg
-    
-    Infrastructure_Pkg --> Application_Pkg
-    Infrastructure_Pkg --> Domain_Pkg
+Pres ..> App
+Pres ..> Domain
+App ..> Domain
+Infra ..> App
+Infra ..> Domain
+@enduml
 ```
 
 ### **3.2 Component Diagram (Figure III-4)**
-```mermaid
-classDiagram
-    class Mobile_Application {
-        <<Component>>
-        -Uses Camera API
-        -Uses Location API
-    }
+```plantuml
+@startuml
+skinparam style strictuml
 
-    class Web_Portal_Application {
-        <<Component>>
-        -Render Projector QR
-        -Render Lecturer Dashboard
-    }
+[Mobile Application] as Mobile <<Component>>
+[Web Portal Application] as Web <<Component>>
+[Attendance API Gateway] as Gateway <<Component>>
+[AntiFraud Validator Engine] as Engine <<Component>>
+[Cache Manager] as Cache <<Component>>
+[Database Persistence] as DB <<Component>>
 
-    class Attendance_API_Gateway {
-        <<Component>>
-        +Expose Restful Endpoints
-        +Expose WebSocket SignalR
-    }
+interface "HTTP API" as API
+interface "WebSocket (SignalR)" as WebSock
+interface "ICacheManager" as ICache
+interface "IRepository" as IRepo
 
-    class AntiFraud_Validator_Engine {
-        <<Component>>
-        +VerifyGPSDistance()
-        +VerifyQRTime()
-        +CheckDeviceMapping()
-    }
+Gateway - API
+Gateway - WebSock
 
-    class Cache_CacheManager {
-        <<Component>>
-        +SetCachedToken()
-        +GetCachedToken()
-    }
+Mobile ..> API : "Gửi yêu cầu"
+Web ..> WebSock : "Kết nối đẩy QR"
 
-    class Database_Persistence {
-        <<Component>>
-        +SaveAttendanceRecord()
-        +ReadRoomCoordinates()
-    }
+Gateway --> Engine : "Gọi xác thực"
+Engine ..( ICache : "Đọc/ghi token"
+Cache - ICache
 
-    Mobile_Application ..> Attendance_API_Gateway : [HTTPs / POST] Gửi yêu cầu điểm danh
-    Web_Portal_Application ..> Attendance_API_Gateway : [WebSocket] Kết nối SignalR cập nhật QR
-    
-    Attendance_API_Gateway --> AntiFraud_Validator_Engine : Gọi bộ xử lý xác thực
-    AntiFraud_Validator_Engine ..> Cache_CacheManager : [Required Interface] Đọc/ghi Token động trên Redis
-    AntiFraud_Validator_Engine ..> Database_Persistence : [Required Interface] Lưu bản ghi / Đọc tọa độ phòng
+Engine ..( IRepo : "Đọc cấu hình / Lưu record"
+DB - IRepo
+@enduml
 ```
 
 ### **Decomposition Criteria and Justification**
@@ -339,210 +339,193 @@ We decompose the AFAS architecture into packages and components based on three c
 The detailed design classes are mapped directly from the analysis model, implementing concrete properties, public methods, and visibility specifiers.
 
 #### **Figure III-5: Detailed Design Class Diagram**
-```mermaid
-classDiagram
-    %% --- PRESENTATION LAYER ---
-    class AttendanceController {
-        <<Boundary / WebAPI>>
+```plantuml
+@startuml
+skinparam style strictuml
+
+package "Presentation Layer" {
+    class AttendanceController <<Boundary / WebAPI>> {
         -IAttendanceService _attendanceService
-        +SubmitAttendance(AttendanceDto dto) Task~IActionResult~
-        +GetStudentHistory(string studentId) Task~IActionResult~
+        +SubmitAttendance(AttendanceDto dto) : Task<IActionResult>
+        +GetStudentHistory(string studentId) : Task<IActionResult>
     }
 
-    class AccountController {
-        <<Boundary / WebAPI>>
+    class AccountController <<Boundary / WebAPI>> {
         -IAuthenticationService _authService
-        +LoginCredentials(LoginDto dto) Task~IActionResult~
-        +LoginGoogle(GoogleLoginDto dto) Task~IActionResult~
+        +LoginCredentials(LoginDto dto) : Task<IActionResult>
+        +LoginGoogle(GoogleLoginDto dto) : Task<IActionResult>
     }
 
-    class RoomController {
-        <<Boundary / WebAPI>>
+    class RoomController <<Boundary / WebAPI>> {
         -IRoomService _roomService
-        +SaveRoomConfiguration(RoomDto dto) Task~IActionResult~
-        +GetRooms() Task~IActionResult~
+        +SaveRoomConfiguration(RoomDto dto) : Task<IActionResult>
+        +GetRooms() : Task<IActionResult>
     }
 
-    class ReportController {
-        <<Boundary / WebAPI>>
+    class ReportController <<Boundary / WebAPI>> {
         -IReportService _reportService
-        +ExportClassReport(string classId) Task~IActionResult~
+        +ExportClassReport(string classId) : Task<IActionResult>
+    }
+}
+
+package "Application Layer" {
+    interface IAttendanceService <<Interface / Application>> {
+        +ProcessCheckin(AttendanceDto dto) : Task<Result<CheckinResultDto>>
+        +GetHistory(string studentId) : Task<List<AttendanceRecordDto>>
     }
 
-    %% --- APPLICATION LAYER ---
-    class IAttendanceService {
-        <<Interface / Application>>
-        +ProcessCheckin(AttendanceDto dto) Task~Result~CheckinResultDto~~
-        +GetHistory(string studentId) Task~List~AttendanceRecordDto~~
-    }
-
-    class AttendanceService {
-        <<Control / Application>>
+    class AttendanceService <<Control / Application>> {
         -IAttendanceRepository _attendanceRepo
         -IRoomRepository _roomRepo
         -ICacheManager _cacheManager
         -IRealtimeNotifier _notifier
-        +ProcessCheckin(AttendanceDto dto) Task~Result~CheckinResultDto~~
-        +GetHistory(string studentId) Task~List~AttendanceRecordDto~~
-        -CalculateDistance(double lat1, double lon1, double lat2, double lon2) double
+        +ProcessCheckin(AttendanceDto dto) : Task<Result<CheckinResultDto>>
+        +GetHistory(string studentId) : Task<List<AttendanceRecordDto>>
+        -CalculateDistance(double lat1, double lon1, double lat2, double lon2) : double
     }
 
-    class IAuthenticationService {
-        <<Interface / Application>>
-        +AuthenticateCredentials(string username, string password) Task~Result~string~~
-        +AuthenticateGoogle(string idToken) Task~Result~string~~
+    interface IAuthenticationService <<Interface / Application>> {
+        +AuthenticateCredentials(string username, string password) : Task<Result<string>>
+        +AuthenticateGoogle(string idToken) : Task<Result<string>>
     }
 
-    class AuthenticationService {
-        <<Control / Application>>
+    class AuthenticationService <<Control / Application>> {
         -IAccountRepository _accountRepo
         -IStudentRepository _studentRepo
-        +AuthenticateCredentials(string username, string password) Task~Result~string~~
-        +AuthenticateGoogle(string idToken) Task~Result~string~~
+        +AuthenticateCredentials(string username, string password) : Task<Result<string>>
+        +AuthenticateGoogle(string idToken) : Task<Result<string>>
     }
 
-    class IRoomService {
-        <<Interface / Application>>
-        +UpdateRoomGeo(RoomDto dto) Task~Result~bool~~
-        +GetAllRooms() Task~List~RoomDto~~
+    interface IRoomService <<Interface / Application>> {
+        +UpdateRoomGeo(RoomDto dto) : Task<Result<bool>>
+        +GetAllRooms() : Task<List<RoomDto>>
     }
 
-    class RoomService {
-        <<Control / Application>>
+    class RoomService <<Control / Application>> {
         -IRoomRepository _roomRepo
-        +UpdateRoomGeo(RoomDto dto) Task~Result~bool~~
-        +GetAllRooms() Task~List~RoomDto~~
+        +UpdateRoomGeo(RoomDto dto) : Task<Result<bool>>
+        +GetAllRooms() : Task<List<RoomDto>>
     }
 
-    class IReportService {
-        <<Interface / Application>>
-        +GenerateExcelReport(string classId) Task~byte[]~
+    interface IReportService <<Interface / Application>> {
+        +GenerateExcelReport(string classId) : Task<byte[]>
     }
 
-    class ReportService {
-        <<Control / Application>>
+    class ReportService <<Control / Application>> {
         -IAttendanceRepository _attendanceRepo
         -IExcelGenerator _excelGenerator
-        +GenerateExcelReport(string classId) Task~byte[]~
+        +GenerateExcelReport(string classId) : Task<byte[]>
+    }
+    
+    interface ICacheManager <<Interface / Application>> {
+        +GetTokenAsync(string key) : Task<string>
+        +SetTokenAsync(string key, string value, TimeSpan expiry) : Task
+    }
+}
+
+package "Domain Layer" {
+    class AttendanceRecord <<Domain Entity>> {
+        +RecordId : string
+        +StudentId : string
+        +SessionId : string
+        +CheckedInAt : DateTime
+        +CheckedInLat : double
+        +CheckedInLong : double
+        +Distance : double
+        +WifiSSID : string
+        +PublicIP : string
+        +DeviceUUID : string
+        +SelfiePath : string
+        +Status : string
+        +VerificationMode : string
     }
 
-    %% --- DOMAIN CORE LAYER ---
-    class AttendanceRecord {
-        <<Domain Entity>>
-        +string RecordId
-        +string StudentId
-        +string SessionId
-        +DateTime CheckedInAt
-        +double CheckedInLat
-        +double CheckedInLong
-        +double Distance
-        +string WifiSSID
-        +string PublicIP
-        +string DeviceUUID
-        +string SelfiePath
-        +string Status
-        +string VerificationMode
+    class Room <<Domain Entity>> {
+        +RoomId : string
+        +RoomName : string
+        +Latitude : double
+        +Longitude : double
+        +AllowedRadius : double
     }
 
-    class Room {
-        <<Domain Entity>>
-        +string RoomId
-        +string RoomName
-        +double Latitude
-        +double Longitude
-        +double AllowedRadius
+    class Account <<Domain Entity>> {
+        +Id : string
+        +Email : string
+        +PasswordHash : string
+        +FullName : string
+        +Role : string
     }
 
-    class Account {
-        <<Domain Entity>>
-        +string Id
-        +string Email
-        +string PasswordHash
-        +string FullName
-        +string Role
+    interface IAttendanceRepository <<Interface / Domain>> {
+        +GetByIdAsync(string id) : Task<AttendanceRecord>
+        +AddAsync(AttendanceRecord entity) : Task
+        +GetStudentProfileAsync(string studentId) : Task<Student>
+        +GetBySessionIdAsync(string sessionId) : Task<List<AttendanceRecord>>
     }
 
-    %% --- INFRASTRUCTURE LAYOUT ---
-    class IAttendanceRepository {
-        <<Interface / Domain>>
-        +GetByIdAsync(string id) Task~AttendanceRecord~
-        +AddAsync(AttendanceRecord entity) Task
-        +GetStudentProfileAsync(string studentId) Task~Student~
-        +GetBySessionIdAsync(string sessionId) Task~List~AttendanceRecord~~
+    interface IRoomRepository <<Interface / Domain>> {
+        +GetRoomGeoConfigAsync(string sessionId) : Task<RoomGeoConfig>
+        +GetAllRoomsAsync() : Task<List<Room>>
+        +UpdateGeoConfigAsync(Room room) : Task
     }
 
-    class IRoomRepository {
-        <<Interface / Domain>>
-        +GetRoomGeoConfigAsync(string sessionId) Task~RoomGeoConfig~
-        +GetAllRoomsAsync() Task~List~Room~~
-        +UpdateGeoConfigAsync(Room room) Task
+    interface ISessionRepository <<Interface / Domain>> {
+        +GetSessionByIdAsync(string sessionId) : Task<Session>
+        +GetActiveSessionForLecturerAsync(string lecturerId) : Task<Session>
+        +UpdateSessionAsync(Session session) : Task
     }
 
-    class ISessionRepository {
-        <<Interface / Domain>>
-        +GetSessionByIdAsync(string sessionId) Task~Session~
-        +GetActiveSessionForLecturerAsync(string lecturerId) Task~Session~
-        +UpdateSessionAsync(Session session) Task
+    interface IAccountRepository <<Interface / Domain>> {
+        +GetByEmailAsync(string email) : Task<Account>
+        +GetByUsernameAsync(string username) : Task<Account>
+        +CreateAccountAsync(Account account) : Task
     }
 
-    class IAccountRepository {
-        <<Interface / Domain>>
-        +GetByEmailAsync(string email) Task~Account~
-        +GetByUsernameAsync(string username) Task~Account~
-        +CreateAccountAsync(Account account) Task
+    interface IStudentRepository <<Interface / Domain>> {
+        +GetByStudentIdAsync(string studentId) : Task<Student>
+        +UpdateDeviceUUIDAsync(string studentId, string deviceUUID) : Task
+        +ClearDeviceUUIDAsync(string studentId) : Task
     }
+}
 
-    class IStudentRepository {
-        <<Interface / Domain>>
-        +GetByStudentIdAsync(string studentId) Task~Student~
-        +UpdateDeviceUUIDAsync(string studentId, string deviceUUID) Task
-        +ClearDeviceUUIDAsync(string studentId) Task
-    }
-
-    class ICacheManager {
-        <<Interface / Application>>
-        +GetTokenAsync(string key) Task~string~
-        +SetTokenAsync(string key, string value, TimeSpan expiry) Task
-    }
-
-    class AttendanceRepository {
-        <<Database Wrapper / Infrastructure>>
+package "Infrastructure Layer" {
+    class AttendanceRepository <<Database Wrapper / Infrastructure>> {
         -DbContext _dbContext
-        +GetByIdAsync(string id) Task~AttendanceRecord~
-        +AddAsync(AttendanceRecord entity) Task
+        +GetByIdAsync(string id) : Task<AttendanceRecord>
+        +AddAsync(AttendanceRecord entity) : Task
     }
 
-    class RedisCacheManager {
-        <<Infrastructure Cache>>
+    class RedisCacheManager <<Infrastructure Cache>> {
         -IConnectionMultiplexer _redis
-        +GetTokenAsync(string key) Task~string~
-        +SetTokenAsync(string key, string value, TimeSpan expiry) Task
+        +GetTokenAsync(string key) : Task<string>
+        +SetTokenAsync(string key, string value, TimeSpan expiry) : Task
     }
+}
 
-    %% Dependencies injection
-    AttendanceController --> IAttendanceService
-    AccountController --> IAuthenticationService
-    RoomController --> IRoomService
-    ReportController --> IReportService
+AttendanceController --> IAttendanceService
+AccountController --> IAuthenticationService
+RoomController --> IRoomService
+ReportController --> IReportService
 
-    IAttendanceService <|.. AttendanceService
-    IAuthenticationService <|.. AuthenticationService
-    IRoomService <|.. RoomService
-    IReportService <|.. ReportService
+IAttendanceService <|.. AttendanceService
+IAuthenticationService <|.. AuthenticationService
+IRoomService <|.. RoomService
+IReportService <|.. ReportService
 
-    AttendanceService --> IAttendanceRepository
-    AttendanceService --> IRoomRepository
-    AttendanceService --> ICacheManager
-    AttendanceService --> AttendanceRecord
+AttendanceService --> IAttendanceRepository
+AttendanceService --> IRoomRepository
+AttendanceService --> ICacheManager
+AttendanceService --> AttendanceRecord
 
-    AuthenticationService --> IAccountRepository
-    AuthenticationService --> IStudentRepository
+AuthenticationService --> IAccountRepository
+AuthenticationService --> IStudentRepository
 
-    RoomService --> IRoomRepository
-    ReportService --> IAttendanceRepository
+RoomService --> IRoomRepository
+ReportService --> IAttendanceRepository
 
-    IAttendanceRepository <|.. AttendanceRepository
-    ICacheManager <|.. RedisCacheManager
+IAttendanceRepository <|.. AttendanceRepository
+ICacheManager <|.. RedisCacheManager
+@enduml
 ```
 
 ---
