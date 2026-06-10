@@ -2,7 +2,7 @@
 
 ## **II.0 Static Analysis**
 
-### **II.0.1 Contextual Boundary Class Diagram**
+##### **II.0.1 Contextual Boundary Class Diagram**
 
 The Contextual Boundary Class Diagram identifies the direct connections between external Actors and the `«boundary»` interface classes they interact with to send/receive data from the system. This diagram follows the COMET BCE (Boundary-Control-Entity) classification model.
 
@@ -44,18 +44,6 @@ class GoogleAuthGateway <<proxy>> {
     +ReceiveOAuthToken()
 }
 
-class SchoolWifiGateway <<proxy>> {
-    +GetPublicIP()
-    +CheckBSSID()
-}
-
-class MobileDeviceHardware <<device I/O>> {
-    +GetGPSCoordinates()
-    +GetDeviceUUID()
-    +TriggerNativeFaceID()
-    +ActivateCamera()
-}
-
 Student --> StudentAppForm : Interact via mobile app
 Lecturer --> LecturerWebPortal : Interact via web portal
 Admin --> AdminWebPortal : Interact via admin panel
@@ -63,18 +51,14 @@ Admin --> AdminWebPortal : Interact via admin panel
 StudentAppForm ..> GoogleAuthGateway : OAuth authentication API
 LecturerWebPortal ..> GoogleAuthGateway : OAuth authentication API
 AdminWebPortal ..> GoogleAuthGateway : OAuth authentication API
-
-StudentAppForm ..> MobileDeviceHardware : GPS, Camera, Face ID sensors
-StudentAppForm ..> SchoolWifiGateway : Extract campus IP gateway
 @enduml
-```V
+```
 
 **Boundary Communication Description:**
-1.  **StudentAppForm (`«user interaction»`):** Provides a minimal mobile interface optimized for NFR **NF-03 (Usability)**. Directly invokes hardware sensors on the mobile device (`MobileDeviceHardware`) via platform-native bridging to collect coordinates, trigger biometric verification, and activate the camera scanner.
-2.  **LecturerWebPortal (`«user interaction»`):** Web portal featuring a large-screen projector display showing validation tokens. The screen automatically updates the student attendance list in real-time.
-3.  **GoogleAuthGateway (`«proxy»`):** Proxy boundary connecting to the school's external email authentication service. All three user-facing boundaries delegate authentication through this shared proxy.
-4.  **SchoolWifiGateway (`«proxy»`):** Network proxy boundary that checks internal network parameters to verify whether the student is connected to the university's internal network.
-5.  **MobileDeviceHardware (`«device I/O»`):** Hardware abstraction boundary wrapping the phone's physical sensors: location tracking, biometric reader, camera module, and unique device identifier extraction.
+1.  **StudentAppForm (`«user interaction»`):** Provides a mobile interface for students to check-in. It internally handles biometrics verification, QR camera scanning, GPS location tracking, and Wi-Fi connectivity parameters, keeping these hardware details encapsulated.
+2.  **LecturerWebPortal (`«user interaction»`):** Web portal featuring a dashboard that displays check-in statistics and dynamic QR/PIN codes to students, updated in real-time.
+3.  **AdminWebPortal (`«user interaction»`):** Web portal for administrators to seed academic databases and manage classroom GPS geofence targets.
+4.  **GoogleAuthGateway (`«proxy»`):** Proxy boundary connecting to the external Google OAuth service for student, lecturer, and admin identity verification.
 
 ---
 
@@ -93,14 +77,8 @@ node "AFAS System Objects" as Root {
             [LecturerWebPortal]
             [AdminWebPortal]
         }
-        node "1.2 Device Interface\n«device I/O»" as Device {
-            [GPSReceiver]
-            [CameraScanner]
-            [NativeBiometricReader]
-        }
-        node "1.3 System Interface\n«proxy»" as Sys {
+        node "1.2 System Interface\n«proxy»" as Sys {
             [GoogleOAuthGateway]
-            [SchoolWifiGateway]
         }
     }
     
@@ -140,8 +118,8 @@ node "AFAS System Objects" as Root {
 
 1.  **Boundary Objects — Structuring by Interface Type:**
     *   **User Interface Objects (`«user interaction»`):** Objects responsible for rendering graphical screens directly to end users (StudentAppForm, LecturerWebPortal, AdminWebPortal).
-    *   **Device Interface Objects (`«device I/O»`):** Objects connecting directly to physical hardware sensors on the mobile phone. These form the evidence-collection layer for GPS, Camera, and Face ID verification.
-    *   **System Interface Objects (`«proxy»`):** Integration gateways connecting to external authentication and network verification services (Google OAuth, campus Wi-Fi gateway).
+    *   **System Interface Objects (`«proxy»`):** Integration gateways connecting to external authentication services (Google OAuth).
+    *   *Note on Hardware/Network Abstraction:* Platform-specific elements (GPS location, biometrics readers, local camera feeds, and campus IP gateways) are treated as internal aspects of the user interface boundary (`StudentAppForm`) during Analysis, to keep the model platform-independent.
 
 2.  **Control Objects — Structuring by Coordination Complexity:**
     *   **Coordinator Objects (`«coordinator»`):** Orchestrate the complete event flow of primary use cases. Example: `AttendanceController` coordinates GPS verification, IP matching, and Face ID validation before recording attendance status.
@@ -542,89 +520,152 @@ DBC --> SAF : 3: Return status/redirect
 
 ### **3. UC03: Scan Dynamic QR Check-in**
 
-#### **Figure II-3A: Sequence Diagram for UC03 - Scan Dynamic QR Check-in**
+To ensure clarity and handle complex anti-fraud logic without cluttering the diagrams, the interaction is split into one Happy Path scenario and three separate Exception Scenario diagrams.
+
+#### **Figure II-3A1: Sequence Diagram for UC03 - Happy Path Scenario**
 ```plantuml
 @startuml
 autonumber
-actor SV as "Student"
+actor Student as "Student"
 participant SAF as "StudentAppForm\n«boundary»"
-participant MD as "MobileDeviceHardware\n«boundary»"
-participant WG as "SchoolWifiGateway\n«boundary»"
 participant AC as "AttendanceController\n«control»"
-participant R as "Room\n«entity»"
 participant V as "AttendanceVersion\n«entity»"
+participant R as "Room\n«entity»"
+participant ST as "Student\n«entity»"
 participant AR as "AttendanceRecord\n«entity»"
 
-SV -> SAF : Tap "Scan QR Check-in"
+Student -> SAF : Tap "Scan QR Check-in"
 activate SAF
-
-SAF -> MD : RequestFaceIDVerification()
-activate MD
-MD --> SAF : Face matched successfully (Local Biometrics OK)
-deactivate MD
-
-SAF -> MD : ActivateCamera()
-activate MD
-MD --> SAF : Camera view displayed
-deactivate MD
-
-SV -> SAF : Scan QR on screen
-activate MD
-MD -> SAF : DynamicToken extracted from QR
-deactivate MD
-
-SAF -> MD : GetGPSCoordinates()
-activate MD
-MD --> SAF : GPS: CheckedInLat, CheckedInLong
-deactivate MD
-
-SAF -> MD : GetDeviceUUID()
-activate MD
-MD --> SAF : DeviceUUID
-deactivate MD
-
-SAF -> WG : GetNetworkTelemetry()
-activate WG
-WG --> SAF : WifiSSID, PublicIP Gateway
-deactivate WG
-
-SAF -> AC : SubmitAttendance(StudentId, DynamicToken, Lat, Long, UUID, WifiSSID, PublicIP)
+note over SAF : 1. Locally verifies Student Face ID\n2. Acquires GPS, Device UUID, Wifi SSID, & IP\n3. Scans dynamic QR token
+SAF -> AC : SubmitAttendance(StudentId, DynamicToken, Coordinates, DeviceUUID, WifiSSID, PublicIP)
 activate AC
 
-AC -> V : GetActiveTokenForSession()
+AC -> V : ValidateToken(DynamicToken)
 activate V
-V --> AC : ActiveToken, RefreshedAt
+V --> AC : TokenStatus = Valid
 deactivate V
-AC -> AC : VerifyQRTimeWindow(DynamicToken, RefreshedAt)
 
-alt If QR Token is Expired (> 15 seconds)
-    AC --> SAF : Return Error: QR Expired
-    SAF --> SV : Show error "QR code expired. Please scan newest QR."
-else If QR Token is Valid
-    AC -> R : GetRoomGeoConfig()
-    activate R
-    R --> AC : RoomLat, RoomLong, AllowedRadius
-    deactivate R
-    AC -> AC : CalculateHaversineDistance(Lat, Long, RoomLat, RoomLong)
-    
-    alt If Distance > AllowedRadius (Layer 2)
-        AC -> AR : CreateRecord(StudentId, Status="Fraud_Declined", VerificationMode="QR")
-        AC --> SAF : Return Error: Out of Allowed Radius
-        SAF --> SV : Show error "Fail: You are outside the classroom."
-    else If Distance <= AllowedRadius
-        AC -> AC : CheckWifiGateway(PublicIP)
-        AC -> AR : CreateRecord(StudentId, Status="Present", Distance, UUID, WifiSSID, VerificationMode="QR")
-        activate AR
-        AR --> AC : Success Record
-        deactivate AR
-        
-        AC -> AC : DeleteTempSelfieImage()
-        
-        AC --> SAF : Return Success: Checked In
-        SAF --> SV : Display "Checked-in successfully at HH:mm"
-    end
-end
+AC -> R : VerifyProximity(Coordinates)
+activate R
+note over R : Calculates Haversine distance\nand checks against AllowedRadius
+R --> AC : ProximityResult = InRadius(Distance)
+deactivate R
+
+AC -> ST : VerifyDeviceBinding(DeviceUUID)
+activate ST
+ST --> AC : IsMatched = True
+deactivate ST
+
+AC -> AR : CreateRecord(StudentId, Distance, DeviceUUID, WifiSSID, Status="Present", Mode="QR")
+activate AR
+AR --> AC : RecordSaved = True
+deactivate AR
+
+AC --> SAF : Result = Success(CheckedInAt)
 deactivate AC
+SAF --> Student : Display "Checked-in successfully at HH:mm"
+deactivate SAF
+@enduml
+```
+
+#### **Figure II-3A2: Sequence Diagram for UC03 - Exception Scenario: Token Expired**
+```plantuml
+@startuml
+autonumber
+actor Student as "Student"
+participant SAF as "StudentAppForm\n«boundary»"
+participant AC as "AttendanceController\n«control»"
+participant V as "AttendanceVersion\n«entity»"
+
+Student -> SAF : Scan QR on screen
+activate SAF
+SAF -> AC : SubmitAttendance(StudentId, DynamicToken, Coordinates, DeviceUUID, WifiSSID, PublicIP)
+activate AC
+
+AC -> V : ValidateToken(DynamicToken)
+activate V
+V --> AC : TokenStatus = Expired
+deactivate V
+
+AC --> SAF : Result = Failure("QR token expired")
+deactivate AC
+SAF --> Student : Show error "QR code expired. Please scan newest QR."
+deactivate SAF
+@enduml
+```
+
+#### **Figure II-3A3: Sequence Diagram for UC03 - Exception Scenario: Location Fraud (Out of Geofence)**
+```plantuml
+@startuml
+autonumber
+actor Student as "Student"
+participant SAF as "StudentAppForm\n«boundary»"
+participant AC as "AttendanceController\n«control»"
+participant V as "AttendanceVersion\n«entity»"
+participant R as "Room\n«entity»"
+participant AR as "AttendanceRecord\n«entity»"
+
+Student -> SAF : Scan QR on screen
+activate SAF
+SAF -> AC : SubmitAttendance(StudentId, DynamicToken, Coordinates, DeviceUUID, WifiSSID, PublicIP)
+activate AC
+
+AC -> V : ValidateToken(DynamicToken)
+activate V
+V --> AC : TokenStatus = Valid
+deactivate V
+
+AC -> R : VerifyProximity(Coordinates)
+activate R
+R --> AC : ProximityResult = OutOfRadius(Distance)
+deactivate R
+
+AC -> AR : CreateRecord(StudentId, Distance, DeviceUUID, WifiSSID, Status="Fraud_Declined", Mode="QR")
+activate AR
+AR --> AC : RecordSaved = True
+deactivate AR
+
+AC --> SAF : Result = Failure("Location verification failed. Outside geofence.")
+deactivate AC
+SAF --> Student : Show error "Fail: You are outside the classroom."
+deactivate SAF
+@enduml
+```
+
+#### **Figure II-3A4: Sequence Diagram for UC03 - Exception Scenario: Device UUID Mismatch**
+```plantuml
+@startuml
+autonumber
+actor Student as "Student"
+participant SAF as "StudentAppForm\n«boundary»"
+participant AC as "AttendanceController\n«control»"
+participant V as "AttendanceVersion\n«entity»"
+participant R as "Room\n«entity»"
+participant ST as "Student\n«entity»"
+
+Student -> SAF : Scan QR on screen
+activate SAF
+SAF -> AC : SubmitAttendance(StudentId, DynamicToken, Coordinates, DeviceUUID, WifiSSID, PublicIP)
+activate AC
+
+AC -> V : ValidateToken(DynamicToken)
+activate V
+V --> AC : TokenStatus = Valid
+deactivate V
+
+AC -> R : VerifyProximity(Coordinates)
+activate R
+R --> AC : ProximityResult = InRadius(Distance)
+deactivate R
+
+AC -> ST : VerifyDeviceBinding(DeviceUUID)
+activate ST
+ST --> AC : IsMatched = False
+deactivate ST
+
+AC --> SAF : Result = Failure("Device UUID mismatch")
+deactivate AC
+SAF --> Student : Show error "Device UUID mismatch. Attendance must be logged on your registered device."
 deactivate SAF
 @enduml
 ```
@@ -632,25 +673,21 @@ deactivate SAF
 #### **Figure II-3B: Communication Diagram for UC03 - Scan Dynamic QR Check-in**
 ```plantuml
 @startuml
-object SV as "Student"
+object Student as "Student"
 object SAF as "StudentAppForm\n«boundary»"
-object MD as "MobileDeviceHardware\n«boundary»"
-object WG as "SchoolWifiGateway\n«boundary»"
 object AC as "AttendanceController\n«control»"
-object R as "Room\n«entity»"
 object V as "AttendanceVersion\n«entity»"
+object R as "Room\n«entity»"
+object ST as "Student\n«entity»"
 object AR as "AttendanceRecord\n«entity»"
 
-SV --> SAF : 1: Scan QR Check-in
-SAF --> MD : 1.1: Verify Face ID
-SAF --> MD : 1.2: GPS & UUID Telemetry
-SAF --> WG : 1.3: Get network gateway IP
-
+Student --> SAF : 1: Scan QR Check-in
 SAF --> AC : 2: SubmitAttendance()
-AC --> V : 2.1: GetActiveTokenForSession()
-AC --> R : 2.2: GetRoomGeoConfig()
-AC --> AR : 2.3: CreateRecord()
-AC --> SAF : 3: Return Success / Display
+AC --> V : 2.1: ValidateToken()
+AC --> R : 2.2: VerifyProximity()
+AC --> ST : 2.3: VerifyDeviceBinding()
+AC --> AR : 2.4: CreateRecord()
+AC --> SAF : 3: Return Result
 @enduml
 ```
 
@@ -715,96 +752,75 @@ AC --> SAF : 2: Return history data
 
 ### **5. UC05: PIN Fallback Check-in**
 
-#### **Figure II-5A: Sequence Diagram for UC05 - PIN Fallback Check-in**
+This use case provides a manual fallback when the projector QR scanner cannot be scanned. The student manually inputs the 6-digit PIN displayed on the classroom screen.
+
+#### **Figure II-5A: Sequence Diagram for UC05 - PIN Fallback Check-in (Happy Path Scenario)**
 ```plantuml
 @startuml
 autonumber
-actor SV as "Student"
-participant SAF as "StudentAppForm\n«user interaction»"
-participant MD as "MobileDeviceHardware\n«device I/O»"
-participant AC as "AttendanceController\n«coordinator»"
+actor Student as "Student"
+participant SAF as "StudentAppForm\n«boundary»"
+participant AC as "AttendanceController\n«control»"
 participant V as "AttendanceVersion\n«entity»"
 participant R as "Room\n«entity»"
+participant ST as "Student\n«entity»"
 participant AR as "AttendanceRecord\n«entity»"
 
-SV -> SAF : Tap "PIN Check-in"
+Student -> SAF : Tap "PIN Check-in"
 activate SAF
+note over SAF : 1. Locally verifies Student Face ID\n2. Acquires GPS, Device UUID\n3. Displays PIN input screen
+Student -> SAF : Enter PIN code "847291"
 
-SAF -> MD : RequestFaceIDVerification()
-activate MD
-MD --> SAF : Face matched successfully
-deactivate MD
-
-SAF --> SV : Display 6-digit PIN input screen
-SV -> SAF : Enter PIN code "847291"
-
-SAF -> MD : GetGPSCoordinates()
-activate MD
-MD --> SAF : GPS: CheckedInLat, CheckedInLong
-deactivate MD
-
-SAF -> MD : GetDeviceUUID()
-activate MD
-MD --> SAF : DeviceUUID
-deactivate MD
-
-SAF -> AC : SubmitPINAttendance(StudentId, PINCode, Lat, Long, UUID)
+SAF -> AC : SubmitPINAttendance(StudentId, PINCode, Coordinates, DeviceUUID)
 activate AC
 
-AC -> V : GetActivePINForSession()
+AC -> V : ValidatePIN(PINCode)
 activate V
-V --> AC : ActivePIN, PINRefreshedAt
+V --> AC : PINStatus = Valid
 deactivate V
-AC -> AC : VerifyPINTimeWindow(PINCode, PINRefreshedAt)
 
-alt If PIN is Expired (> 30 seconds)
-    AC --> SAF : Return Error: PIN Expired
-    SAF --> SV : Show error "PIN has expired. Please enter the new PIN."
-else If PIN is Valid
-    AC -> R : GetRoomGeoConfig()
-    activate R
-    R --> AC : RoomLat, RoomLong, AllowedRadius
-    deactivate R
-    AC -> AC : CalculateHaversineDistance(Lat, Long, RoomLat, RoomLong)
-    
-    alt If Distance > AllowedRadius
-        AC -> AR : CreateRecord(StudentId, Status="Fraud_Declined", VerificationMode="PIN")
-        AC --> SAF : Return Error: Out of Allowed Radius
-        SAF --> SV : Show error "Location verification failed."
-    else If Distance <= AllowedRadius
-        AC -> AC : VerifyDeviceUUID(StudentId, UUID)
-        AC -> AR : CreateRecord(StudentId, Status="Present", VerificationMode="PIN")
-        activate AR
-        AR --> AC : Success Record
-        deactivate AR
-        AC --> SAF : Return Success: Checked In via PIN
-        SAF --> SV : Display "Checked-in successfully via PIN at HH:mm"
-    end
-end
+AC -> R : VerifyProximity(Coordinates)
+activate R
+R --> AC : ProximityResult = InRadius(Distance)
+deactivate R
+
+AC -> ST : VerifyDeviceBinding(DeviceUUID)
+activate ST
+ST --> AC : IsMatched = True
+deactivate ST
+
+AC -> AR : CreateRecord(StudentId, Distance, DeviceUUID, Status="Present", Mode="PIN")
+activate AR
+AR --> AC : RecordSaved = True
+deactivate AR
+
+AC --> SAF : Result = Success(CheckedInAt)
 deactivate AC
+SAF --> Student : Display "Checked-in successfully via PIN at HH:mm"
 deactivate SAF
 @enduml
 ```
 
+*Note: The alternative flow exception paths (PIN Expired, Location Out of Geofence, and Device Mismatch) follow the exact corresponding logic structures depicted in Figures II-3A2, II-3A3, and II-3A4, with the dynamic token verification replaced by the 6-digit PIN check.*
+
 #### **Figure II-5B: Communication Diagram for UC05 - PIN Fallback Check-in**
 ```plantuml
 @startuml
-object SV as "Student"
-object SAF as "StudentAppForm\n«user interaction»"
-object MD as "MobileDeviceHardware\n«device I/O»"
-object AC as "AttendanceController\n«coordinator»"
+object Student as "Student"
+object SAF as "StudentAppForm\n«boundary»"
+object AC as "AttendanceController\n«control»"
 object V as "AttendanceVersion\n«entity»"
 object R as "Room\n«entity»"
+object ST as "Student\n«entity»"
 object AR as "AttendanceRecord\n«entity»"
 
-SV --> SAF : 1: Tap PIN Check-in
-SAF --> MD : 1.1: RequestFaceIDVerification()
-SAF --> MD : 1.2: GetGPSCoordinates() / GetDeviceUUID()
+Student --> SAF : 1: Tap PIN Check-in / Submit PIN
 SAF --> AC : 2: SubmitPINAttendance()
-AC --> V : 2.1: GetActivePINForSession()
-AC --> R : 2.2: GetRoomGeoConfig()
-AC --> AR : 2.3: CreateRecord()
-AC --> SAF : 3: Return Success / Error
+AC --> V : 2.1: ValidatePIN()
+AC --> R : 2.2: VerifyProximity()
+AC --> ST : 2.3: VerifyDeviceBinding()
+AC --> AR : 2.4: CreateRecord()
+AC --> SAF : 3: Return Result
 @enduml
 ```
 
@@ -1303,7 +1319,7 @@ AWP <-- RCC : 3: Return Success popup
 
 ## **II.2 State diagrams**
 
-In the AFAS system, there are three primary objects whose behaviors and properties change based on their state: `AttendanceVersion` (the active check-in session), `AttendanceRecord` (the student's attendance result), and `Student` (specifically regarding Device Binding state).
+In the AFAS system, there are four primary objects whose behaviors and properties change based on their state: `AttendanceVersion` (the active check-in session), `AttendanceRecord` (the student's attendance result), `Student` (specifically regarding Device Binding state), and `AttendanceController` (the coordinator controlling the check-in validation process).
 
 ---
 
@@ -1395,3 +1411,54 @@ Admin_Released --> Unbound : Device UUID cleared from profile
 ```
 
 ---
+
+### **4. Attendance Coordinator Control State (AttendanceController)**
+Describes the validation state transitions within the coordinator controller during a single student check-in request.
+
+#### **Figure II-12: State diagram for AttendanceController**
+```plantuml
+@startuml
+[*] --> Idle : System online
+
+state Idle {
+}
+
+Idle --> Verifying_Token : submitAttendance()
+
+state Verifying_Token {
+    [*] --> CheckToken
+    CheckToken --> Token_Expired : token invalid / expired
+    CheckToken --> Token_Valid : token is active & valid
+}
+
+Verifying_Token --> Idle : tokenExpired [return Failure]
+
+Verifying_Token --> Validating_Location : tokenValid
+
+state Validating_Location {
+    [*] --> CheckProximity
+    CheckProximity --> Out_Of_Radius : distance > allowedRadius
+    CheckProximity --> In_Radius : distance <= allowedRadius
+}
+
+Validating_Location --> Recording_Fraud : outOfRadius
+Recording_Fraud --> Idle : recordSaved [return Failure]
+
+Validating_Location --> Verifying_Device : inRadius
+
+state Verifying_Device {
+    [*] --> CheckUUID
+    CheckUUID --> UUID_Mismatch : uuid != boundDeviceUuid
+    CheckUUID --> UUID_Matched : uuid == boundDeviceUuid
+}
+
+Verifying_Device --> Idle : uuidMismatch [return Failure]
+
+Verifying_Device --> Recording_Present : uuidMatched
+
+state Recording_Present {
+}
+
+Recording_Present --> Idle : recordSaved [return Success]
+@enduml
+```

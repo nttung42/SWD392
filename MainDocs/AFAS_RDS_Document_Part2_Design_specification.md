@@ -146,7 +146,7 @@ package "Domain Layer (Core)" as Domain {
     [Room]
     [AttendanceRecord]
     interface IStudentRepository
-    interface IAttendanceRepository
+    interface IAttendanceRecordRepository
 }
 package "Infrastructure Layer" as Infra {
     [PostgreSQL EF Core Context]
@@ -176,7 +176,9 @@ participant S as "AttendanceService\n«control»"
 end box
 
 box "Domain Layer" #LightYellow
-participant R as "IAttendanceRepository\n«interface»"
+participant R as "Room\n«entity»"
+participant AR as "AttendanceRecord\n«entity»"
+participant Repo as "IAttendanceRecordRepository\n«interface»"
 end box
 
 box "Infrastructure Layer" #LightPink
@@ -187,15 +189,23 @@ SV -> C: POST /api/attendance/submit (Payload)
 activate C
 C -> S: SubmitAttendance(StudentId, DynamicToken, GPS, IP, UUID)
 activate S
-S -> S: RunAntiFraudValidation(GPS, DynamicToken, UUID)
-S -> R: SaveRecord(AttendanceRecord)
+S -> R: GetRoomGeoConfig()
 activate R
-R -> DB: SaveChangesAsync()
-activate DB
-DB --> R: Transaction committed
-deactivate DB
-R --> S: Record Saved Successfully
+R --> S: Room Configuration
 deactivate R
+note over S, AR : Calls AttendanceRecord.Create() to run geofencing and anti-fraud checks
+S -> AR: Create(StudentId, SessionId, Lat, Long, ...)
+activate AR
+AR --> S: AttendanceRecord instance
+deactivate AR
+S -> Repo: AddAsync(AttendanceRecord)
+activate Repo
+Repo -> DB: SaveChangesAsync()
+activate DB
+DB --> Repo: Transaction committed
+deactivate DB
+Repo --> S: Record Saved Successfully
+deactivate Repo
 S --> C: Return ProcessResult (Success)
 deactivate S
 C --> SV: HTTP 200 OK (Checked-in successfully)
@@ -336,94 +346,66 @@ We decompose the AFAS architecture into packages and components based on three c
 
 ## **III.4 Detail Design**
 
-The detailed design classes are mapped directly from the analysis model, implementing concrete properties, public methods, and visibility specifiers.
+The detailed design classes are decomposed into four independent, modular subsystems based on their functional boundaries. Each subsystem operates under a **Clean / Ports & Adapters** architecture, where boundaries communicate through application controls, and infrastructure adapters implement interfaces defined by the core Domain entities.
 
-#### **Figure III-5: Detailed Design Class Diagram**
+### **III.4.1 Attendance Subsystem**
+
+This subsystem manages student check-in transactions, active dynamically refreshed validation keys (QR and PIN tokens), caching, and real-time WebSocket notifications.
+
+#### **Figure III-5A: Attendance Subsystem Detailed Design Class Diagram**
 ```plantuml
 @startuml
 skinparam style strictuml
 
-package "Presentation Layer" {
+package "Presentation Layer (Boundary)" {
     class AttendanceController <<Boundary / WebAPI>> {
         -IAttendanceService _attendanceService
         +SubmitAttendance(AttendanceDto dto) : Task<IActionResult>
         +GetStudentHistory(string studentId) : Task<IActionResult>
     }
-
-    class AccountController <<Boundary / WebAPI>> {
-        -IAuthenticationService _authService
-        +LoginCredentials(LoginDto dto) : Task<IActionResult>
-        +LoginGoogle(GoogleLoginDto dto) : Task<IActionResult>
-    }
-
-    class RoomController <<Boundary / WebAPI>> {
-        -IRoomService _roomService
-        +SaveRoomConfiguration(RoomDto dto) : Task<IActionResult>
-        +GetRooms() : Task<IActionResult>
-    }
-
-    class ReportController <<Boundary / WebAPI>> {
-        -IReportService _reportService
-        +ExportClassReport(string classId) : Task<IActionResult>
+    class AttendanceHub <<Boundary / SignalR>> {
+        +OnConnectedAsync() : Task
+        +OnDisconnectedAsync(Exception ex) : Task
     }
 }
 
-package "Application Layer" {
+package "Application Layer (Control / Ports)" {
     interface IAttendanceService <<Interface / Application>> {
         +ProcessCheckin(AttendanceDto dto) : Task<Result<CheckinResultDto>>
         +GetHistory(string studentId) : Task<List<AttendanceRecordDto>>
     }
-
     class AttendanceService <<Control / Application>> {
-        -IAttendanceRepository _attendanceRepo
+        -IAttendanceRecordRepository _attendanceRepo
         -IRoomRepository _roomRepo
+        -IStudentRepository _studentRepo
         -ICacheManager _cacheManager
         -IRealtimeNotifier _notifier
         +ProcessCheckin(AttendanceDto dto) : Task<Result<CheckinResultDto>>
         +GetHistory(string studentId) : Task<List<AttendanceRecordDto>>
-        -CalculateDistance(double lat1, double lon1, double lat2, double lon2) : double
     }
-
-    interface IAuthenticationService <<Interface / Application>> {
-        +AuthenticateCredentials(string username, string password) : Task<Result<string>>
-        +AuthenticateGoogle(string idToken) : Task<Result<string>>
+    interface ISessionService <<Interface / Application>> {
+        +ActivateSession(string sessionId) : Task<Result<bool>>
+        +DeactivateSession(string sessionId) : Task<Result<bool>>
     }
-
-    class AuthenticationService <<Control / Application>> {
-        -IAccountRepository _accountRepo
-        -IStudentRepository _studentRepo
-        +AuthenticateCredentials(string username, string password) : Task<Result<string>>
-        +AuthenticateGoogle(string idToken) : Task<Result<string>>
+    class SessionService <<Control / Application>> {
+        -ISessionRepository _sessionRepo
+        -IAttendanceVersionRepository _versionRepo
+        -ICacheManager _cacheManager
+        -IRealtimeNotifier _notifier
+        +ActivateSession(string sessionId) : Task<Result<bool>>
+        +DeactivateSession(string sessionId) : Task<Result<bool>>
     }
-
-    interface IRoomService <<Interface / Application>> {
-        +UpdateRoomGeo(RoomDto dto) : Task<Result<bool>>
-        +GetAllRooms() : Task<List<RoomDto>>
-    }
-
-    class RoomService <<Control / Application>> {
-        -IRoomRepository _roomRepo
-        +UpdateRoomGeo(RoomDto dto) : Task<Result<bool>>
-        +GetAllRooms() : Task<List<RoomDto>>
-    }
-
-    interface IReportService <<Interface / Application>> {
-        +GenerateExcelReport(string classId) : Task<byte[]>
-    }
-
-    class ReportService <<Control / Application>> {
-        -IAttendanceRepository _attendanceRepo
-        -IExcelGenerator _excelGenerator
-        +GenerateExcelReport(string classId) : Task<byte[]>
-    }
-    
     interface ICacheManager <<Interface / Application>> {
         +GetTokenAsync(string key) : Task<string>
         +SetTokenAsync(string key, string value, TimeSpan expiry) : Task
     }
+    interface IRealtimeNotifier <<Interface / Application>> {
+        +PushAttendanceSuccess(string lecturerId, AttendanceRecord record) : Task
+        +BroadcastNewQR(string sessionId, string token) : Task
+    }
 }
 
-package "Domain Layer" {
+package "Domain Layer (Core Entities)" {
     class AttendanceRecord <<Domain Entity>> {
         +RecordId : string
         +StudentId : string
@@ -438,16 +420,159 @@ package "Domain Layer" {
         +SelfiePath : string
         +Status : string
         +VerificationMode : string
+        {static} +Create(studentId, sessionId, lat, lon, wifi, ip, uuid, boundUuid, selfie, mode, room, activeToken, submittedToken) : AttendanceRecord
     }
-
-    class Room <<Domain Entity>> {
+    class Session <<Domain Entity>> {
+        +SessionId : string
+        +ClassSectionId : string
         +RoomId : string
-        +RoomName : string
-        +Latitude : double
-        +Longitude : double
-        +AllowedRadius : double
+        +SessionDate : DateOnly
+        +StartTime : TimeOnly
+        +EndTime : TimeOnly
     }
+    class AttendanceVersion <<Domain Entity>> {
+        +VersionId : string
+        +SessionId : string
+        +IsActive : bool
+        +ActiveToken : string
+        +ActivePin : string
+        +RefreshedAt : DateTime
+        +ValidateToken(string scannedToken) : bool
+        +ValidatePIN(string scannedPIN) : bool
+    }
+    interface IAttendanceRecordRepository <<Interface / Domain>> {
+        +GetByIdAsync(string id) : Task<AttendanceRecord>
+        +AddAsync(AttendanceRecord entity) : Task
+        +GetBySessionIdAsync(string sessionId) : Task<List<AttendanceRecord>>
+    }
+    interface ISessionRepository <<Interface / Domain>> {
+        +GetSessionByIdAsync(string sessionId) : Task<Session>
+    }
+    interface IAttendanceVersionRepository <<Interface / Domain>> {
+        +GetBySessionIdAsync(string sessionId) : Task<AttendanceVersion>
+        +SaveAsync(AttendanceVersion version) : Task
+    }
+}
 
+package "Infrastructure Layer (Adapters)" {
+    class AttendanceRecordRepository <<Database Wrapper / Infrastructure>> {
+        -DbContext _dbContext
+        +GetByIdAsync(string id) : Task<AttendanceRecord>
+        +AddAsync(AttendanceRecord entity) : Task
+    }
+    class SessionRepository <<Database Wrapper / Infrastructure>> {
+        -DbContext _dbContext
+        +GetSessionByIdAsync(string sessionId) : Task<Session>
+    }
+    class RedisCacheManager <<Infrastructure Cache / Adapter>> {
+        -IConnectionMultiplexer _redis
+        +GetTokenAsync(string key) : Task<string>
+        +SetTokenAsync(string key, string value, TimeSpan expiry) : Task
+    }
+    class SignalRRealtimeNotifier <<Infrastructure Realtime / Adapter>> {
+        -IHubContext<AttendanceHub> _hubContext
+        +PushAttendanceSuccess(string lecturerId, AttendanceRecord record) : Task
+    }
+}
+
+AttendanceController --> IAttendanceService
+AttendanceService ..|> IAttendanceService
+AttendanceService --> IAttendanceRecordRepository
+AttendanceService --> ICacheManager
+AttendanceService --> IRealtimeNotifier
+AttendanceService --> AttendanceRecord
+
+SessionService ..|> ISessionService
+SessionService --> ISessionRepository
+SessionService --> IAttendanceVersionRepository
+SessionService --> ICacheManager
+
+AttendanceRecordRepository ..|> IAttendanceRecordRepository
+SessionRepository ..|> ISessionRepository
+RedisCacheManager ..|> ICacheManager
+SignalRRealtimeNotifier ..|> IRealtimeNotifier
+@enduml
+```
+
+#### **Attendance Subsystem Rich Entity Contracts:**
+*   **Method:** `AttendanceRecord.Create(...)`
+    *   **Preconditions:**
+        *   `studentId` must not be null or empty.
+        *   `sessionId` must not be null or empty.
+        *   `room` must not be null.
+        *   `lat` must be between `-90.0` and `90.0`.
+        *   `lon` must be between `-180.0` and `180.0`.
+    *   **Postconditions:**
+        *   Returns a fully instantiated `AttendanceRecord` C# object.
+        *   Sets `Status` to `"Present"` if the distance check is within classroom bounds, otherwise `"Fraud_Declined"`.
+        *   Throws `DomainException` if the active token validation fails.
+        *   Throws `DeviceMismatchException` if `deviceUUID` does not match student's `boundUuid`.
+*   **Method:** `AttendanceVersion.ValidateToken(string scannedToken)`
+    *   **Preconditions:** `scannedToken` must not be null or empty.
+    *   **Postconditions:** Returns `true` if `scannedToken == ActiveToken` and `DateTime.UtcNow - RefreshedAt <= 15s`.
+
+---
+
+### **III.4.2 Identity & Access Subsystem**
+
+This subsystem is responsible for authenticating users, managing profiles (Students & Lecturers), enforcing student device UUID hardware locking, and compiling administrative audit logs.
+
+#### **Figure III-5B: Identity & Access Subsystem Detailed Class Diagram**
+```plantuml
+@startuml
+skinparam style strictuml
+
+package "Presentation Layer (Boundary)" {
+    class AccountController <<Boundary / WebAPI>> {
+        -IAuthenticationService _authService
+        -IDeviceBindingService _bindingService
+        +LoginCredentials(LoginDto dto) : Task<IActionResult>
+        +LoginGoogle(GoogleLoginDto dto) : Task<IActionResult>
+        +RequestResetBinding(string studentId) : Task<IActionResult>
+        +VerifyOtpAndReset(OtpVerifyDto dto) : Task<IActionResult>
+    }
+}
+
+package "Application Layer (Control / Ports)" {
+    interface IAuthenticationService <<Interface / Application>> {
+        +AuthenticateCredentials(string username, string password) : Task<Result<string>>
+        +AuthenticateGoogle(string idToken) : Task<Result<string>>
+    }
+    class AuthenticationService <<Control / Application>> {
+        -IAccountRepository _accountRepo
+        -IStudentRepository _studentRepo
+        +AuthenticateCredentials(string username, string password) : Task<Result<string>>
+        +AuthenticateGoogle(string idToken) : Task<Result<string>>
+    }
+    interface IDeviceBindingService <<Interface / Application>> {
+        +CheckBindingAsync(string studentId, string deviceUUID) : Task<Result<bool>>
+        +RequestResetOtpAsync(string studentId) : Task<Result<bool>>
+        +VerifyOtpAndRebindAsync(string studentId, string otp, string deviceUUID) : Task<Result<bool>>
+    }
+    class DeviceBindingService <<Control / Application>> {
+        -IStudentRepository _studentRepo
+        -IEmailOtpService _otpService
+        -ISystemLogRepository _logRepo
+        +CheckBindingAsync(string studentId, string deviceUUID) : Task<Result<bool>>
+        +RequestResetOtpAsync(string studentId) : Task<Result<bool>>
+        +VerifyOtpAndRebindAsync(string studentId, string otp, string deviceUUID) : Task<Result<bool>>
+    }
+    interface IEmailOtpService <<Interface / Application>> {
+        +SendOtpAsync(string email) : Task<string>
+        +VerifyOtpAsync(string email, string otp) : Task<bool>
+    }
+    class EmailOtpService <<Control / Application>> {
+        -IEmailGateway _emailGateway
+        -ICacheManager _cacheManager
+        +SendOtpAsync(string email) : Task<string>
+        +VerifyOtpAsync(string email, string otp) : Task<bool>
+    }
+    interface IEmailGateway <<Interface / Infrastructure Port>> {
+        +SendEmailAsync(string to, string subject, string body) : Task
+    }
+}
+
+package "Domain Layer (Core Entities)" {
     class Account <<Domain Entity>> {
         +Id : string
         +Email : string
@@ -455,76 +580,216 @@ package "Domain Layer" {
         +FullName : string
         +Role : string
     }
-
-    interface IAttendanceRepository <<Interface / Domain>> {
-        +GetByIdAsync(string id) : Task<AttendanceRecord>
-        +AddAsync(AttendanceRecord entity) : Task
-        +GetStudentProfileAsync(string studentId) : Task<Student>
-        +GetBySessionIdAsync(string sessionId) : Task<List<AttendanceRecord>>
+    class Student <<Domain Entity>> {
+        +StudentId : string
+        +AccountId : string
+        +DeviceUUID : string
+        +RegisteredFaceTemplate : string
+        +VerifyDeviceBinding(string deviceUUID) : bool
+        +UpdateDeviceUUID(string deviceUUID) : void
+        +ClearDeviceUUID() : void
     }
-
-    interface IRoomRepository <<Interface / Domain>> {
-        +GetRoomGeoConfigAsync(string sessionId) : Task<RoomGeoConfig>
-        +GetAllRoomsAsync() : Task<List<Room>>
-        +UpdateGeoConfigAsync(Room room) : Task
+    class Lecturer <<Domain Entity>> {
+        +LecturerId : string
+        +AccountId : string
+        +Department : string
     }
-
-    interface ISessionRepository <<Interface / Domain>> {
-        +GetSessionByIdAsync(string sessionId) : Task<Session>
-        +GetActiveSessionForLecturerAsync(string lecturerId) : Task<Session>
-        +UpdateSessionAsync(Session session) : Task
+    class SystemLog <<Domain Entity>> {
+        +LogId : string
+        +AccountId : string
+        +Timestamp : DateTime
+        +Action : string
+        +Description : string
     }
-
     interface IAccountRepository <<Interface / Domain>> {
         +GetByEmailAsync(string email) : Task<Account>
         +GetByUsernameAsync(string username) : Task<Account>
         +CreateAccountAsync(Account account) : Task
     }
-
     interface IStudentRepository <<Interface / Domain>> {
         +GetByStudentIdAsync(string studentId) : Task<Student>
-        +UpdateDeviceUUIDAsync(string studentId, string deviceUUID) : Task
-        +ClearDeviceUUIDAsync(string studentId) : Task
+        +UpdateAsync(Student student) : Task
+    }
+    interface ILecturerRepository <<Interface / Domain>> {
+        +GetByLecturerIdAsync(string lecturerId) : Task<Lecturer>
+    }
+    interface ISystemLogRepository <<Interface / Domain>> {
+        +AddLogAsync(SystemLog log) : Task
     }
 }
 
-package "Infrastructure Layer" {
-    class AttendanceRepository <<Database Wrapper / Infrastructure>> {
+package "Infrastructure Layer (Adapters)" {
+    class AccountRepository <<Database Wrapper / Infrastructure>> {
         -DbContext _dbContext
-        +GetByIdAsync(string id) : Task<AttendanceRecord>
-        +AddAsync(AttendanceRecord entity) : Task
+        +GetByEmailAsync(string email) : Task<Account>
     }
-
-    class RedisCacheManager <<Infrastructure Cache>> {
-        -IConnectionMultiplexer _redis
-        +GetTokenAsync(string key) : Task<string>
-        +SetTokenAsync(string key, string value, TimeSpan expiry) : Task
+    class StudentRepository <<Database Wrapper / Infrastructure>> {
+        -DbContext _dbContext
+        +GetByStudentIdAsync(string studentId) : Task<Student>
+    }
+    class SystemLogRepository <<Database Wrapper / Infrastructure>> {
+        -DbContext _dbContext
+        +AddLogAsync(SystemLog log) : Task
+    }
+    class EmailOtpGateway <<Infrastructure Gateway / Adapter>> {
+        -SmtpClient _smtpClient
+        +SendEmailAsync(string to, string subject, string body) : Task
     }
 }
 
-AttendanceController --> IAttendanceService
 AccountController --> IAuthenticationService
-RoomController --> IRoomService
-ReportController --> IReportService
-
-IAttendanceService <|.. AttendanceService
-IAuthenticationService <|.. AuthenticationService
-IRoomService <|.. RoomService
-IReportService <|.. ReportService
-
-AttendanceService --> IAttendanceRepository
-AttendanceService --> IRoomRepository
-AttendanceService --> ICacheManager
-AttendanceService --> AttendanceRecord
-
+AccountController --> IDeviceBindingService
+AuthenticationService ..|> IAuthenticationService
 AuthenticationService --> IAccountRepository
 AuthenticationService --> IStudentRepository
+DeviceBindingService ..|> IDeviceBindingService
+DeviceBindingService --> IStudentRepository
+DeviceBindingService --> IEmailOtpService
+DeviceBindingService --> ISystemLogRepository
 
+EmailOtpService ..|> IEmailOtpService
+EmailOtpService --> IEmailGateway
+
+AccountRepository ..|> IAccountRepository
+StudentRepository ..|> IStudentRepository
+SystemLogRepository ..|> ISystemLogRepository
+EmailOtpGateway ..|> IEmailGateway
+@enduml
+```
+
+#### **Identity Subsystem Rich Entity Contracts:**
+*   **Method:** `Student.VerifyDeviceBinding(string deviceUUID)`
+    *   **Preconditions:** `deviceUUID` must not be null or empty.
+    *   **Postconditions:** Returns `true` if `DeviceUUID == null` (unbound) or `DeviceUUID == deviceUUID`, otherwise `false`.
+
+---
+
+### **III.4.3 Room/Facility Subsystem**
+
+This subsystem manages structural classroom profiles, target coordinate geofences, and calculates coordinate deviations.
+
+#### **Figure III-5C: Room/Facility Subsystem Detailed Class Diagram**
+```plantuml
+@startuml
+skinparam style strictuml
+
+package "Presentation Layer (Boundary)" {
+    class RoomController <<Boundary / WebAPI>> {
+        -IRoomService _roomService
+        +SaveRoomConfiguration(RoomDto dto) : Task<IActionResult>
+        +GetRooms() : Task<IActionResult>
+    }
+}
+
+package "Application Layer (Control / Ports)" {
+    interface IRoomService <<Interface / Application>> {
+        +UpdateRoomGeo(RoomDto dto) : Task<Result<bool>>
+        +GetAllRooms() : Task<List<RoomDto>>
+    }
+    class RoomService <<Control / Application>> {
+        -IRoomRepository _roomRepo
+        +UpdateRoomGeo(RoomDto dto) : Task<Result<bool>>
+        +GetAllRooms() : Task<List<RoomDto>>
+    }
+}
+
+package "Domain Layer (Core Entities)" {
+    class Room <<Domain Entity>> {
+        +RoomId : string
+        +RoomName : string
+        +Latitude : double
+        +Longitude : double
+        +AllowedRadius : double
+        +CalculateDistance(double targetLat, double targetLong) : double
+        +IsWithinAllowedRadius(double targetLat, double targetLong, out double calculatedDistance) : bool
+    }
+    interface IRoomRepository <<Interface / Domain>> {
+        +GetRoomGeoConfigAsync(string sessionId) : Task<Room>
+        +GetAllRoomsAsync() : Task<List<Room>>
+        +UpdateGeoConfigAsync(Room room) : Task
+    }
+}
+
+package "Infrastructure Layer (Adapters)" {
+    class RoomRepository <<Database Wrapper / Infrastructure>> {
+        -DbContext _dbContext
+        +GetRoomGeoConfigAsync(string sessionId) : Task<Room>
+        +GetAllRoomsAsync() : Task<List<Room>>
+        +UpdateGeoConfigAsync(Room room) : Task
+    }
+}
+
+RoomController --> IRoomService
+RoomService ..|> IRoomService
 RoomService --> IRoomRepository
-ReportService --> IAttendanceRepository
+RoomRepository ..|> IRoomRepository
+@enduml
+```
 
-IAttendanceRepository <|.. AttendanceRepository
-ICacheManager <|.. RedisCacheManager
+#### **Room Subsystem Rich Entity Contracts:**
+*   **Method:** `Room.CalculateDistance(double targetLat, double targetLong)`
+    *   **Preconditions:** `targetLat` must be between `-90.0` and `90.0`; `targetLong` must be between `-180.0` and `180.0`.
+    *   **Postconditions:** Returns the exact distance in meters calculated using the double-precision Haversine formula.
+*   **Method:** `Room.IsWithinAllowedRadius(double targetLat, double targetLong, out double calculatedDistance)`
+    *   **Preconditions:** `targetLat` between `-90.0` and `90.0`, `targetLong` between `-180.0` and `180.0`.
+    *   **Postconditions:** Returns `true` if `calculatedDistance <= AllowedRadius`, otherwise `false`.
+
+---
+
+### **III.4.4 Reporting Subsystem**
+
+An auxiliary subsystem that aggregates student check-in records for a class section and generates Excel spreadsheets.
+
+#### **Figure III-5D: Reporting Subsystem Detailed Class Diagram**
+```plantuml
+@startuml
+skinparam style strictuml
+
+package "Presentation Layer (Boundary)" {
+    class ReportController <<Boundary / WebAPI>> {
+        -IReportService _reportService
+        +ExportClassReport(string classId) : Task<IActionResult>
+    }
+}
+
+package "Application Layer (Control / Ports)" {
+    interface IReportService <<Interface / Application>> {
+        +GenerateExcelReport(string classId) : Task<byte[]>
+    }
+    class ReportService <<Control / Application>> {
+        -IAttendanceRecordRepository _attendanceRepo
+        -IExcelGenerator _excelGenerator
+        +GenerateExcelReport(string classId) : Task<byte[]>
+    }
+    interface IExcelGenerator <<Interface / Infrastructure Port>> {
+        +CreateWorkbook(List<AttendanceRecord> records) : byte[]
+    }
+}
+
+package "Domain Layer (External Domain Interfaces)" {
+    class AttendanceRecord <<Domain Entity>> {
+        +RecordId : string
+        +StudentId : string
+        +SessionId : string
+        +CheckedInAt : DateTime
+        +Status : string
+    }
+    interface IAttendanceRecordRepository <<Interface / Domain>> {
+        +GetByClassSectionIdAsync(string classId) : Task<List<AttendanceRecord>>
+    }
+}
+
+package "Infrastructure Layer (Adapters)" {
+    class ExcelReportGenerator <<Infrastructure Generator / Adapter>> {
+        +CreateWorkbook(List<AttendanceRecord> records) : byte[]
+    }
+}
+
+ReportController --> IReportService
+ReportService ..|> IReportService
+ReportService --> IExcelGenerator
+ReportService --> IAttendanceRecordRepository
+ExcelReportGenerator ..|> IExcelGenerator
 @enduml
 ```
 
@@ -864,7 +1129,7 @@ AFAS.Backend/
 │       ├── Exceptions/                  # Domain-specific Business Exceptions
 │       └── Repositories/                # Database Abstraction Interfaces
 │           ├── IStudentRepository.cs
-│           └── IAttendanceRepository.cs
+│           └── IAttendanceRecordRepository.cs
 │
 ├── 2.Application/                       # APPLICATION LAYER (Use Cases & Handlers)
 │   └── AFAS.Application/
@@ -884,7 +1149,7 @@ AFAS.Backend/
 │       │   ├── AFASDbContext.cs
 │       │   └── Repositories/            # Repository Interface Implementations
 │       │       ├── StudentRepository.cs
-│       │       └── AttendanceRepository.cs
+│       │       └── AttendanceRecordRepository.cs
 │       ├── Caching/                     # In-Memory Cache via Redis client
 │       │   └── RedisCacheManager.cs
 │       ├── Identity/                    # Third-party Identity provider integration
@@ -930,10 +1195,66 @@ AFAS.Student.App/
 
 ## **IV.2 Map Class Diagram and Interaction Diagram to Code**
 
-To demonstrate the structural mapping, this section provides the concrete C# (.NET 8) code implementations for the core classes specified in the detailed class diagram (**Figure III-5**) and sequence diagram (**Figure II-3**).
+To demonstrate the structural mapping, this section provides the concrete C# (.NET 8) code implementations for the core classes specified in the detailed class diagrams. It demonstrates the transition from an anemic domain to a **Rich Domain Model** by encapsulating distance calculations within `Room` and anti-fraud validations within `AttendanceRecord`.
 
-### **1. Domain Entity Class Mapping (`AFAS.Domain.Entities.AttendanceRecord`)**
+### **1. Domain Entity Class Mapping — Room (`AFAS.Domain.Entities.Room`)**
 ```csharp
+using System;
+
+namespace AFAS.Domain.Entities
+{
+    public class Room
+    {
+        public string RoomId { get; private set; }
+        public string RoomName { get; private set; }
+        public double Latitude { get; private set; }
+        public double Longitude { get; private set; }
+        public double AllowedRadius { get; private set; }
+
+        public Room(string roomId, string roomName, double latitude, double longitude, double allowedRadius)
+        {
+            RoomId = roomId ?? throw new ArgumentNullException(nameof(roomId));
+            RoomName = roomName ?? throw new ArgumentNullException(nameof(roomName));
+            Latitude = latitude;
+            Longitude = longitude;
+            AllowedRadius = allowedRadius > 0 ? allowedRadius : throw new ArgumentException("Radius must be positive.");
+        }
+
+        /// <summary>
+        /// Calculates the distance in meters between the classroom and a target coordinate using the Haversine formula.
+        /// </summary>
+        public double CalculateDistance(double targetLat, double targetLong)
+        {
+            double R = 6371e3; // Earth radius in meters
+            double phi1 = Latitude * Math.PI / 180;
+            double phi2 = targetLat * Math.PI / 180;
+            double deltaPhi = (targetLat - Latitude) * Math.PI / 180;
+            double deltaLambda = (targetLong - Longitude) * Math.PI / 180;
+
+            double a = Math.Sin(deltaPhi / 2) * Math.Sin(deltaPhi / 2) +
+                       Math.Cos(phi1) * Math.Cos(phi2) *
+                       Math.Sin(deltaLambda / 2) * Math.Sin(deltaLambda / 2);
+            double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+
+            return R * c; // in meters
+        }
+
+        /// <summary>
+        /// Verifies whether the submitted student coordinates lie within the classroom geofence.
+        /// </summary>
+        public bool IsWithinAllowedRadius(double targetLat, double targetLong, out double calculatedDistance)
+        {
+            calculatedDistance = CalculateDistance(targetLat, targetLong);
+            return calculatedDistance <= AllowedRadius;
+        }
+    }
+}
+```
+
+### **2. Domain Entity Class Mapping — AttendanceRecord (`AFAS.Domain.Entities.AttendanceRecord`)**
+```csharp
+using System;
+
 namespace AFAS.Domain.Entities
 {
     public class AttendanceRecord
@@ -952,7 +1273,7 @@ namespace AFAS.Domain.Entities
         public string Status { get; private set; }
         public string VerificationMode { get; private set; }
 
-        public AttendanceRecord(string studentId, string sessionId, double lat, double lon, 
+        private AttendanceRecord(string studentId, string sessionId, double lat, double lon, 
             double distance, string wifi, string ip, string uuid, string selfie, string status, string mode)
         {
             RecordId = Guid.NewGuid().ToString();
@@ -969,12 +1290,62 @@ namespace AFAS.Domain.Entities
             Status = status;
             VerificationMode = mode;
         }
+
+        /// <summary>
+        /// Rich domain factory that enforces the three layers of anti-fraud validation rules.
+        /// </summary>
+        public static AttendanceRecord Create(
+            string studentId, 
+            string sessionId, 
+            double lat, 
+            double lon, 
+            string wifi, 
+            string ip, 
+            string uuid, 
+            string boundDeviceUuid, 
+            string selfie, 
+            string mode, 
+            Room room, 
+            string activeToken, 
+            string submittedToken)
+        {
+            if (string.IsNullOrWhiteSpace(studentId))
+                throw new ArgumentException("Student ID is required.");
+            if (string.IsNullOrWhiteSpace(sessionId))
+                throw new ArgumentException("Session ID is required.");
+            if (room == null)
+                throw new ArgumentNullException(nameof(room));
+
+            // Layer 1: Verify dynamic QR/PIN token validity
+            if (activeToken == null || activeToken != submittedToken)
+            {
+                throw new DomainException("QR/PIN code has expired or is invalid.");
+            }
+
+            // Layer 2: GPS Location Check (encapsulated in Room)
+            bool isWithinRange = room.IsWithinAllowedRadius(lat, lon, out double calculatedDistance);
+            
+            // Layer 3: Device Binding Check
+            bool isDeviceValid = boundDeviceUuid == null || boundDeviceUuid == uuid;
+            if (!isDeviceValid)
+            {
+                throw new DeviceMismatchException("Device UUID mismatch. Attendance must be logged on your registered device.");
+            }
+
+            // Determine check-in status: out-of-range yields Fraud_Declined audit record
+            string status = isWithinRange ? "Present" : "Fraud_Declined";
+
+            return new AttendanceRecord(studentId, sessionId, lat, lon, calculatedDistance, wifi, ip, uuid, selfie, status, mode);
+        }
     }
 }
 ```
 
-### **2. Application Service Class Mapping (`AFAS.Application.Services.AttendanceService`)**
+### **3. Application Service Class Mapping (`AFAS.Application.Services.AttendanceService`)**
 ```csharp
+using System;
+using System.IO;
+using System.Threading.Tasks;
 using AFAS.Domain.Entities;
 using AFAS.Domain.Repositories;
 using AFAS.Application.Interfaces;
@@ -984,81 +1355,97 @@ namespace AFAS.Application.Services
 {
     public class AttendanceService : IAttendanceService
     {
-        private readonly IAttendanceRepository _attendanceRepo;
+        private readonly IAttendanceRecordRepository _attendanceRepo;
         private readonly IRoomRepository _roomRepo;
-        private readonly ISessionRepository _sessionRepo;
+        private readonly IStudentRepository _studentRepo;
         private readonly ICacheManager _cacheManager;
         private readonly IRealtimeNotifier _notifier;
 
-        public AttendanceService(IAttendanceRepository attendanceRepo, IRoomRepository roomRepo, 
-            ISessionRepository sessionRepo, ICacheManager cacheManager, IRealtimeNotifier notifier)
+        public AttendanceService(
+            IAttendanceRecordRepository attendanceRepo, 
+            IRoomRepository roomRepo, 
+            IStudentRepository studentRepo, 
+            ICacheManager cacheManager, 
+            IRealtimeNotifier notifier)
         {
             _attendanceRepo = attendanceRepo;
             _roomRepo = roomRepo;
-            _sessionRepo = sessionRepo;
+            _studentRepo = studentRepo;
             _cacheManager = cacheManager;
             _notifier = notifier;
         }
 
         public async Task<Result<CheckinResultDto>> ProcessCheckin(AttendanceDto dto)
         {
-            // Lớp 1: Verify Dynamic QR Token (Read from Redis cache)
-            string cacheKey = $"session:{dto.SessionId}:token";
-            string activeToken = await _cacheManager.GetTokenAsync(cacheKey);
-            if (activeToken == null || activeToken != dto.DynamicToken)
+            try
             {
-                return Result<CheckinResultDto>.Failure("QR code has expired or is invalid.");
-            }
+                // Retrieve room geofence configuration
+                var room = await _roomRepo.GetRoomGeoConfigAsync(dto.SessionId);
+                if (room == null)
+                {
+                    return Result<CheckinResultDto>.Failure("Room configuration not found for this session.");
+                }
 
-            // Lớp 2: Verify GPS Location Geofencing
-            var roomGeo = await _roomRepo.GetRoomGeoConfigAsync(dto.SessionId);
-            double distance = CalculateDistance(dto.Lat, dto.Long, roomGeo.Latitude, roomGeo.Longitude);
-            if (distance > roomGeo.AllowedRadius)
+                // Retrieve student profile to inspect hardware device UUID lock
+                var student = await _studentRepo.GetByStudentIdAsync(dto.StudentId);
+                if (student == null)
+                {
+                    return Result<CheckinResultDto>.Failure("Student profile not found.");
+                }
+
+                // Retrieve active token from Redis cache
+                string cacheKey = $"session:{dto.SessionId}:token";
+                string activeToken = await _cacheManager.GetTokenAsync(cacheKey);
+
+                // Instantiate record (triggers domain checks and calculations internally)
+                var record = AttendanceRecord.Create(
+                    dto.StudentId, 
+                    dto.SessionId, 
+                    dto.Lat, 
+                    dto.Long, 
+                    dto.WifiSSID, 
+                    dto.PublicIP, 
+                    dto.DeviceUUID, 
+                    student.DeviceUUID, 
+                    dto.SelfiePath, 
+                    "QR", 
+                    room, 
+                    activeToken, 
+                    dto.DynamicToken
+                );
+
+                // Save result to primary database
+                await _attendanceRepo.AddAsync(record);
+
+                // Purge selfie from temp disk storage immediately (NFR-03 Security compliance)
+                DeleteTempSelfie(dto.SelfiePath);
+
+                if (record.Status == "Fraud_Declined")
+                {
+                    return Result<CheckinResultDto>.Failure("Location verification failed. You are outside the classroom.");
+                }
+
+                // Broadcast live real-time checked-in state to Lecturer Grid
+                await _notifier.PushAttendanceSuccess(room.LecturerId, record);
+
+                return Result<CheckinResultDto>.Success(new CheckinResultDto 
+                { 
+                    Status = "Present", 
+                    CheckedInAt = record.CheckedInAt 
+                });
+            }
+            catch (DeviceMismatchException ex)
             {
-                // Save record as fraud declined
-                var fraudRecord = new AttendanceRecord(dto.StudentId, dto.SessionId, dto.Lat, dto.Long, 
-                    distance, dto.WifiSSID, dto.PublicIP, dto.DeviceUUID, null, "Fraud_Declined", "QR");
-                await _attendanceRepo.AddAsync(fraudRecord);
-                return Result<CheckinResultDto>.Failure("Location verification failed. You are outside the classroom.");
+                return Result<CheckinResultDto>.Failure(ex.Message);
             }
-
-            // Lớp 3: Verify Device UUID Binding
-            var student = await _attendanceRepo.GetStudentProfileAsync(dto.StudentId);
-            if (student.DeviceUUID != null && student.DeviceUUID != dto.DeviceUUID)
+            catch (DomainException ex)
             {
-                return Result<CheckinResultDto>.Failure("Device UUID mismatch. Attendance must be logged on your registered device.");
+                return Result<CheckinResultDto>.Failure(ex.Message);
             }
-
-            // All checks passed. Record attendance.
-            var record = new AttendanceRecord(dto.StudentId, dto.SessionId, dto.Lat, dto.Long, 
-                distance, dto.WifiSSID, dto.PublicIP, dto.DeviceUUID, null, "Present", "QR");
-            
-            await _attendanceRepo.AddAsync(record);
-            
-            // Delete temporary captured selfie from server storage
-            DeleteTempSelfie(dto.SelfiePath);
-
-            // Broadcast real-time status update to Lecturer's Web Portal via SignalR WebSockets
-            await _notifier.PushAttendanceSuccess(roomGeo.LecturerId, record);
-
-            return Result<CheckinResultDto>.Success(new CheckinResultDto { Status = "Present", CheckedInAt = record.CheckedInAt });
-        }
-
-        private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
-        {
-            // Implementation of Haversine formula
-            double R = 6371e3; // metres
-            double phi1 = lat1 * Math.PI/180;
-            double phi2 = lat2 * Math.PI/180;
-            double deltaPhi = (lat2-lat1) * Math.PI/180;
-            double deltaLambda = (lon2-lon1) * Math.PI/180;
-
-            double a = Math.Sin(deltaPhi/2) * Math.Sin(deltaPhi/2) +
-                       Math.Cos(phi1) * Math.Cos(phi2) *
-                       Math.Sin(deltaLambda/2) * Math.Sin(deltaLambda/2);
-            double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1-a));
-
-            return R * c; // in meters
+            catch (Exception ex)
+            {
+                return Result<CheckinResultDto>.Failure($"An unexpected error occurred: {ex.Message}");
+            }
         }
 
         private void DeleteTempSelfie(string path)
@@ -1150,10 +1537,10 @@ Unit tests isolate class libraries, verifying method return values by mocking do
 *   **Target Method:** `ProcessCheckin(AttendanceDto dto)`
 *   **Test Case TC-UNIT-001: Invalid Dynamic Token**
     *   *Setup Mocks:* `ICacheManager.GetTokenAsync()` returns `null` or a mismatching string.
-    *   *Assert:* Method returns a failed result stating "QR code has expired or is invalid". `IAttendanceRepository.AddAsync()` is never called (verified 0 times).
+    *   *Assert:* Method returns a failed result stating "QR code has expired or is invalid". `IAttendanceRecordRepository.AddAsync()` is never called (verified 0 times).
 *   **Test Case TC-UNIT-002: Geofencing Radius Exceeded**
-    *   *Setup Mocks:* `ICacheManager.GetTokenAsync()` returns matching valid token. `IRoomRepository.GetRoomGeoConfigAsync()` returns `Latitude = 21.012`, `Longitude = 105.534`, `AllowedRadius = 20`. Mock DTO inputs are `Lat = 22.012` (miles away).
-    *   *Assert:* Method returns failed result. `IAttendanceRepository.AddAsync()` is called once, saving a record with status `Fraud_Declined`.
+    *   *Setup Mocks:* `ICacheManager.GetTokenAsync()` returns matching valid token. `IRoomRepository.GetRoomGeoConfigAsync()` returns `Room` instance with `Latitude = 21.012`, `Longitude = 105.534`, `AllowedRadius = 20`. Mock DTO inputs are `Lat = 22.012` (miles away).
+    *   *Assert:* Method returns failed result. `IAttendanceRecordRepository.AddAsync()` is called once, saving a record with status `Fraud_Declined`.
 *   **Test Case TC-UNIT-003: Device UUID Mismatches bound UUID**
-    *   *Setup Mocks:* Mocks return valid token and valid coordinates within 5 meters. `IAttendanceRepository.GetStudentProfileAsync()` returns student profile with `DeviceUUID = "MACHINE_A"`. DTO input is `DeviceUUID = "MACHINE_B"`.
+    *   *Setup Mocks:* Mocks return valid token and valid coordinates within 5 meters. `IStudentRepository.GetByStudentIdAsync()` returns student profile with `DeviceUUID = "MACHINE_A"`. DTO input is `DeviceUUID = "MACHINE_B"`.
     *   *Assert:* Method returns failed result: "Device UUID mismatch". No record is written.
