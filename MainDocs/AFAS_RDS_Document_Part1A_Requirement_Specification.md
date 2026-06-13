@@ -603,6 +603,7 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 Below are the activity diagrams modeling the key event flows of the check-in and session activation use cases.
 
 #### **Figure I-2: Activity diagram for UC03 - Scan Dynamic QR Check-in**
+
 ```plantuml
 @startuml UC03_Activity_Swimlane
 skinparam ActivityBackgroundColor #AED6F1
@@ -619,64 +620,61 @@ start
 :1. Tap "Scan QR Check-in" button;
 
 |Mobile App|
-:2. Request Face ID / Biometric verification;
+:2. Request student identity verification;
 
 |Student|
-:3. Perform Face ID authentication;
+:3. Perform identity verification (biometrics or fallback selfie);
 
 |Mobile App|
-if (Face ID verified?) then ([Aborted])
-  :Show abort message;
-  stop
-elseif ([Failed / Not Supported]) then
-  :A3.1 Prompt selfie capture\nas fallback proof;
+if (Biometrics verified successfully?) then ([No / Fallback])
+  :A3.1 Prompt face selfie capture\nas manual fallback proof;
   |Student|
   :Capture face selfie;
   |Mobile App|
-  :4. Open native camera;
-else ([Success])
-  :4. Open native camera;
+  :4. Open camera for scanning;
+else ([Yes])
+  :4. Open camera for scanning;
 endif
 
 |Student|
 :5. Point camera at projector QR code;
 
 |Mobile App|
-:6. Decode QR → extract DynamicToken;
-:7. Collect telemetry\n(GPS, DeviceUUID, Wi-Fi IP, SSID);
-:8. Send HTTPS POST /api/attendance/submit;
+:6. Extract scanned attendance token;
+:7. Collect student's location (GPS), device identifier, and current time;
+:8. Submit check-in request to system;
 
-|Server|
-if (Layer 1: QR Token valid\nand created < 15s?) then ([Expired])
-  :E8.1 Reject — token expired;
+|Central System|
+if (Verify QR Token: Is the QR code active and valid?) then ([No])
+  :E8.1 Reject — QR code expired;
   |Mobile App|
-  :Show "QR expired" error alert;
+  :Show expired session error alert;
   stop
-else ([Valid])
+else ([Yes])
 endif
 
-if (Layer 2: Geofence\nDistance < AllowedRadius?) then ([Out of Range])
-  :E9.1 Save Fraud_Declined record\nlog geofence violation;
+if (Verify Location: Is student within the allowed classroom range?) then ([No])
+  :E9.1 Record status as flagged for location deviation;
   |Mobile App|
-  :Show "Outside classroom range" alert;
+  :Show location warning alert;
   stop
-else ([Within Range])
+else ([Yes])
 endif
 
-if (Layer 3: DeviceUUID\nmatches registered device?) then ([Mismatch])
-  :E10.1 Reject — device not bound;
+if (Verify Device: Is the device registered to the student account?) then ([No])
+  :E10.1 Reject — device mismatch;
   |Mobile App|
-  :Show "Device mismatch" alert;
+  :Show device mismatch alert;
   stop
-else ([Match])
+else ([Yes])
 endif
 
-|Server|
-:10. Save AttendanceRecord\n(Present / Late)\nDelete selfie if any;
-:11. Push WebSocket event\nto Lecturer Web Portal;
+|Central System|
+:10. Record attendance status (Present / Late)\nand store verification proof;
+:11. Send check-in event to Lecturer Monitor;
 
 |Mobile App|
-:12. Display "Check-in Successful"\nwith timestamp;
+:12. Display "Check-in Successful" message;
 
 |Student|
 stop
@@ -686,6 +684,7 @@ stop
 ---
 
 #### **Figure I-3: Activity diagram for UC06 - Activate Dynamic QR Session**
+
 ```plantuml
 @startuml UC06_Activity_Swimlane
 skinparam ActivityBackgroundColor #AED6F1
@@ -699,50 +698,50 @@ skinparam swimlaneHeaderFontStyle bold
 
 |Lecturer|
 start
-:1. Navigate to "My Classes"\non Web Portal;
-:2. Select class section\nand current session;
+:1. Navigate to assigned classes list;
+:2. Select class section and current scheduled session;
 :3. Click "Start Attendance" button;
 
-|Server|
-if (Is current time within\nsession window?) then ([No])
-  :E4.1 Show "Outside scheduled\ntime window" error alert;
+|Central System|
+if (Is the request within the scheduled class time window?) then ([No])
+  :E4.1 Reject — outside scheduled time window;
   |Lecturer|
   stop
 else ([Yes])
 endif
 
-:5. Set AttendanceVersion.is_active = True;
-:6. Start DynamicToken refresh timer (10s)\nStart PINCode refresh timer (30s);
+:5. Activate the attendance tracking session;
+:6. Start periodic generation of dynamic QR code and backup PIN;
 
 |Lecturer Web Portal|
-:7. Open WebSocket channel\nRender projector view\n(QR code + PIN + countdown + dashboard);
+:7. Display projector view (QR code + PIN + countdown);
 
 |Lecturer|
-:8. Display projector screen\nfor students to scan;
+:8. Project screen for students to scan;
 
 repeat
 
-  |Server|
-  :Refresh DynamicToken;
-  :Refresh PINCode (every 30s);
+  |Central System|
+  :Automatically refresh dynamic QR code (every 10s)\nand backup PIN (every 30s);
 
   |Lecturer Web Portal|
-  :Push new QR & PIN via WebSocket;
+  :Update displayed QR and PIN on the screen;
+  :Refresh live list of checked-in students;
 
   |Lecturer|
-  :Monitor real-time attendance dashboard;
+  :Monitor real-time class check-in progress;
 
-repeat while (Session still active?) is ([Yes])
--> [Lecturer clicks "Stop Attendance"];
+repeat while (Attendance session still active?) is ([Yes])
+-> [Lecturer clicks Stop];
 
 |Lecturer|
 :9. Click "Stop Attendance" button;
 
-|Server|
-:10. Set is_active = False\nStop token refresh timers;
+|Central System|
+:10. Close the attendance session and stop generating new codes;
 
 |Lecturer Web Portal|
-:11. Close WebSocket channel\nReturn to session management view;
+:11. Close projector view and return to session dashboard;
 
 |Lecturer|
 stop
