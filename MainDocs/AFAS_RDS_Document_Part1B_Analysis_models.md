@@ -12,53 +12,76 @@ The Contextual Boundary Class Diagram identifies the direct connections between 
 skinparam style strictuml
 skinparam BoxPadding 10
 skinparam ParticipantPadding 10
-
 class Student <<external user>>
 class Lecturer <<external user>>
 class Admin <<external user>>
+class MobileDeviceHardware <<external I/O device>>
+class Google_OAuth_Service <<external system>>
+class School_Network_Gateway <<external system>>
 
-class StudentAppForm <<user interaction>> {
-    +DisplayDashboard()
-    +OpenQRScanner()
-    +DisplayAttendanceResult()
-    +ViewHistory()
-    +DisplayPINInput()
+package "AFAS Software System <<software system>>" {
+    class StudentAppForm <<user interaction>> {
+        +DisplayDashboard()
+        +OpenQRScanner()
+        +DisplayAttendanceResult()
+        +ViewHistory()
+        +DisplayPINInput()
+    }
+
+    class LecturerWebPortal <<user interaction>> {
+        +DisplayClassList()
+        +DisplayAttendanceQR()
+        +ShowRealtimeDashboard()
+        +ModifyRecordStatus()
+        +ExportExcelReport()
+    }
+
+    class AdminWebPortal <<user interaction>> {
+        +DisplayAdminDashboard()
+        +ShowRoomConfigForm()
+        +DisplayUserManagementTable()
+    }
+
+    class GoogleAuthGateway <<proxy>> {
+        +RedirectToGoogle()
+        +ReceiveOAuthToken()
+    }
+
+    class DeviceIOHandler <<I/O>> {
+        +FetchGPSCoordinates()
+        +FetchDeviceUUID()
+        +RequestFaceIDAuthentication()
+    }
+
+    class NetworkGatewayProxy <<proxy>> {
+        +VerifyClientIP()
+    }
 }
 
-class LecturerWebPortal <<user interaction>> {
-    +DisplayClassList()
-    +DisplayAttendanceQR()
-    +ShowRealtimeDashboard()
-    +ModifyRecordStatus()
-    +ExportExcelReport()
-}
+' External-to-Boundary Relationships
+Student "1..*" --> "1" StudentAppForm : Interacts with >
+Lecturer "1..*" --> "1" LecturerWebPortal : Interacts with >
+Admin "1..*" --> "1" AdminWebPortal : Interacts with >
 
-class AdminWebPortal <<user interaction>> {
-    +DisplayAdminDashboard()
-    +ShowRoomConfigForm()
-    +DisplayUserManagementTable()
-}
+MobileDeviceHardware "1..*" <--> "1" DeviceIOHandler : Communicates with >
+Google_OAuth_Service "1" <--> "1" GoogleAuthGateway : Communicates with >
+School_Network_Gateway "1" <--> "1" NetworkGatewayProxy : Communicates with >
 
-class GoogleAuthGateway <<proxy>> {
-    +RedirectToGoogle()
-    +ReceiveOAuthToken()
-}
-
-Student --> StudentAppForm : Interact via mobile app
-Lecturer --> LecturerWebPortal : Interact via web portal
-Admin --> AdminWebPortal : Interact via admin panel
-
+' Boundary-to-Boundary Internal Dependencies
 StudentAppForm ..> GoogleAuthGateway : OAuth authentication API
+StudentAppForm ..> DeviceIOHandler : Local hardware access
 LecturerWebPortal ..> GoogleAuthGateway : OAuth authentication API
 AdminWebPortal ..> GoogleAuthGateway : OAuth authentication API
 @enduml
 ```
 
 **Boundary Communication Description:**
-1.  **StudentAppForm (`«user interaction»`):** Provides a mobile interface for students to check-in. It internally handles biometrics verification, QR camera scanning, GPS location tracking, and Wi-Fi connectivity parameters, keeping these hardware details encapsulated.
+1.  **StudentAppForm (`«user interaction»`):** Provides a mobile interface for students to check-in. It displays dashboards, opens the scanner, and shows results, delegating hardware operations to the `DeviceIOHandler`.
 2.  **LecturerWebPortal (`«user interaction»`):** Web portal featuring a dashboard that displays check-in statistics and dynamic QR/PIN codes to students, updated in real-time.
 3.  **AdminWebPortal (`«user interaction»`):** Web portal for administrators to seed academic databases and manage classroom GPS geofence targets.
 4.  **GoogleAuthGateway (`«proxy»`):** Proxy boundary connecting to the external Google OAuth service for student, lecturer, and admin identity verification.
+5.  **DeviceIOHandler (`«I/O»`):** Input/Output boundary class that communicates with the `MobileDeviceHardware` to query GPS coordinates, extract the device UUID, and trigger native Face ID/fingerprint authentication prompts.
+6.  **NetworkGatewayProxy (`«proxy»`):** Proxy boundary class that interfaces with the `School_Network_Gateway` to verify the client's public IP address against FPT University's allowed IP ranges.
 
 ---
 

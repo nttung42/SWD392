@@ -206,7 +206,7 @@ skinparam ClassBorderColor #2E86C1
 skinparam ArrowColor #2E86C1
 skinparam ClassFontSize 12
 
-class Anti_Fraud_Attendance_System <<Central System>> {
+class Anti_Fraud_Attendance_System <<software system>> {
     -VerifyDynamicQR()
     -CalculateGeofenceDistance()
     -MatchFaceBiometrics()
@@ -247,13 +247,13 @@ class School_Network_Gateway <<external system>> {
     +VerifyPublicIP()
 }
 
-Student --> Anti_Fraud_Attendance_System : Quét QR, xem lịch sử chuyên cần
-Lecturer --> Anti_Fraud_Attendance_System : Tạo phiên QR, chốt sổ, xuất Excel
-Admin --> Anti_Fraud_Attendance_System : Cấu hình phòng học, quản lý tài khoản
+Student "1..*" --> "1" Anti_Fraud_Attendance_System : Interacts with >
+Lecturer "1..*" --> "1" Anti_Fraud_Attendance_System : Interacts with >
+Admin "1..*" --> "1" Anti_Fraud_Attendance_System : Interacts with >
 
-Anti_Fraud_Attendance_System --> MobileDeviceHardware : Yêu cầu GPS, UUID, Xác thực Face ID
-Anti_Fraud_Attendance_System --> Google_OAuth_Service : Xác thực email @fpt.edu.vn
-Anti_Fraud_Attendance_System --> School_Network_Gateway : Kiểm tra chéo IP nội bộ mạng trường
+Anti_Fraud_Attendance_System "1" --> "1..*" MobileDeviceHardware : Communicates with >
+Anti_Fraud_Attendance_System "1" --> "1" Google_OAuth_Service : Communicates with >
+Anti_Fraud_Attendance_System "1" --> "1" School_Network_Gateway : Communicates with >
 @enduml
 ```
 
