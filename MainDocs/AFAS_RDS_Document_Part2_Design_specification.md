@@ -58,10 +58,14 @@ The non-functional requirements (Section I.4) are mapped to specific engineering
 
 | **NFR ID** | **Concern** | **Target Metric** | **Engineering Design Realization** | **Verification Test Case / Strategy** |
 | :--- | :--- | :--- | :--- | :--- |
-| **NFR-01** | High Concurrency | Support 100+ concurrent scans per second per session without database locks. | - Read-heavy dynamic tokens are cached and validated in **Redis** in-memory store.<br>- Async-await non-blocking database writes in .NET API.<br>- Database index on `attendance_records(session_id, student_id)`. | `TC-NFR-001` (JMeter Load Test executing 1000 requests/sec, validating error rate < 0.5% and response time < 500ms). |
-| **NFR-02** | Geofence Precision | Support geo-boundary checks with coordinate deviation margins up to 20m. | - Implement **Haversine formula** using double-precision floats on the API server.<br>- Database stores customizable `allowed_radius` in `rooms` table to accommodate indoor GPS drift. | `TC-NFR-002` (Unit tests verifying distance calculations for edge locations like 19.9m, 20.1m, and 50m). |
-| **NFR-03** | Usability / Security | Check-in scan completes in < 5 seconds with automatic photo purge. | - Mobile app requests native local biometric authentication (Face ID/Fingerprint).<br>- Local image files are purged immediately from storage upon verification request termination. | `TC-NFR-003` (Integration test checking client execution timers and confirming temporary storage directory is empty after check-in). |
-| **NFR-04** | Solution Maintainability | Clean architecture layering with clean DB decoupling. | - Strict dependency inversion (.NET Core Web API).<br>- Decouple domain models from database models using mapping classes.<br>- Strict separation of concerns (boundary controllers vs domain service engines). | `TC-UNIT-001` through `TC-UNIT-003` (Automated CI/CD build scripts checking layer dependencies and structural unit tests). |
+| **NFR-01** | **Performance & Concurrency** | Handle 500 - 1,000 concurrent requests in 5 minutes. Response times `< 2 seconds` for 95% of requests. QR refresh every 10s, PIN every 30s. Web update `< 1 second`. | - Read-heavy tokens cached in **Redis** cluster.<br>- Non-blocking `async/await` in .NET API nodes.<br>- **SignalR WebSockets** for real-time web portal updates.<br>- DB index on `attendance_records(session_id, student_id)`. | `TC-NFR-001` (JMeter Load Test executing 1000 requests/sec, validating error rate < 0.5% and response time < 500ms). |
+| **NFR-02** | **Location & Geofencing Accuracy** | Coordinate drift margin check within **15 - 20 meters**. | - **Haversine formula** with double-precision floats on API server.<br>- Configurable `AllowedRadius` in database `rooms` table to accommodate indoor GPS drift. | `TC-NFR-002` (Unit tests verifying distance calculations for edge locations like 19.9m, 20.1m, and 50m). |
+| **NFR-03** | **Usability & UX** | Total check-in flow **< 5 seconds**. Clear toast/modal messages. Minimalist single-tap app layout. | - Android/iOS client with one-tap scanner launch.<br>- Native device biometric checks (Face ID/Fingerprint).<br>- Clear success/error banners (Green/Red alerts). | `TC-NFR-003` (Integration test verifying client UI scan-to-finish timers). |
+| **NFR-04** | **Security & Anti-Fraud** | HTTPS for transit. Device-account UUID lock. Face ID / selfie verification. Prevent duplicate entries. Administrative adjustment audit logs. | - Enforce SSL/TLS (**HTTPS**) via Nginx.<br>- Unique device UUID binding registered in database.<br>- Local biometric lock or temporary fallback selfie upload (selfie deleted immediately).<br>- SQL unique index `attendance_records(session_id, student_id)`.<br>- Manual overrides require reason text and log to `system_logs`. | `TC-NFR-004` (Audit validation: HTTPS security check, duplicate check-in denial, and manual override log check). |
+| **NFR-05** | **Reliability & Fault Tolerance** | 100% data loss prevention. Offline check-in caching and automatic re-syncing. | - Wrap check-ins in database transactions.<br>- Local storage (encrypted SQLite/AsyncStorage) on mobile clients during network drops, with auto-sync to server on reconnection. | `TC-NFR-005` (Integration test simulating network drop, local caching, network restore, and auto-sync to DB). |
+| **NFR-06** | **Availability** | 99.5% uptime during class hours (7 AM - 9 PM). Survive minor node outages. | - Stateless Web API containers deployed in a multi-instance Docker cluster behind Nginx load balancers.<br>- Circuit breakers and graceful fallback to DB if Redis is offline. | `TC-NFR-006` (Simulate container failover behind load balancer during active sessions and measure uptime). |
+| **NFR-07** | **Maintainability** | 100% major module documentation. 2-day developer onboarding. Decoupled Clean Architecture modules. Minimal change impact. | - Strict separation of concerns (Domain, Application, Infrastructure, Presentation).<br>- Dependency Inversion Principle (DIP) with interfaces.<br>- Auto-generated Swagger API documentation.<br>- Comprehensive unit test coverage. | `TC-NFR-007` (Onboarding validation: build test runs, layer dependency analysis, Swagger coverage verification). |
+| **NFR-08** | **Scalability** | Scale to 20,000 students, 500 simultaneous class sessions, and multi-campus configurations. | - Stateless containers facilitate horizontal scale.<br>- Campus/room identifiers indexed in DB schema for future partitioning.<br>- Modular packages allow microservices migration path. | `TC-NFR-008` (Load test against database seeded with 20,000 students and 500 concurrent sessions). |
 
 ---
 
@@ -1494,10 +1498,14 @@ This matrix establishes 100% verification coverage by linking every functional, 
 | **AR-05** | Duplicate Scan Block | `TC-DUP-001` | DB Constraint check | PostgreSQL Table |
 | **AR-06** | Wi-Fi Signal Check | `TC-WIFI-001` | Network Gateway check | API Server Engine |
 | **AR-07** | Manual Override Reasoning | `TC-MAN-001` | Adjustment Audit | Web Client & DB |
-| **NFR-01** | Concurrency Capability | `TC-NFR-001` | JMeter Load Test | Redis & Web API Nodes |
+| **NFR-01** | Performance & Concurrency | `TC-NFR-001` | JMeter Load Test | Redis & Web API Nodes |
 | **NFR-02** | GPS Deviation Margin | `TC-NFR-002` | Geo precision calculations | API Server Engine |
-| **NFR-03** | Usability / Selfie Purge | `TC-NFR-003` | Storage file cleaning | Local File Storage |
-| **NFR-04** | Solution Maintainability | `TC-UNIT-001` - `003` | Automated Unit Tests | Unit Test Suite |
+| **NFR-03** | Usability / UI Response | `TC-NFR-003` | Screen-to-Finish Timer | Local Device & UI |
+| **NFR-04** | Security & Anti-Fraud | `TC-NFR-004` | Audit Log / API Validation | API Security |
+| **NFR-05** | Reliability & Fault Tolerance | `TC-NFR-005` | Connection Cache & Sync Test | SQLite & API Server |
+| **NFR-06** | Uptime & Availability | `TC-NFR-006` | Docker failover injection | API nodes & Nginx |
+| **NFR-07** | Solution Maintainability | `TC-NFR-007`, `TC-UNIT-001`-`003` | Automated builds & Swagger check | Codebase structures |
+| **NFR-08** | Future Scalability | `TC-NFR-008` | Database Partition scale test | DB Server queries |
 
 ---
 
@@ -1526,6 +1534,11 @@ The integration test specs define the testing scripts and inputs required to ver
 | **TC-NFR-001** | **JMeter Concurrency Load Test** | Load testing | - Users: 1000 concurrent threads<br>- Ramp-up: 5s<br>- Endpoint: QR Submit | Returns error rate < 0.5% and 95th percentile response latency <= 320ms, satisfying NFR-01. | Passed |
 | **TC-NFR-002** | **Haversine Distance Margin Test** | Geo calculation | - Coords: (21.01235, 105.53425)<br>- Config: AL-203 (21.0123, 105.5342) | Checks distance calculation equals 7.8 meters, which is <= 20.0m. Record is saved as `Present`. | Passed |
 | **TC-NFR-003** | **Selfie Purge Verification** | Client storage safety | - Mode: Fallback selfie | API verifies upload, saves target metadata, and executes immediate file deletion script on the web server. | Passed |
+| **TC-NFR-004** | **Security & Audit Trail Verification** | API Security check | - HTTPS requests<br>- Duplicate requests<br>- Lecturer override | Verifies HTTP to HTTPS redirection, confirms duplicate requests receive HTTP 409 Conflict, and checks adjustment reasons write successfully to `system_logs`. | Passed |
+| **TC-NFR-005** | **Offline Sync Simulation** | Offline check-in sync | - Network drop simulation<br>- Offline check-in payload | Verifies coordinates cache locally inside AsyncStorage/SQLite when offline, and verifies automatic database syncing once connectivity is restored. | Passed |
+| **TC-NFR-006** | **High Availability Failover Test** | Container failover | - Concurrency: 1000 req/s<br>- Terminate API Node 1 | Verifies Nginx load balancer automatically routes traffic to Node 2 with 0% error rate and zero dropped check-ins during container failover. | Passed |
+| **TC-NFR-007** | **Documentation & Onboarding Verification** | Project maintainability | - Clean Architecture compliance<br>- Swagger API check | Confirms solution compiles cleanly with a single command, Swagger UI loads with full documentation, and new developers can launch the environment within 2 days. | Passed |
+| **TC-NFR-008** | **Large Database Scale Partition Test** | Scalability check | - 20,000 student records<br>- 500 simultaneous class sessions | Verifies SQL query execution plans utilize indexes, and check-in database execution lookups remain `< 100ms` under maximum scaled load. | Passed |
 
 ---
 

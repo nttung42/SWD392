@@ -8,71 +8,41 @@ The Contextual Boundary Class Diagram identifies the direct connections between 
 
 #### **Figure II-0A: Contextual Boundary Class Diagram**
 ```plantuml
-@startuml
-skinparam style strictuml
-skinparam BoxPadding 10
-skinparam ParticipantPadding 10
-class Student <<external user>>
-class Lecturer <<external user>>
-class Admin <<external user>>
-class MobileDeviceHardware <<external I/O device>>
-class Google_OAuth_Service <<external system>>
-class School_Network_Gateway <<external system>>
+    @startuml
+    skinparam style strictuml
+    skinparam BoxPadding 10
+    skinparam ParticipantPadding 10
+    class Student <<external user>>
+    class Lecturer <<external user>>
+    class Admin <<external user>>
+    class MobileDeviceHardware <<external I/O device>>
+    class Google_OAuth_Service <<external system>>
+    class School_Network_Gateway <<external system>>
 
-package "AFAS Software System <<software system>>" {
-    class StudentAppForm <<user interaction>> {
-        +DisplayDashboard()
-        +OpenQRScanner()
-        +DisplayAttendanceResult()
-        +ViewHistory()
-        +DisplayPINInput()
+    package "AFAS Software System <<software system>>" {
+        class StudentAppForm <<user interaction>>
+        class LecturerWebPortal <<user interaction>>
+        class AdminWebPortal <<user interaction>>
+        class GoogleAuthGateway <<proxy>>
+        class DeviceIOHandler <<I/O>>
+        class NetworkGatewayProxy <<proxy>>
     }
 
-    class LecturerWebPortal <<user interaction>> {
-        +DisplayClassList()
-        +DisplayAttendanceQR()
-        +ShowRealtimeDashboard()
-        +ModifyRecordStatus()
-        +ExportExcelReport()
-    }
+    ' External-to-Boundary Relationships
+    Student "1..*" --> "1" StudentAppForm : Interacts with >
+    Lecturer "1..*" --> "1" LecturerWebPortal : Interacts with >
+    Admin "1..*" --> "1" AdminWebPortal : Interacts with >
 
-    class AdminWebPortal <<user interaction>> {
-        +DisplayAdminDashboard()
-        +ShowRoomConfigForm()
-        +DisplayUserManagementTable()
-    }
+    MobileDeviceHardware "1..*" <--> "1" DeviceIOHandler : Communicates with >
+    Google_OAuth_Service "1" <--> "1" GoogleAuthGateway : Communicates with >
+    School_Network_Gateway "1" <--> "1" NetworkGatewayProxy : Communicates with >
 
-    class GoogleAuthGateway <<proxy>> {
-        +RedirectToGoogle()
-        +ReceiveOAuthToken()
-    }
-
-    class DeviceIOHandler <<I/O>> {
-        +FetchGPSCoordinates()
-        +FetchDeviceUUID()
-        +RequestFaceIDAuthentication()
-    }
-
-    class NetworkGatewayProxy <<proxy>> {
-        +VerifyClientIP()
-    }
-}
-
-' External-to-Boundary Relationships
-Student "1..*" --> "1" StudentAppForm : Interacts with >
-Lecturer "1..*" --> "1" LecturerWebPortal : Interacts with >
-Admin "1..*" --> "1" AdminWebPortal : Interacts with >
-
-MobileDeviceHardware "1..*" <--> "1" DeviceIOHandler : Communicates with >
-Google_OAuth_Service "1" <--> "1" GoogleAuthGateway : Communicates with >
-School_Network_Gateway "1" <--> "1" NetworkGatewayProxy : Communicates with >
-
-' Boundary-to-Boundary Internal Dependencies
-StudentAppForm ..> GoogleAuthGateway : OAuth authentication API
-StudentAppForm ..> DeviceIOHandler : Local hardware access
-LecturerWebPortal ..> GoogleAuthGateway : OAuth authentication API
-AdminWebPortal ..> GoogleAuthGateway : OAuth authentication API
-@enduml
+    ' Boundary-to-Boundary Internal Dependencies
+    StudentAppForm ..> GoogleAuthGateway : OAuth authentication API
+    StudentAppForm ..> DeviceIOHandler : Local hardware access
+    LecturerWebPortal ..> GoogleAuthGateway : OAuth authentication API
+    AdminWebPortal ..> GoogleAuthGateway : OAuth authentication API
+    @enduml
 ```
 
 **Boundary Communication Description:**
@@ -433,11 +403,11 @@ deactivate AC
 #### **Figure II-1B: Communication Diagram for UC01 - Login**
 ```plantuml
 @startuml
-object User as "Student/Lecturer/Admin"
-object LGG as "GoogleAuthGateway\n«boundary»"
-object LAF as "LoginForm\n«boundary»"
-object AC as "AuthenticationController\n«control»"
-object ACC as "Account\n«entity»"
+class "Student/Lecturer/Admin" as User <<actor>>
+class GoogleAuthGateway as LGG <<boundary>>
+class LoginForm as LAF <<boundary>>
+class AuthenticationController as AC <<control>>
+class Account as ACC <<entity>>
 
 User --> LGG : 1a: Login via Google
 User --> LAF : 1b: Enter Credentials
@@ -524,13 +494,13 @@ deactivate SAF
 #### **Figure II-2B: Communication Diagram for UC02 - Register Device UUID**
 ```plantuml
 @startuml
-object SV as "Student"
-object SAF as "StudentAppForm\n«user interaction»"
-object MD as "MobileDeviceHardware\n«device I/O»"
-object DBC as "DeviceBindingController\n«coordinator»"
-object ST as "Student\n«entity»"
-object OTP as "EmailOtpGateway\n«proxy»"
-object SL as "SystemLog\n«entity»"
+class Student as SV <<actor>>
+class StudentAppForm as SAF <<boundary>>
+class MobileDeviceHardware as MD <<boundary>>
+class DeviceBindingController as DBC <<control>>
+class Student as ST <<entity>>
+class EmailOtpGateway as OTP <<boundary>>
+class SystemLog as SL <<entity>>
 
 SV --> SAF : 1: Login / Request Reset
 SAF --> MD : 1.1: GetDeviceUUID()
@@ -703,13 +673,13 @@ deactivate SAF
 #### **Figure II-3B: Communication Diagram for UC03 - Scan Dynamic QR Check-in**
 ```plantuml
 @startuml
-object Student as "Student"
-object SAF as "StudentAppForm\n«boundary»"
-object AC as "AttendanceController\n«control»"
-object V as "AttendanceVersion\n«entity»"
-object R as "Room\n«entity»"
-object ST as "Student\n«entity»"
-object AR as "AttendanceRecord\n«entity»"
+class Student as Student <<actor>>
+class StudentAppForm as SAF <<boundary>>
+class AttendanceController as AC <<control>>
+class AttendanceVersion as V <<entity>>
+class Room as R <<entity>>
+class Student as ST <<entity>>
+class AttendanceRecord as AR <<entity>>
 
 Student --> SAF : 1: Scan QR Check-in
 SAF --> AC : 2: SubmitAttendance()
@@ -763,12 +733,12 @@ deactivate SAF
 #### **Figure II-4B: Communication Diagram for UC04 - View Attendance History**
 ```plantuml
 @startuml
-object SV as "Student"
-object SAF as "StudentAppForm\n«user interaction»"
-object AC as "AttendanceController\n«coordinator»"
-object CSS as "ClassSectionStudent\n«entity»"
-object CS as "ClassSection\n«entity»"
-object AR as "AttendanceRecord\n«entity»"
+class Student as SV <<actor>>
+class StudentAppForm as SAF <<boundary>>
+class AttendanceController as AC <<control>>
+class ClassSectionStudent as CSS <<entity>>
+class ClassSection as CS <<entity>>
+class AttendanceRecord as AR <<entity>>
 
 SV --> SAF : 1: Open History Tab
 SAF --> AC : 1.1: GetHistory(StudentId)
@@ -838,13 +808,13 @@ deactivate SAF
 #### **Figure II-5B: Communication Diagram for UC05 - PIN Fallback Check-in**
 ```plantuml
 @startuml
-object Student as "Student"
-object SAF as "StudentAppForm\n«boundary»"
-object AC as "AttendanceController\n«control»"
-object V as "AttendanceVersion\n«entity»"
-object R as "Room\n«entity»"
-object ST as "Student\n«entity»"
-object AR as "AttendanceRecord\n«entity»"
+class Student as Student <<actor>>
+class StudentAppForm as SAF <<boundary>>
+class AttendanceController as AC <<control>>
+class AttendanceVersion as V <<entity>>
+class Room as R <<entity>>
+class Student as ST <<entity>>
+class AttendanceRecord as AR <<entity>>
 
 Student --> SAF : 1: Tap PIN Check-in / Submit PIN
 SAF --> AC : 2: SubmitPINAttendance()
@@ -938,13 +908,13 @@ end
 #### **Figure II-6B: Communication Diagram for UC06 - Activate Dynamic QR Session**
 ```plantuml
 @startuml
-object GV as "Lecturer"
-object LWP as "LecturerWebPortal\n«boundary»"
-object SC as "SessionController\n«control»"
-object S as "Session\n«entity»"
-object V as "AttendanceVersion\n«entity»"
-object QT as "QRRefreshTimer\n«control»"
-object PT as "PINRefreshTimer\n«control»"
+class Lecturer as GV <<actor>>
+class LecturerWebPortal as LWP <<boundary>>
+class SessionController as SC <<control>>
+class Session as S <<entity>>
+class AttendanceVersion as V <<entity>>
+class QRRefreshTimer as QT <<control>>
+class PINRefreshTimer as PT <<control>>
 
 GV --> LWP : 1: Click Start Attendance
 LWP --> SC : 1.1: GetSessionDetails()
@@ -1014,12 +984,12 @@ end
 #### **Figure II-7B: Communication Diagram for UC07 - Real-time Attendance Monitor**
 ```plantuml
 @startuml
-object GV as "Lecturer"
-object LWP as "LecturerWebPortal\n«user interaction»"
-object SC as "SessionController\n«state dependent control»"
-object CS as "ClassSectionStudent\n«entity»"
-object AR as "AttendanceRecord\n«entity»"
-object WSH as "AttendanceRealtimeHub\n«coordinator»"
+class Lecturer as GV <<actor>>
+class LecturerWebPortal as LWP <<boundary>>
+class SessionController as SC <<control>>
+class ClassSectionStudent as CS <<entity>>
+class AttendanceRecord as AR <<entity>>
+class AttendanceRealtimeHub as WSH <<control>>
 
 GV --> LWP : 1: Open Presentation View
 LWP --> SC : 1.1: GetStudentRosterForSession()
@@ -1082,11 +1052,11 @@ deactivate LWP
 #### **Figure II-8B: Communication Diagram for UC08 - Manual Attendance Adjustment**
 ```plantuml
 @startuml
-object GV as "Lecturer"
-object LWP as "LecturerWebPortal\n«user interaction»"
-object AC as "AttendanceController\n«coordinator»"
-object AR as "AttendanceRecord\n«entity»"
-object SL as "SystemLog\n«entity»"
+class Lecturer as GV <<actor>>
+class LecturerWebPortal as LWP <<boundary>>
+class AttendanceController as AC <<control>>
+class AttendanceRecord as AR <<entity>>
+class SystemLog as SL <<entity>>
 
 GV --> LWP : 1: Click student / Select status / Save
 LWP --> AC : 1.1: AdjustAttendanceStatus()
@@ -1150,13 +1120,13 @@ deactivate LWP
 #### **Figure II-9B: Communication Diagram for UC09 - Export Attendance Report**
 ```plantuml
 @startuml
-object GV as "Lecturer"
-object LWP as "LecturerWebPortal\n«user interaction»"
-object RC as "ReportController\n«coordinator»"
-object CSS as "ClassSectionStudent\n«entity»"
-object AR as "AttendanceRecord\n«entity»"
-object REP as "ReportGenerator\n«coordinator»"
-object SL as "SystemLog\n«entity»"
+class Lecturer as GV <<actor>>
+class LecturerWebPortal as LWP <<boundary>>
+class ReportController as RC <<control>>
+class ClassSectionStudent as CSS <<entity>>
+class AttendanceRecord as AR <<entity>>
+class ReportGenerator as REP <<control>>
+class SystemLog as SL <<entity>>
 
 GV --> LWP : 1: Click Export Report
 LWP --> RC : 1.1: ExportClassReport()
@@ -1231,15 +1201,15 @@ deactivate AWP
 #### **Figure II-10B: Communication Diagram for UC10 - Manage System Catalog**
 ```plantuml
 @startuml
-object AD as "Admin"
-object AWP as "AdminWebPortal\n«user interaction»"
-object CC as "CatalogController\n«coordinator»"
-object ACC as "Account\n«entity»"
-object ST as "Student\n«entity»"
-object LT as "Lecturer\n«entity»"
-object SUB as "Subject\n«entity»"
-object CLS as "ClassSection\n«entity»"
-object SL as "SystemLog\n«entity»"
+class Admin as AD <<actor>>
+class AdminWebPortal as AWP <<boundary>>
+class CatalogController as CC <<control>>
+class Account as ACC <<entity>>
+class Student as ST <<entity>>
+class Lecturer as LT <<entity>>
+class Subject as SUB <<entity>>
+class ClassSection as CLS <<entity>>
+class SystemLog as SL <<entity>>
 
 AD --> AWP : 1: Manage catalog
 AWP --> CC : 1.1: GetCatalog() / SaveCatalogChange()
@@ -1330,11 +1300,11 @@ deactivate AWP
 #### **Figure II-11B: Communication Diagram for UC11 - Configure Room Coordinates**
 ```plantuml
 @startuml
-object AD as "Admin"
-object AWP as "AdminWebPortal\n«boundary»"
-object RCC as "RoomConfigurationController\n«control»"
-object R as "Room\n«entity»"
-object SL as "SystemLog\n«entity»"
+class Admin as AD <<actor>>
+class AdminWebPortal as AWP <<boundary>>
+class RoomConfigurationController as RCC <<control>>
+class Room as R <<entity>>
+class SystemLog as SL <<entity>>
 
 AD --> AWP : 1: Edit Coordinates
 AD --> AWP : 2: Click Save Config
