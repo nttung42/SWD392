@@ -23,112 +23,30 @@
 
 ---
 
-## **Contents**
+### **Contents**
 
-*   [0. Traceability Framework](#0-traceability-framework)
-    *   [0.1 Source Baseline](#01-source-baseline)
-    *   [0.2 Artifact ID Scheme](#02-artifact-id-scheme)
-    *   [0.3 Master End-to-End Traceability Matrix](#03-master-end-to-end-traceability-matrix)
 *   [I. Requirement Specification](#i-requirement-specification)
     *   [I.1 Problem description](#i1-problem-description)
     *   [I.2 Major Features](#i2-major-features)
-        *   [I.2.1 Source-to-Feature Derivation Matrix](#i21-source-to-feature-derivation-matrix)
     *   [I.3 System context](#i3-system-context)
     *   [I.4 Non-functional Requirements](#i4-non-functional-requirements)
-    *   [I.5 Business Process Model](#i5-business-process-model)
-    *   [I.6 Functional requirements](#i6-functional-requirements)
-        *   [I.6.1 Use case diagrams](#i61-use-case-diagrams)
-        *   [I.6.2 Use case descriptions](#i62-use-case-descriptions)
-        *   [I.6.3 Activity diagrams](#i63-activity-diagrams)
-    *   [I.7 Anti-Fraud Rule Catalog](#i7-anti-fraud-rule-catalog)
-    *   [I.8 Data Requirements](#i8-data-requirements)
+    *   [I.5 Functional requirements](#i5-functional-requirements)
+        *   [I.5.1 Use case diagrams](#i51-use-case-diagrams)
+        *   [I.5.2 Use case descriptions](#i52-use-case-descriptions)
+        *   [I.5.3 Activity diagrams](#i53-activity-diagrams)
+    *   [I.6 Data Requirements](#i6-data-requirements)
 *   [II. Analysis Models](#ii-analysis-models)
-    *   [II.0 Static Analysis](#ii0-static-analysis)
-        *   [II.0.1 Contextual Boundary Class Diagram](#ii01-contextual-boundary-class-diagram)
-        *   [II.0.2 Object Structuring Criteria](#ii02-object-structuring-criteria)
-        *   [II.0.3 UI Mockups](#ii03-ui-mockups)
     *   [II.1 Interaction diagrams](#ii1-interaction-diagrams)
     *   [II.2 State diagrams](#ii2-state-diagram)
 *   [III. Design Specification](#iii-design-specification)
-    *   [III.0 Analysis-to-Design Transformation Matrix](#iii0-analysis-to-design-transformation-matrix)
-        *   [III.0.1 Use Case to Design Realization Matrix](#iii01-use-case-to-design-realization-matrix)
-        *   [III.0.2 NFR Realization and Verification Matrix](#iii02-nfr-realization-and-verification-matrix)
     *   [III.1 Integrated Communication Diagrams](#iii1-integrated-communication-diagrams)
     *   [III.2 System High-Level Design](#iii2-system-high-level-design)
     *   [III.3 Component and Package Diagram](#iii3-component-and-package-diagram)
     *   [III.4 Detail Design](#iii4-detail-design)
     *   [III.5 Database Design](#iii5-database-design)
-        *   [III.5.0 Entity-to-Database Transformation Matrix](#iii50-entity-to-database-transformation-matrix)
-        *   [III.5.1 Rule-to-Constraint and Index Mapping](#iii51-rule-to-constraint-and-index-mapping)
 *   [IV. Implementation](#iv-implementation)
-    *   [IV.0 Implementation Traceability Matrix](#iv0-implementation-traceability-matrix)
     *   [IV.1 Map architecture to the structure of the project](#iv1-map-architecture-to-the-structure-of-the-project)
     *   [IV.2 Map Class Diagram and Interaction Diagram to Code](#iv2-map-class-diagram-and-interaction-diagram-to-code)
-*   [V. Verification and Testing](#v-verification-and-testing)
-    *   [V.0 Verification Coverage Matrix](#v0-verification-coverage-matrix)
-    *   [V.1 Integration Testing & Test Specs](#v1-integration-testing--test-specs)
-    *   [V.2 Unit Test Specifications](#v2-unit-test-specifications)
-
----
-
-## **0. Traceability Framework**
-
-This section establishes the framework for tracing requirements and concerns across all modeling, analysis, design, implementation, and verification phases of the AFAS project.
-
-### **0.1 Source Baseline**
-
-The system specifications are derived directly from the SWD392 software design assignment brief for the Anti-Fraud Attendance System. The engineering trace baseline ensures that the project progresses logically through:
-1.  **Requirement Modeling:** Deriving system context, business processes, major features, use cases, and non-functional metrics.
-2.  **Analysis Modeling:** Structuring boundary, control, and entity objects, mapping dynamic interactions (sequence/communication), and defining state transitions.
-3.  **Design Modeling:** Transforming PIMs (Platform Independent Models) into Clean Architecture designs, database physical schemas, and module packages.
-4.  **Implementation & Verification:** Mapping components directly to folder hierarchies, concrete code blocks, and integration/unit test scenarios.
-
-### **0.2 Artifact ID Scheme**
-
-To maintain consistency and rigorous linkage, the following prefix scheme is applied across all sections of this document:
-
-| **Prefix** | **Meaning** | **Example** |
-| :--- | :--- | :--- |
-| `SRC-*` | Source requirement clause from project brief | `SRC-FR-02` |
-| `F*` | Major feature in product scope | `F03` |
-| `UC*` | Use case identifier | `UC03` |
-| `BP-*` | Core business process | `BP-02` |
-| `AR-*` | Business anti-fraud validation rule | `AR-02` |
-| `NFR-*` | Non-functional performance requirement | `NFR-01` |
-| `AN-*` | Analysis phase artifact (diagrams, mockups) | `AN-SD-03` |
-| `DS-*` | Design phase structural/detailed class artifact | `DS-CMP-02` |
-| `DB-*` | Database physical table schema artifact | `DB-T10` |
-| `IM-*` | Implementation code file/module mapping | `IM-SVC-01` |
-| `TC-*` | Verification test case (Integration/Unit/NFR) | `TC-IT-003` |
-
-### **0.3 Master End-to-End Traceability Matrix**
-
-The master matrix traces every single source requirement from the brief to its corresponding use cases, analysis objects, design components, database tables, code files, and testing specifications.
-
-| **Source ID** | **Requirement / Concern** | **Req. Artifacts** | **Analysis Artifacts** | **Design Artifacts** | **DB Table(s)** | **Implementation** | **Verification Case** | **Status** |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **SRC-FR-01** | Account Login | `F01`, `UC01` | `AN-SD-01`, `AN-CD-01`, `LoginForm`, `GoogleAuthGateway` | `AccountController`, `AuthenticationService` | `accounts`, `students`, `lecturers` | `IM-AUTH-01` | `TC-AUTH-001` | Covered |
-| **SRC-FR-02** | Scan Dynamic QR | `F03`, `UC03` | `AN-AD-03`, `AN-SD-03`, `AN-CD-03`, `StudentAppForm` | `AttendanceController`, `AttendanceService` | `attendance_records`, `attendance_versions` | `IM-SVC-01` | `TC-IT-001`, `TC-IT-002` | Covered |
-| **SRC-FR-03** | GPS & Device ID Telemetry | `F02`, `F03`, `UC02`, `UC03` | `AN-SD-02`, `AN-CD-02`, `AN-SD-03`, `MobileDeviceHardware` | `DeviceBindingController`, `AttendanceService` | `students`, `attendance_records` | `IM-DEV-01`, `IM-SVC-01` | `TC-IT-004`, `TC-IT-006` | Covered |
-| **SRC-FR-04** | View Attendance History | `F05`, `UC04` | `AN-SD-04`, `AN-CD-04`, `StudentAppForm` | `AttendanceController`, `AttendanceService` | `attendance_records`, `class_section_students` | `IM-HIS-01` | `TC-HIS-001` | Covered |
-| **SRC-FR-05** | Lecturer Class Section | `F06`, `UC06`, `UC07` | `AN-SD-06`, `AN-SD-07`, `LecturerWebPortal` | `SessionController`, `SessionService` | `class_sections`, `class_section_students` | `IM-SES-01` | `TC-IT-001` | Covered |
-| **SRC-FR-06** | QR/PIN Active & Refresh Loop | `F07`, `UC06` | `AN-AD-06`, `AN-SD-06`, `QRRefreshTimer`, `PINRefreshTimer` | `SessionService`, `RedisCacheManager` | `attendance_versions`, `sessions` | `IM-CACHE-01`, `IM-SES-01` | `TC-IT-002` | Covered |
-| **SRC-FR-07** | Real-time Monitor Grid | `F08`, `UC07` | `AN-SD-07`, `AN-CD-07`, `LecturerWebPortal` | `AttendanceHub`, `SignalRRealtimeNotifier` | `attendance_records` | `IM-RT-01` | `TC-IT-001` | Covered |
-| **SRC-FR-08** | Manual Adjust & Report | `F09`, `F10`, `UC08`, `UC09` | `AN-SD-08`, `AN-CD-08`, `AN-SD-09`, `AN-CD-09` | `AttendanceController`, `ReportController`, `ExcelReportGenerator` | `attendance_records`, `system_logs` | `IM-REP-01` | `TC-REP-001`, `TC-MAN-001` | Covered |
-| **SRC-FR-09** | System Catalog CRUD | `F11`, `UC10` | `AN-SD-10`, `AN-CD-10`, `AdminWebPortal` | `CatalogController`, `CatalogService` | `accounts`, `students`, `lecturers`, `subjects`, `class_sections` | `IM-CAT-01` | `TC-CAT-001` | Covered |
-| **SRC-FR-10** | Room Coordinates Configuration | `F12`, `UC11` | `AN-SD-11`, `AN-CD-11`, `AdminWebPortal` | `RoomController`, `RoomService` | `rooms`, `system_logs` | `IM-ROOM-01` | `TC-ROOM-001` | Covered |
-| **SRC-FR-11** | Internet Outage Fallbacks | `F04`, `F09` | `UC05`, `UC08` | `AN-SD-05`, `AN-CD-05` | `AttendanceController.SubmitPINAttendance`, `AttendanceService.ProcessPinCheckin` | `attendance_records` | `TC-IT-005` | Covered |
-| **SRC-AF-01** | Prevent Remote QR Photo Sharing | `F03`, `F07` | `UC03`, `UC06` | `AN-AD-03`, `AN-AD-06`, `QRRefreshTimer` | `QRRefreshTimer`, `RedisCacheManager`, `AttendanceService.ProcessCheckin` | `attendance_versions` | `IM-CACHE-01` | `TC-IT-002` | Covered |
-| **SRC-AF-02** | Prevent Off-campus Geofence Fraud | `F03`, `F12` | `UC03`, `UC11` | `AN-AD-03`, `AN-SD-03`, `AN-SD-05`, `AN-SD-11` | `RoomService`, `AttendanceService.CalculateDistance` | `rooms`, `attendance_records` | `IM-SVC-01`, `IM-ROOM-01` | `TC-IT-003`, `TC-NFR-002` | Covered |
-| **SRC-AF-03** | Device Handoff Protection | `AR-03`, `AR-04`, `UC02`, `UC03`, `UC05` | `AN-SD-02`, `AN-SD-03`, `AN-SD-05`, `DeviceBindingState` | `DeviceBindingController`, `AttendanceService.ProcessCheckin` | `students`, `attendance_records` | `IM-DEV-01`, `IM-SVC-01` | `TC-IT-004`, `TC-IT-006`, `TC-BIO-001` | Covered |
-| **SRC-NFR-01** | Performance & Concurrency | `NFR-01` | Object structuring, `RedisCacheManager` | `RedisCacheManager` on API nodes | indexes on `attendance_records` & `students` | `IM-CACHE-01` | `TC-NFR-001` | Covered |
-| **SRC-NFR-02** | GPS Coordinate Deviation | `NFR-02` | GPS calculations in UC03/UC05/UC11 | `rooms.allowed_radius` custom configuration | `rooms`, `attendance_records` | `IM-SVC-01` | `TC-NFR-002` | Covered |
-| **SRC-NFR-03** | UI Usability & Fast Response | `NFR-03` | Minimal app mockups, Face ID sensor | Local Face ID reader, immediate selfie purge | none direct | `IM-MOB-01`, `IM-SVC-01` | `TC-NFR-003` | Covered |
-| **SRC-NFR-04** | Security & Anti-Fraud | `NFR-04` | Face ID, Device binding, Duplicate prevention | HTTPS, Device binding check, unique database indexes, manual logs | `accounts`, `students`, `attendance_records`, `system_logs` | `IM-AUTH-01`, `IM-DEV-01`, `IM-SVC-01` | `TC-NFR-004`, `TC-BIO-001`, `TC-DUP-001` | Covered |
-| **SRC-NFR-05** | Reliability & Fault Tolerance | `NFR-05` | Transaction Isolation, local database sync | SQL transactions, offline caching database | `attendance_records` | `IM-MOB-01`, `IM-SVC-01` | `TC-NFR-005` | Covered |
-| **SRC-NFR-06** | Uptime & Availability | `NFR-06` | Stateless Web API behind load balancer | Multiple API containers, failover configuration | none direct | `IM-ARCH-01` | `TC-NFR-006` | Covered |
-| **SRC-NFR-07** | Solution Maintainability | `NFR-07` | BCE Object structuring | Clean Architecture 4 layers, DI, repositories, Swagger | repositories schema | `IM-ARCH-01` | `TC-NFR-007`, `TC-UNIT-001`-`003` | Covered |
-| **SRC-NFR-08** | Future Scalability | `NFR-08` | Stateless containers, campus identifiers | Multi-campus partitioning, dockerized scaling | none direct | `IM-ARCH-01` | `TC-NFR-008` | Covered |
 
 ---
 
@@ -176,28 +94,7 @@ The system comprises three main portals: Student Mobile App, Lecturer Web Portal
 *   **F11: System Catalog Management:** Manage accounts (Students, Lecturers), Subjects, and Class Sections.
 *   **F12: Classroom GPS Configuration:** Setup room location (Latitude, Longitude) and custom Allowed Radius.
 
-### **I.2.1 Source-to-Feature Derivation Matrix**
 
-The requirements from the assignment brief map directly to the system features (`F01`-`F12`) and their associated use cases as shown in the matrix below:
-
-| **Source ID** | **Brief Requirement Description** | **Derived Feature(s)** | **Derived Use Case(s)** | **Architectural Derivation Reasoning** |
-| :--- | :--- | :--- | :--- | :--- |
-| **SRC-FR-01** | Personal Account & OAuth Login | `F01` | `UC01` | Role-based authentication is the entry gate for Students, Lecturers, and Admins to secure data. |
-| **SRC-FR-02** | Scan Lecturer's Projector QR Code | `F03` | `UC03` | Provides the primary automatic mechanism for students to record attendance. |
-| **SRC-FR-03** | GPS & Device ID Telemetry | `F02`, `F03` | `UC02`, `UC03` | Verifying identity/location requires mobile device binding and hardware sensor checks. |
-| **SRC-FR-04** | Track History & Absence Stats | `F05` | `UC04` | Students check calendar and statistics for warning metrics. |
-| **SRC-FR-05** | Lecturer Class Section View | `F06` | `UC06`, `UC07` | Lecturers view schedule and select sections before initializing check-in. |
-| **SRC-FR-06** | Dynamic QR (10s) & PIN (30s) | `F07` | `UC06` | Lecturer screen triggers background refreshes for dynamic check-in keys. |
-| **SRC-FR-07** | Real-time Attendance monitor grid | `F08` | `UC07` | Uses WebSocket communication for pushing live name updates. |
-| **SRC-FR-08** | Manual Adjust & Excel Export | `F09`, `F10` | `UC08`, `UC09` | Lecturers audit rosters, modify records, and download academic sheets. |
-| **SRC-FR-09** | CRUD Accounts, Subjects, Class Sections | `F11` | `UC10` | Admins perform catalog CRUD and database seed imports. |
-| **SRC-FR-10** | Configure Classroom GPS Coordinates | `F12` | `UC11` | Classroom location configurations define physical geofence boundaries. |
-| **SRC-FR-11** | Internet Outage Fallbacks | `F04`, `F09` | `UC05`, `UC08` | Provides PIN fallback and manual lecturer entry options during hardware/network drops. |
-| **SRC-AF-01** | Prevent Remote QR Photo Sharing | `F03`, `F07` | `UC03`, `UC06` | Enforces the 10-second refresh and 15-second grace window to block off-site scans. |
-| **SRC-AF-02** | Prevent Off-campus Geofence Fraud | `F03`, `F12` | `UC03`, `UC11` | Disallows check-ins where distance calculation exceeds room allowed radius. |
-| **SRC-AF-03** | Prevent Device Handoff Fraud | `F02`, `F03` | `UC02`, `UC03` | Restricts accounts to 1 physical device binding plus local biometric validations. |
-
----
 
 ## **I.3 System context**
 
@@ -265,70 +162,48 @@ Anti_Fraud_Attendance_System "1" --> "1" School_Network_Gateway : Communicates w
 
 ## **I.4 Non-functional Requirements**
 
-| **ID** | **NFR Category** | **Technical Specification (Metric)** | **Practical Implementation Solution** |
-| :--- | :--- | :--- | :--- |
-| **NFR-01** | **Performance & Concurrency** | Handle **500 - 1,000 concurrent check-in requests** within a 5-minute peak window at the start of a class. API response times for check-ins must be **< 2 seconds** for 95% of requests. Dynamic QR codes must refresh in real-time every **10 seconds**, PIN codes every **30 seconds**. Lecturer real-time dashboard updates must occur with minimal delay (**< 1 second**). | Use a high-performance **Redis in-memory cache** to validate dynamic check-in tokens instantly, reducing direct database writes and lookups during peak hours. Implement asynchronous, non-blocking I/O in the .NET Web API. Use **SignalR WebSockets** for low-latency live updates to the lecturer dashboard. Create database indexes on `attendance_records(session_id, student_id)`. |
-| **NFR-02** | **Location & Geofencing Accuracy** | Validate student presence within a geofence with a hardware-compensated coordinate tolerance threshold of **15 - 20 meters**. | Calculate straight-line distances from room coordinates using the double-precision **Haversine formula** on the server. Read the configured `AllowedRadius` from the `rooms` catalog table to handle GPS drift dynamically based on physical classroom sizes. |
-| **NFR-03** | **Usability** | Allow students to complete attendance check-in quickly (total flow **< 5 seconds** from app launch to check-in completion). Display clear visual success, warning, and error messages. Minimize user error through a simplified mobile app interface. | Design a mobile client with a single-tap "Scan QR" button on the landing page. Use native device biometrics (Face ID/Fingerprint) for rapid authentication, with a temporary selfie fallback. Purge captured selfie proof from system storage immediately after verification. Render highly readable, color-coded status banners (Green for Success, Red for Location/Device mismatches). |
-| **NFR-04** | **Security & Anti-Fraud** | Secure all client-server communications. Enforce strict identity verification through biometrics, bind student accounts to a single trusted physical device, prevent duplicate attendance submissions, restrict access to authorized users, and log all activities for auditing. | Force **HTTPS** for all communication using Nginx SSL/TLS termination. Bind the student's unique **Device UUID** on first login. Enforce native biometrics (Face ID/Fingerprint) or temporary selfie fallback. Apply composite database unique index `attendance_records(session_id, student_id)` to block duplicate entries. Write all administrative actions and manual lecturer adjustments (with reasons) to the `system_logs` audit table. |
-| **NFR-05** | **Reliability & Fault Tolerance** | Prevent attendance data loss, maintain consistency under peak load, recover gracefully from network failures, and ensure records are stored successfully. | Wrap check-in procedures in database transactions. Implement **Offline mode** in the mobile client by caching check-in coordinates locally (encrypted SQLite/AsyncStorage) during network outages, and automatically synchronizing them with the server when connection is restored. Use database-level constraints to prevent duplicate records. |
-| **NFR-06** | **Availability** | Ensure the system is accessible during all scheduled teaching sessions (99.5% uptime). Minimize service interruptions and tolerate minor component failures. | Deploy stateless API nodes in a multi-instance Docker cluster behind Nginx load balancers. Implement circuit breakers and graceful fallbacks (e.g., if the Redis cache is down, fall back to validating tokens in SQL). |
-| **NFR-07** | **Maintainability** | Clean modular architecture with clear separation of responsibilities among authentication, attendance, anti-fraud, reporting, and admin modules. Technical documentation coverage: **100% of major modules**. New developers should understand the architecture within **2 working days**. New features must be implementable with minimal impact. | Structure the system using **Clean Architecture** (Domain, Application, Infrastructure, Presentation). Keep business rules decoupled from external technologies via interface abstractions (DIP). Automate API specification generation (Swagger/OpenAPI). Create comprehensive inline comments and a complete suite of unit tests. |
-| **NFR-08** | **Scalability** | Support future growth in the student population (scaling up to **20,000 students**), multiple simultaneous class sessions (up to **500 concurrent sections**), and campus expansion. | Design stateless API controllers to facilitate easy horizontal scaling. Incorporate campus and room identifiers in database tables to support future partitioning or sharding. Keep components decoupled to enable future microservices migration if required. |
+*   **NF-01 Performance & Concurrency:**
+    *   Support **500 - 1,000 concurrent check-ins** within a 5-minute peak window.
+    *   API response time **< 2 seconds** for 95% of requests.
+    *   Dynamic QR codes refresh every **10 seconds**, PIN codes every **30 seconds**.
+    *   WebSocket dashboard updates received by lecturers in **< 1 second**.
 
-## **I.5 Business Process Model**
+*   **NF-02 Location & Geofencing Accuracy:**
+    *   Verify location using double-precision **Haversine formula** on the server.
+    *   Ensure coordinate deviation tolerance threshold is configured between **15 - 20 meters**.
 
-The following business processes define the end-to-end operational workflows of the AFAS system, aligning requirements to use cases and design components:
+*   **NF-03 Usability:**
+    *   Ensure student check-in flow is completed in **< 5 seconds** from app launch.
+    *   Display direct success/warning banners and support simple single-tap scanning.
 
-### **BP-01: Attendance Session Preparation**
-*   **Goal:** Lecturer prepares a classroom for check-in.
-*   **Actors:** Lecturer, Projector Screen.
-*   **Workflow:**
-    1.  Lecturer logs in and selects an assigned class section.
-    2.  Lecturer clicks "Start Attendance" on the Web Portal.
-    3.  System checks scheduled hour window.
-    4.  System initializes a new attendance session configuration as active.
-    5.  System starts periodic automatic refreshes of validation tokens (e.g., every 10 seconds for QR tokens and 30 seconds for PIN codes).
-    6.  Projector screen establishes a real-time connection to receive and display the refreshing QR/PIN.
+*   **NF-04 Security & Anti-Fraud:**
+    *   Enforce **HTTPS** SSL/TLS encryption for all client-server traffic.
+    *   Restrict each account to **1 bound mobile device** (Device UUID validation).
+    *   Require native biometrics (Face ID) or temporary selfies (purged instantly after validation).
+    *   Log all manual attendance overrides and administrative changes with mandatory reasons.
 
-### **BP-02: Student Check-in and Anti-Fraud Verification**
-*   **Goal:** Student registers presence and system verifies evidence.
-*   **Actors:** Student, Mobile App, Anti-Fraud Server Engine.
-*   **Workflow:**
-    1.  Student opens app and passes local biometric check.
-    2.  Student scans dynamic QR (or inputs PIN code).
-    3.  Mobile app automatically extracts Device identifier, GPS coordinates, Wi-Fi SSID, and Public IP.
-    4.  App submits attendance payload to Server.
-    5.  Server performs **Verification Layer 1** (validates that the submitted token matches the currently active token within a specified age limit).
-    6.  Server performs **Verification Layer 2** (calculates distance from student's location to room coordinates, ensuring it is within the allowed radius).
-    7.  Server performs **Verification Layer 3** (verifies that the student's device identifier matches the registered identifier).
-    8.  If any check fails, system records status as location-deviation flagged (for distance) or rejects submission.
-    9.  If all checks pass, system records status as Present (or Late), deletes any temporary fallback selfie, and broadcasts an immediate update to the lecturer's monitor.
+*   **NF-05 Reliability & Fault Tolerance:**
+    *   Use database transactions to protect record consistency.
+    *   Cache GPS check-in data locally on mobile devices during network drops, with automatic re-sync.
+    *   Enforce database-level unique constraints to block duplicate submissions.
 
-### **BP-03: Roster Audit and Attendance Adjustment**
-*   **Goal:** Lecturer reviews attendance records, modifies statuses manually, and finalizes.
-*   **Actors:** Lecturer, Web Portal.
-*   **Workflow:**
-    1.  Lecturer monitors live checking grid updates in real-time.
-    2.  Lecturer audits absent/doubtful students physically.
-    3.  Lecturer selects a student and adjusts their status (e.g., Present, Late, Absent, or Location Deviation Flagged) and enters a mandatory reason.
-    4.  System saves adjustments, updates verification mode to indicate manual override, and records the action in the administrative audit log.
-    5.  Lecturer finalizes roster and exports the attendance report spreadsheet.
+*   **NF-06 Availability:**
+    *   Maintain **99.5% uptime** during teaching hours (7 AM - 9 PM).
+    *   Deploy redundant stateless API containers behind Nginx load balancers to avoid single points of failure.
 
-### **BP-04: System Configuration and Catalog Maintenance**
-*   **Goal:** Admin seeds database catalog records and sets up room coordinates.
-*   **Actors:** System Admin.
-*   **Workflow:**
-    1.  Admin logs in and accesses Admin Web Portal dashboard.
-    2.  Admin manages catalog records (accounts, students, lecturers, subjects, class sections) via forms or batch file uploads.
-    3.  Admin configures GPS Latitude/Longitude and allowed geofence boundary radius for classroom halls.
-    4.  System updates the central database catalog and writes an entry to the administrative audit log.
+*   **NF-07 Maintainability:**
+    *   Adhere to 4-layer **Clean Architecture** conventions.
+    *   Target a maximum onboarding time of **2 working days** for new developers using Swagger/OpenAPI.
 
----
+*   **NF-08 Scalability:**
+    *   Support up to **20,000 active students** and **500 concurrent sessions**.
+    *   Design stateless services to support easy horizontal auto-scaling.
 
-## **I.6 Functional requirements**
 
-### **I.6.1 Use case diagrams**
+
+## **I.5 Functional requirements**
+
+### **I.5.1 Use case diagrams**
 
 The functional requirements are mapped to three main use case diagrams representing the Student, Lecturer, and Admin subsystems.
 
@@ -390,7 +265,7 @@ UC07 ..> UC06 : <<include>>
 
 ---
 
-### **I.6.2 Use case descriptions**
+### **I.5.2 Use case descriptions**
 
 Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 
@@ -409,7 +284,6 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E4.1 Invalid credentials:** System returns an error message: "Invalid username or password".<br>**E4.2 Non-school email:** If Google OAuth returns a non-school email (not ending in `@fpt.edu.vn` or `@fe.edu.vn`), system denies login. |
 | **Priority:** | High |
 | **Business Rules:** | **BR-01:** Passwords must be securely hashed and encrypted on the server.<br>**BR-02:** Email domain must end with `@fpt.edu.vn` or `@fe.edu.vn` for Google authentication. |
-| **Trace:** | Source: `SRC-FR-01`; Feature: `F01`; Business Process: `BP-01`, `BP-02`, `BP-03`, `BP-04`; Anti-Fraud Rule: None; Analysis: `AN-SD-01`, `AN-CD-01`, `LoginForm`, `GoogleAuthGateway`; Design: `AccountController`, `AuthenticationService`; Verification: `TC-AUTH-001`. |
 
 ---
 
@@ -428,7 +302,6 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E4.1 Invalid OTP:** If the student enters an incorrect OTP 3 times during reset, the reset process is locked for 24 hours. |
 | **Priority:** | High |
 | **Business Rules:** | **BR-01:** One student account can only be linked to one device identifier at a time. |
-| **Trace:** | Source: `SRC-FR-03`, `SRC-AF-03`; Feature: `F02`; Business Process: `BP-02`; Anti-Fraud Rule: `AR-03`; Analysis: `AN-SD-02`, `AN-CD-02`, `MobileDeviceHardware`, `DeviceBindingState`; Design: `DeviceBindingController`, `DeviceBindingService`; Verification: `TC-IT-006`. |
 
 ---
 
@@ -447,7 +320,6 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E8.1 Token Expired:** If the token has expired, the server rejects check-in and returns "QR expired". No attendance record is created.<br>**E9.1 Out of Geofence:** If calculated distance exceeds the allowed radius, server saves the record as location-deviation flagged and alerts the user.<br>**E10.1 Device Mismatch:** If the device identifier does not match the registered identifier, server rejects check-in and logs a security warning. No attendance record is created.<br>**E11.1 Non-campus Wi-Fi:** If the public IP does not match the campus gateway range, server flags a network warning in the record but does not reject the check-in.<br>**E12.1 GPS Unavailable:** If the app cannot obtain GPS coordinates (permission denied or hardware unavailable), the submission is blocked and the student is prompted to enable location services.<br>**E13.1 Duplicate Check-in:** If an attendance record already exists for this student and session, the server returns the existing result without creating a duplicate record. |
 | **Priority:** | High |
 | **Business Rules:** | **BR-01:** Geofence formula must use a spherical geometric method (e.g. Haversine) on the server.<br>**BR-02:** Face selfies captured during fallback check-in must be deleted immediately after verification.<br>**BR-03:** A student is marked `Present` if check-in occurs within 15 minutes of the session start time; `Late` if after that threshold but before session end.<br>**BR-04:** Only one attendance record per student per session is allowed. Duplicate submissions return the existing result. |
-| **Trace:** | Source: `SRC-FR-02`, `SRC-FR-03`, `SRC-AF-01`, `SRC-AF-02`, `SRC-AF-03`; Feature: `F03`; Business Process: `BP-02`; Anti-Fraud Rule: `AR-01`, `AR-02`, `AR-03`, `AR-04`, `AR-05`, `AR-06`; Analysis: `AN-AD-03`, `AN-SD-03`, `AN-CD-03`, `StudentAppForm`; Design: `AttendanceController`, `AttendanceService`, `AntiFraud_Validator_Engine`; Verification: `TC-IT-001`, `TC-IT-002`, `TC-IT-003`, `TC-IT-004`, `TC-DUP-001`, `TC-BIO-001`, `TC-WIFI-001`. |
 
 ---
 
@@ -466,7 +338,6 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E3.1 Server offline:** App displays cached historical data from local storage and shows a connection warning. |
 | **Priority:** | Medium |
 | **Business Rules:** | None. |
-| **Trace:** | Source: `SRC-FR-04`; Feature: `F05`; Business Process: `BP-03`; Anti-Fraud Rule: None; Analysis: `AN-SD-04`, `AN-CD-04`, `StudentAppForm`; Design: `AttendanceController.GetStudentHistory`, `AttendanceService.GetHistory`; Verification: `TC-HIS-001`. |
 
 ---
 
@@ -485,7 +356,6 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E7.1 PIN Expired:** If the student enters a PIN that has expired, server rejects it. No attendance record is created.<br>**E7.2 GPS out of range:** Geofencing checks still apply; if student enters PIN from outside the classroom radius, check-in is saved as location-deviation flagged.<br>**E7.3 GPS Unavailable:** If the app cannot obtain GPS coordinates, the submission is blocked and the student is prompted to enable location services.<br>**E7.4 Duplicate Check-in:** If an attendance record already exists for this student and session, the server returns the existing result without creating a duplicate. |
 | **Priority:** | High |
 | **Business Rules:** | **BR-01:** The PIN code must automatically expire and refresh every 30 seconds. |
-| **Trace:** | Source: `SRC-FR-11`, `SRC-AF-02`, `SRC-AF-03`; Feature: `F04`; Business Process: `BP-02`; Anti-Fraud Rule: `AR-02`, `AR-03`, `AR-04`, `AR-05`; Analysis: `AN-SD-05`, `AN-CD-05`, `StudentAppForm`; Design: `AttendanceController.SubmitPINAttendance`, `AttendanceService.ProcessPinCheckin`; Verification: `TC-IT-005`. |
 
 ---
 
@@ -504,7 +374,6 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E4.1 Outside scheduled hours:** If lecturer tries to start session outside the class time slot, system denies activation. |
 | **Priority:** | High |
 | **Business Rules:** | **BR-01:** Only one attendance session configuration per class session can be active at any given moment. |
-| **Trace:** | Source: `SRC-FR-05`, `SRC-FR-06`, `SRC-AF-01`; Feature: `F07`; Business Process: `BP-01`; Anti-Fraud Rule: `AR-01`; Analysis: `AN-AD-06`, `AN-SD-06`, `AN-CD-06`, `AttendanceVersionState`; Design: `SessionController`, `SessionService`, `QRRefreshTimer`, `PINRefreshTimer`, `RedisCacheManager`; Verification: `TC-IT-002`. |
 
 ---
 
@@ -543,7 +412,6 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E5.1 Missing reason:** If the lecturer changes status without inputting a mandatory reason, the system prompts them to write a reason before saving. |
 | **Priority:** | High |
 | **Business Rules:** | **BR-01:** All manual overrides must record the modifier's ID and a mandatory explanation. |
-| **Trace:** | Source: `SRC-FR-08`, `SRC-FR-11`; Feature: `F09`; Business Process: `BP-03`; Anti-Fraud Rule: `AR-07`; Analysis: `AN-SD-08`, `AN-CD-08`, `LecturerWebPortal`; Design: `AttendanceController.AdjustAttendanceStatus`, `SystemLog`; Verification: `TC-MAN-001`. |
 
 ---
 
@@ -562,8 +430,6 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E3.1 No records exist:** If no attendance sessions have been run for the class, system displays an empty-state message and disables the export button. |
 | **Priority:** | Medium |
 | **Business Rules:** | None. |
-| **Trace:** | Source: `SRC-FR-08`; Feature: `F10`; Business Process: `BP-03`; Anti-Fraud Rule: None; Analysis: `AN-SD-09`, `AN-CD-09`, `LecturerWebPortal`; Design: `ReportController`, `ExcelReportGenerator`; Verification: `TC-REP-001`. |
-| **Trace:** | Source: `SRC-FR-04`; Feature: `F05`; Business Process: `BP-03`; Anti-Fraud Rule: None; Analysis: `AN-SD-04`, `AN-CD-04`, `StudentAppForm`; Design: `AttendanceController.GetStudentHistory`, `AttendanceService.GetHistory`; Verification: `TC-HIS-001`. |
 
 ---
 
@@ -582,10 +448,9 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E5.1 Duplicate ID:** If Admin attempts to add a student ID that already exists, system displays a validation error: "ID already exists". |
 | **Priority:** | High |
 | **Business Rules:** | None. |
-| **Trace:** | Source: `SRC-FR-09`; Feature: `F11`; Business Process: `BP-04`; Anti-Fraud Rule: None; Analysis: `AN-SD-10`, `AN-CD-10`, `AdminWebPortal`; Design: `CatalogController`, `CatalogService`; Verification: `TC-CAT-001`. |
-| **Trace:** | Source: `SRC-FR-05`, `SRC-FR-07`; Feature: `F08`; Business Process: `BP-01`, `BP-03`; Anti-Fraud Rule: None; Analysis: `AN-SD-07`, `AN-CD-07`, `LecturerWebPortal`; Design: `AttendanceHub`, `SignalRRealtimeNotifier`; Verification: `TC-IT-001`. |
 
 ---
+
 
 #### **Table I-11: Use case description for UC11 - Configure Room Coordinates**
 | **Field** | **Description** |
@@ -602,15 +467,14 @@ Below are the detailed descriptions for all **11 Use Cases** of the AFAS system:
 | **Exceptions:** | **E8.1 Out-of-bounds Coordinates:** If Admin inputs coordinates that are not within the university's bounding box, system prompts a warning to verify the number. |
 | **Priority:** | High |
 | **Business Rules:** | **BR-01:** The default `AllowedRadius` is 20 meters if no value is configured, compensating for normal indoor GPS hardware drift. |
-| **Trace:** | Source: `SRC-FR-10`, `SRC-AF-02`; Feature: `F12`; Business Process: `BP-04`; Anti-Fraud Rule: `AR-02`; Analysis: `AN-SD-11`, `AN-CD-11`, `AdminWebPortal`; Design: `RoomController`, `RoomService`; Verification: `TC-ROOM-001`. |
 
 ---
 
-### **I.6.3 Activity diagrams**
+### **I.5.3 Activity diagrams**
 
 Below are the activity diagrams modeling the key event flows of the check-in and session activation use cases.
 
-#### **Figure I-2: Activity diagram for UC03 - Scan Dynamic QR Check-in**
+#### **Figure I-12: Activity diagram for UC03 - Scan Dynamic QR Check-in**
 
 ```plantuml
 @startuml UC03_Activity_Swimlane
@@ -691,7 +555,7 @@ stop
 
 ---
 
-#### **Figure I-3: Activity diagram for UC06 - Activate Dynamic QR Session**
+#### **Figure I-13: Activity diagram for UC06 - Activate Dynamic QR Session**
 
 ```plantuml
 @startuml UC06_Activity_Swimlane
@@ -758,25 +622,9 @@ stop
 
 ---
 
-## **I.7 Anti-Fraud Rule Catalog**
+## **I.6 Data Requirements**
 
-This catalog centralizes all business anti-fraud checking rules implemented by the AFAS system to serve as a canonical design baseline:
-
-| **Rule ID** | **Rule Name** | **Canonical Validation Logic** | **Affected UC(s)** | **Design/Code Artifact(s)** | **Verification Test Case** |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **AR-01** | Dynamic QR Freshness | QR token scanned by client must match active Redis token generated for current session ID, with timestamp age <= 15s. | `UC03`, `UC06` | `SessionService`, `QRRefreshTimer`, `RedisCacheManager`, `AttendanceService.ProcessCheckin` | `TC-IT-002` |
-| **AR-02** | Geofence Boundary Check | Submitted GPS coordinates are compared to classroom configured coords using Haversine formula; distance must be <= `rooms.allowed_radius` (default 20m), or else status is logged as `Fraud_Declined`. | `UC03`, `UC05`, `UC11` | `RoomService`, `AttendanceService.CalculateDistance`, `attendance_records.distance` | `TC-IT-003`, `TC-NFR-002` |
-| **AR-03** | Device UUID Binding | A student account can check in only on their registered device. If the incoming request's `DeviceUUID` differs from `students.device_uuid`, submission is rejected. | `UC02`, `UC03`, `UC05` | `DeviceBindingController`, `AttendanceService.ProcessCheckin`, `students.device_uuid` | `TC-IT-004`, `TC-IT-006` |
-| **AR-04** | Biometric Authentication | Client must verify local Face ID / fingerprint before submitting QR/PIN. If unavailable, fallback selfie is captured, uploaded, validated by server, and deleted immediately to ensure privacy. | `UC03`, `UC05` | `MobileDeviceHardware.TriggerNativeFaceID`, `AttendanceService.DeleteTempSelfie` | `TC-BIO-001` |
-| **AR-05** | Duplicate Scan Block | A student can have at most one attendance record per scheduled session. Subsequent scans within the same session return the original result. | `UC03`, `UC05` | Database unique constraint on `(student_id, session_id)`, `AttendanceService` | `TC-DUP-001` |
-| **AR-06** | Wi-Fi Signal Check | Campus public gateway IP is logged. If mismatching the university's known range, a warning flag is written to the record, but does not block check-in on its own. | `UC03` | `SchoolWifiGateway`, `AttendanceService.CheckWifiGateway` | `TC-WIFI-001` |
-| **AR-07** | Manual Override Accountability | Any manual adjustment by a lecturer requires choosing a status (Present, Late, Absent, Fraud_Declined) and entering a mandatory reason, which is logged to `system_logs`. | `UC08` | `AttendanceController.AdjustAttendanceStatus`, `SystemLog` | `TC-MAN-001` |
-
----
-
-## **I.8 Data Requirements**
-
-### **Figure I-4: Entity class diagram modeling data requirements**
+### **Figure I-14: Entity class diagram modeling data requirements**
 
 ```plantuml
 @startuml Entity_Class_Diagram
@@ -897,9 +745,9 @@ Student "1" -- "0..*" AttendanceRecord
 
 ---
 
-The entity class diagram (Figure I-4) specifies the domain entities and their relationships, representing the system's data requirements. Table I-12 below serves as the data dictionary, describing each entity's attributes, data types, constraints, and purpose.
+The entity class diagram (Figure I-14) specifies the domain entities and their relationships, representing the system's data requirements. Table I-7 below serves as the data dictionary, describing each entity's attributes, data types, constraints, and purpose.
 
-### **Table I-12: Data Description (Data dictionary)**
+### **Table I-7: Data Description (Data dictionary)**
 
 | **Name (Attribute)** | **Logical Data Type** | **Validation Rules / Business Description** |
 | :--- | :--- | :--- |
