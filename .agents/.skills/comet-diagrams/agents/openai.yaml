@@ -1,0 +1,7 @@
+interface:
+  display_name: "COMET Diagrams"
+  short_description: "Create traceable COMET UML and PlantUML models"
+  default_prompt: "Use $comet-diagrams to produce traceable COMET requirements, analysis, and design diagrams."
+
+policy:
+  allow_implicit_invocation: true
