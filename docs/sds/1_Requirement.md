@@ -77,7 +77,7 @@ The system comprises three main portals: Student Mobile App, Lecturer Web Portal
 *   **F06: Class Section Management:** View assigned classes, schedule, and student rosters.
 *   **F07: Manage Attendance Session:** Start the session, display dynamic QR (10s refresh) and PIN (30s refresh), stop receiving check-ins, and finalize the result.
 *   **F08: Real-time Attendance Monitor:** Track live check-in progress with color-coded student names.
-*   **F09: Manual Adjustments:** Manually change student attendance status (Present, Late, Absent, Rejected).
+*   **F09: Manual Adjustments:** Manually change official student attendance status (`Present`, `Late`, or `Absent`) and accept a rejected check-in attempt when there is a legitimate reason.
 *   **F10: Export Attendance Report:** Export attendance history sheets to spreadsheet formats such as Excel.
 
 ### **Features for Administrators (Web Portal):**
@@ -121,15 +121,12 @@ Anti_Fraud_Attendance_System "1" --> "1..*" MobileDeviceHardware : Communicates 
 
 *   **NF-01 Performance & Concurrency:**
     *   The attendance confirmation result must be shown within **< 2.0 seconds** for 95% of check-in attempts under a peak load of **500 - 1,000 concurrent students** within a 5-minute window.
-    *   Dynamic QR attendance codes must refresh every **10.0 seconds** and PIN codes every **30.0 seconds**.
     *   Live attendance monitor updates must appear on the lecturer's screen within **< 1.0 second** after the check-in is accepted.
 
 *   **NF-02 Location Accuracy:**
     *   The system must support classroom attendance validation with an acceptable location error tolerance of **15 - 20 meters**.
-    *   The allowed attendance radius must be configurable for each classroom.
 
 *   **NF-03 Usability:**
-    *   Student check-in flow from app launch to confirmation screen must be completed in **< 5.0 seconds** for 95% of users.
     *   System interfaces must be clear, readable, and usable on common mobile and desktop screens.
 
 *   **NF-04 Security & Privacy:**
@@ -141,12 +138,10 @@ Anti_Fraud_Attendance_System "1" --> "1..*" MobileDeviceHardware : Communicates 
     *   If the attendance session cannot be continued due to network interruption, lecturers must be able to reopen a short check-in window or perform manual adjustment with reason.
 
 *   **NF-06 Maintainability:**
-    *   Attendance rules, classroom radius configuration, and manual adjustment rules must be documented clearly enough for future maintenance.
-    *   The system must keep audit information for attendance changes so that later reviews can trace who changed what and why.
+    *   QR validity duration, Late threshold, and classroom radius must be configurable without changing source code.
 
 *   **NF-07 Scalability:**
-    *   The system must support the project scale of approximately **8,000 students**.
-    *   The system must support peak classroom check-in periods without degrading the performance metrics stated in NF-01.
+    *   The system must support approximately **8,000 students** while satisfying the peak classroom check-in metrics stated in NF-01.
 
 
 
@@ -240,9 +235,9 @@ Below are the detailed descriptions for all **10 Use Cases** of the AFAS system:
 | **Postconditions:** | **POST-1 Success:** The student's official attendance result for the study session is `Present` or `Late`, and the lecturer screen is updated in real time.<br>**POST-2 Failure:** The check-in attempt is rejected and retained for lecturer review, but it is not counted as the official attendance result. |
 | **Normal Flow:** | 1. Student taps "Scan QR Check-in" on the mobile app.<br>2. App prompts for student identity verification.<br>3. Student successfully completes identity verification.<br>4. App displays the camera view.<br>5. Student scans the active QR code on the screen.<br>6. App collects the student's current location and device identifier.<br>7. App submits the check-in evidence to the system.<br>8. System verifies that the scanned attendance code is active and matches the current attendance session. (See E8.1)<br>9. System compares the student's submitted location with the classroom's allowed range. (See E9.2)<br>10. System records the check-in attempt for audit purposes.<br>11. System registers the official attendance result as `Present` or `Late` based on the check-in time.<br>12. System updates the Lecturer portal immediately. |
 | **Alternative Flows:** | **A3.1 Identity verification unavailable:** If biometric verification is not supported by the device, the student captures a face selfie as fallback proof. |
-| **Exceptions:** | **E8.1 Attendance code expired:** If the attendance code has expired, the system rejects the check-in and returns "QR expired". No valid attendance result is created.<br>**E9.1 Location unavailable:** If the app cannot obtain the student's current location, the submission is blocked and the student is prompted to enable location services.<br>**E9.2 Outside allowed classroom range:** If the submitted location is outside the classroom's allowed range, the system records the attempt as `Rejected`, notifies the student that the check-in is not accepted, and keeps the attempt available for lecturer review.<br>**E11.1 Official result already exists:** If the student already has an official attendance result for this study session, the system returns the existing result without creating a duplicate official result. |
+| **Exceptions:** | **E3.2 Identity verification failed:** If biometric verification fails and no valid fallback proof is provided, the system blocks the check-in submission.<br>**E8.1 Attendance code expired:** If the attendance code has expired, the system rejects the check-in and returns "QR expired". No valid attendance result is created.<br>**E9.1 Location unavailable:** If the app cannot obtain the student's current location, the submission is blocked and the student is prompted to enable location services.<br>**E9.2 Outside allowed classroom range:** If the submitted location is outside the classroom's allowed range, the system records the attempt as `Rejected`, notifies the student that the check-in is not accepted, and keeps the attempt available for lecturer review.<br>**E11.1 Official result already exists:** If the student already has an official attendance result for this study session, the system returns the existing result without creating a duplicate official result. |
 | **Priority:** | High |
-| **Business Rules:** | BR-02, BR-03, BR-04, BR-05, BR-06, BR-12 |
+| **Business Rules:** | BR-02, BR-03, BR-04, BR-05, BR-06, BR-12, BR-13 |
 
 ---
 
@@ -276,9 +271,9 @@ Below are the detailed descriptions for all **10 Use Cases** of the AFAS system:
 | **Postconditions:** | **POST-1 Success:** The student's official attendance result is `Present` or `Late`, and the check-in evidence is recorded.<br>**POST-2 Failure:** The PIN check-in attempt is rejected and retained for lecturer review when relevant. |
 | **Normal Flow:** | 1. Student selects "PIN Check-in" on the App.<br>2. App prompts for student identity verification.<br>3. Student successfully completes identity verification.<br>4. App displays an input screen with 6 digit slots.<br>5. Student types the active 6-digit PIN displayed on the projector screen.<br>6. App collects the student's current location and device identifier.<br>7. System verifies that the PIN code is active.<br>8. System compares the student's submitted location with the classroom's allowed range. (See E7.4)<br>9. System records the check-in attempt for audit purposes.<br>10. System records the official attendance result as `Present` or `Late` based on the check-in time. |
 | **Alternative Flows:** | **A3.1 Identity verification unavailable:** If biometric verification is not supported by the device, the student captures a face selfie as fallback proof. |
-| **Exceptions:** | **E7.1 PIN Expired:** If the student enters a PIN that has expired, the system rejects it. No valid attendance result is created.<br>**E7.2 Location unavailable:** If the app cannot obtain the student's current location, the submission is blocked and the student is prompted to enable location services.<br>**E7.3 Official result already exists:** If the student already has an official attendance result for this study session, the system returns the existing result without creating a duplicate official result.<br>**E7.4 Outside allowed classroom range:** If the submitted location is outside the classroom's allowed range, the system records the attempt as `Rejected`, notifies the student that the check-in is not accepted, and keeps the attempt available for lecturer review. |
+| **Exceptions:** | **E3.2 Identity verification failed:** If biometric verification fails and no valid fallback proof is provided, the system blocks the check-in submission.<br>**E7.1 PIN Expired:** If the student enters a PIN that has expired, the system rejects it. No valid attendance result is created.<br>**E7.2 Location unavailable:** If the app cannot obtain the student's current location, the submission is blocked and the student is prompted to enable location services.<br>**E7.3 Official result already exists:** If the student already has an official attendance result for this study session, the system returns the existing result without creating a duplicate official result.<br>**E7.4 Outside allowed classroom range:** If the submitted location is outside the classroom's allowed range, the system records the attempt as `Rejected`, notifies the student that the check-in is not accepted, and keeps the attempt available for lecturer review. |
 | **Priority:** | High |
-| **Business Rules:** | BR-03, BR-04, BR-05, BR-06, BR-07, BR-12 |
+| **Business Rules:** | BR-03, BR-04, BR-05, BR-06, BR-07, BR-12, BR-13 |
 
 ---
 
@@ -292,7 +287,7 @@ Below are the detailed descriptions for all **10 Use Cases** of the AFAS system:
 | **Trigger:** | The lecturer selects a scheduled session and clicks "Start Attendance". |
 | **Preconditions:** | Lecturer is logged in (UC01) and currently within the scheduled session time window. |
 | **Postconditions:** | **POST-1 Success:** Attendance result is finalized and ready for report export.<br>**POST-2 Failure:** Requested session action is not completed, and an error is displayed. |
-| **Normal Flow:** | 1. Lecturer navigates to "My Scheduled Classes" on Web Portal.<br>2. System displays assigned classes and scheduled sessions.<br>3. Lecturer selects the current session and clicks "Start Attendance".<br>4. System validates that the current time is within the session's scheduled window.<br>5. System marks the attendance session as active.<br>6. System begins displaying a QR attendance code refreshed every 10 seconds and a PIN code refreshed every 30 seconds.<br>7. Web Portal displays the projector view with the dynamic QR, PIN, and attendance progress.<br>8. Students submit check-ins through UC02 or UC04 while the session is active.<br>9. Lecturer clicks "Stop Receiving Check-ins".<br>10. System stops accepting new QR/PIN check-ins for the session.<br>11. Lecturer reviews attendance results and rejected attempts.<br>12. Lecturer clicks "Finalize Attendance".<br>13. System marks the attendance result as finalized. |
+| **Normal Flow:** | 1. Lecturer navigates to "My Scheduled Classes" on Web Portal.<br>2. System displays assigned classes and scheduled sessions.<br>3. Lecturer selects the current session and clicks "Start Attendance".<br>4. System validates that the current time is within the session's scheduled window.<br>5. System marks the attendance session as active.<br>6. System begins displaying a QR attendance code refreshed every 10 seconds and a PIN code refreshed every 30 seconds.<br>7. Web Portal displays the projector view with the dynamic QR, PIN, and attendance progress.<br>8. Students submit check-ins through UC02 or UC04 while the session is active.<br>9. Lecturer clicks "Stop Receiving Check-ins".<br>10. System stops accepting new QR/PIN check-ins for the session.<br>11. Lecturer reviews attendance results and rejected attempts.<br>12. Lecturer adjusts a student's status using UC07 if needed.<br>13. System identifies enrolled students without an official `Present` or `Late` result and assigns them `Absent`.<br>14. Lecturer reviews the completed attendance list.<br>15. Lecturer clicks "Finalize Attendance".<br>16. System marks the attendance result as finalized. |
 | **Alternative Flows:** | **A11.1 Adjustment before finalization:** Lecturer adjusts a student's status using UC07 before finalizing the result.<br>**A10.1 Short reopen:** If check-in could not continue due to classroom connection interruption, lecturer reopens a short check-in window before finalization. |
 | **Exceptions:** | **E4.1 Outside scheduled hours:** If lecturer tries to start session outside the class time slot, system denies activation.<br>**E5.1 Session already active:** If the selected study session already has an active attendance session, system denies creating another active session. |
 | **Priority:** | High |
@@ -324,11 +319,11 @@ Below are the detailed descriptions for all **10 Use Cases** of the AFAS system:
 | **ID and Name:** | **UC07: Adjust Attendance Manually** |
 | **Created By:** | SWD392 Team |
 | **Primary Actor:** | Lecturer |
-| **Description:** | Allows the lecturer to manually change a student's attendance status, including accepting a rejected attempt when there is a legitimate reason. |
+| **Description:** | Allows the lecturer to manually change a student's official attendance status, including accepting a rejected check-in attempt as `Present` or `Late` when there is a legitimate reason. |
 | **Trigger:** | Lecturer selects a student name from the list and clicks "Adjust Status". |
 | **Preconditions:** | Lecturer is authenticated (UC01) and an attendance record or session roster exists for the target student and session. |
 | **Postconditions:** | Student status is updated in the system and logged for audit. |
-| **Normal Flow:** | 1. Lecturer views the student roster for the active or past session.<br>2. Lecturer clicks on a specific student tile or rejected attempt and selects "Adjust Status".<br>3. System displays the current status, evidence summary, and status options: `Present`, `Late`, `Absent`, `Rejected`.<br>4. Lecturer selects the new status and enters a reason (e.g., "GPS device hardware error").<br>5. Lecturer clicks "Save".<br>6. System records the previous status, new status, reason, lecturer, and adjustment time.<br>7. System updates the student's official attendance result. |
+| **Normal Flow:** | 1. Lecturer views the student roster for the active or past session.<br>2. Lecturer clicks on a specific student tile or rejected attempt and selects "Adjust Status".<br>3. System displays the current status, evidence summary, and status options: `Present`, `Late`, `Absent`.<br>4. Lecturer selects the new status and enters a reason (e.g., "GPS device hardware error").<br>5. Lecturer clicks "Save".<br>6. System records the previous status, new status, reason, lecturer, and adjustment time.<br>7. System updates the student's official attendance result. |
 | **Alternative Flows:** | None. |
 | **Exceptions:** | **E5.1 Missing reason:** If the lecturer changes status without inputting a mandatory reason, the system prompts them to write a reason before saving. |
 | **Priority:** | High |
@@ -444,8 +439,12 @@ if (Manual adjustment needed?) then ([Yes])
 else ([No])
 endif
 :13. Stop receiving check-ins;
-:14. Finalize attendance result;
-:15. Export attendance report;
+|System|
+:14. Assign Absent to enrolled students\nwithout official Present or Late;
+|Lecturer|
+:15. Review completed attendance list;
+:16. Finalize attendance result;
+:17. Export attendance report;
 stop
 @enduml
 ```
@@ -481,7 +480,13 @@ if (Identity verified successfully?) then ([No / Fallback])
   |Student|
   :Capture face selfie;
   |System|
-  :4. Open camera for scanning;
+  if (Is fallback proof valid?) then ([No])
+    :E3.2 Block check-in submission;
+    |Student|
+    stop
+  else ([Yes])
+    :4. Open camera for scanning;
+  endif
 else ([Yes])
   :4. Open camera for scanning;
 endif
@@ -514,7 +519,7 @@ else ([Yes])
 endif
 
 |System|
-:10. Record attendance status (Present / Late)\nand store attendance evidence;
+:10. Record accepted attempt\nand official status (Present / Late);
 :11. Update Lecturer Monitor;
 
 |System|
@@ -592,12 +597,16 @@ if (Need manual adjustment?) then ([Yes])
 else ([No])
 endif
 
+|System|
+:13. Assign Absent to enrolled students\nwithout official Present or Late;
+
 |Lecturer|
-:13. Click "Finalize Attendance";
+:14. Review completed attendance list;
+:15. Click "Finalize Attendance";
 
 |System|
-:14. Mark attendance result as finalized;
-:15. Close projector view and return to session dashboard;
+:16. Mark attendance result as finalized;
+:17. Close projector view and return to session dashboard;
 
 |Lecturer|
 stop
@@ -629,7 +638,7 @@ start
 :4. Display current attendance status,\nevidence summary, and adjustment form;
 
 |Lecturer|
-:5. Select new status\n(Present / Late / Absent /\nRejected);
+:5. Select new official status\n(Present / Late / Absent);
 :6. Enter adjustment reason;
 :7. Click "Save";
 
@@ -661,7 +670,7 @@ The following business rules use stable IDs so that later Analysis, Design, and 
 | **ID** | **Business Rule** |
 | :--- | :--- |
 | **BR-01** | All users must authenticate before accessing role-specific functions, and users can access only data/actions allowed by their role. |
-| **BR-02** | QR attendance code changes every 10 seconds, and the system accepts it for at most 15 seconds from the time it is displayed. |
+| **BR-02** | QR attendance code changes every 10 seconds, and the system accepts it for at most 15 seconds from the time it is displayed. The backup PIN changes every 30 seconds. |
 | **BR-03** | Each classroom has a configurable allowed attendance radius, defaulting to 20 meters; attempts outside the allowed range are rejected and retained for lecturer review. |
 | **BR-04** | A student must complete biometric verification before submitting attendance; if unavailable, a face selfie can be used only as attendance proof, viewed only by authorized users, and removed after the semester ends. |
 | **BR-05** | The student device identifier is recorded with each attendance attempt as supporting evidence. |
@@ -672,6 +681,7 @@ The following business rules use stable IDs so that later Analysis, Design, and 
 | **BR-10** | Each study session can have at most one active attendance session, and only the assigned lecturer can manage it. |
 | **BR-11** | Catalog identifiers, including student identifiers and class section identifiers, must be unique across the system. |
 | **BR-12** | Time checks for QR validity, PIN validity, and Late status use the official system time. |
+| **BR-13** | A check-in accepted within the first 15 minutes after the scheduled class start time is `Present`; a later accepted check-in is `Late`. |
 
 ---
 
@@ -679,7 +689,8 @@ The following business rules use stable IDs so that later Analysis, Design, and 
 
 | **Source Requirement** | **Feature(s)** | **Use Case(s)** | **Business Rule(s)** |
 | :--- | :--- | :--- | :--- |
-| Dynamic QR attendance | F03, F07 | UC02, UC05 | BR-02, BR-12 |
+| Dynamic QR attendance | F03, F07 | UC02, UC05 | BR-02, BR-12, BR-13 |
+| Late threshold classification | F03, F04 | UC02, UC04 | BR-13 |
 | Geofencing | F03, F04, F12 | UC02, UC04, UC10 | BR-03 |
 | Biometric or selfie verification | F02, F03, F04 | UC02, UC04 | BR-04 |
 | Device ID evidence | F03, F04 | UC02, UC04 | BR-05 |
@@ -757,12 +768,13 @@ This section keeps only the data dictionary needed for Requirement Modeling. Ent
 | DeviceDisplayName | Text | Device display name used during check-in. |
 | FaceEvidenceReference | Text | Reference to face verification proof when fallback identity verification is used. |
 | CheckInMethod | Text | Selected check-in method: `QR`, `PIN`, or `Manual`. |
+| AttemptStatus | Text | Result of the check-in attempt: `Accepted` or `Rejected`. |
 | RejectionReason | Text | Reason why the attempt is rejected, such as `ExpiredCode`, `OutsideLocation`, or `IdentityVerificationFailed`. |
 | **AttendanceRecord** | | **Official attendance result for one student in one study session** |
 | AttendanceRecordCode | Text | Unique identifier for the official attendance result. |
 | StudentRollNumber | Text | Referencing the student. |
 | StudySessionCode | Text | Referencing the study session. |
-| AttendanceStatus | Text | Official attendance status: `Present`, `Late`, `Absent`, or `Rejected`. |
+| AttendanceStatus | Text | Official attendance status: `Present`, `Late`, or `Absent`. |
 | SourceAttemptCode | Text | Reference to the accepted or reviewed check-in attempt, if available. |
 | FinalizedAt | Date/Time | Timestamp when the result became part of the finalized attendance sheet. |
 | **AuditLog** | | **Administrative audit history log** |
