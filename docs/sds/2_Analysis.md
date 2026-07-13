@@ -137,11 +137,11 @@ UserAccount "1" -- "0..*" AuditLog : actor
 
 `AttendanceRecord.AttendanceStatus` represents only official attendance outcomes: `Present`, `Late`, or `Absent`. Rejected submissions remain in `CheckInAttempt.AttemptStatus`. `CheckInAttempt.CheckInMethod` represents only student check-in methods: `QR` or `PIN`; manual changes are represented by `AttendanceRecord.ResultSource` and detailed in `AuditLog`.
 
-### **II.1.2 Contextual boundary and control class diagram**
+### **II.1.2 Contextual boundary-control class diagram**
 
-This diagram shows how actors enter the system through boundary objects and how boundary objects delegate to control, business logic, algorithm, and entity objects. Boundary objects do not directly manipulate entity objects.
+This view is intentionally limited to system entry points and the control objects that coordinate actor requests. It does not expand business logic, algorithm, or entity objects; entity structure is shown in Figure II-1, and use-case behavior is shown in the separate interaction diagrams in Section II.2. Boundary objects do not directly manipulate entity objects.
 
-#### **Figure II-2 Contextual boundary class diagram for AFAS**
+#### **Figure II-2 Contextual boundary-control class diagram for AFAS**
 
 ```plantuml
 @startuml
@@ -151,6 +151,7 @@ hide circle
 class "Student" as Student <<actor>>
 class "Lecturer" as Lecturer <<actor>>
 class "Admin" as Admin <<actor>>
+class "Mobile Device Hardware" as MobileHardware <<actor>>
 
 class "Student Mobile Interface" as StudentUI <<boundary>>
 class "Lecturer Web Interface" as LecturerUI <<boundary>>
@@ -167,44 +168,10 @@ class "Report Control" as ReportControl <<control>>
 class "Catalog Control" as CatalogControl <<control>>
 class "Room Configuration Control" as RoomControl <<control>>
 
-class "Authentication Rules" as AuthRules <<business logic>>
-class "Attendance Code Rules" as CodeRules <<business logic>>
-class "Identity Evidence Rules" as IdentityRules <<business logic>>
-class "Session Rules" as SessionRules <<business logic>>
-class "Report Eligibility Rules" as ReportRules <<business logic>>
-class "Catalog Uniqueness Rules" as CatalogRules <<business logic>>
-class "Classroom Location Setting Rules" as LocationSettingRules <<business logic>>
-class "Location Distance Calculation" as DistanceCalc <<algorithm>>
-class "Attendance Status Calculation" as StatusRules <<business logic>>
-
-package "Identity & Academic Entities" {
-  class "UserAccount" as UserAccount <<entity>>
-  class "StudentProfile" as StudentProfile <<entity>>
-  class "LecturerProfile" as LecturerProfile <<entity>>
-  class "Subject" as Subject <<entity>>
-  class "ClassSection" as ClassSection <<entity>>
-  class "ClassEnrollment" as ClassEnrollment <<entity>>
-  class "StudySession" as StudySession <<entity>>
-  class "Classroom" as Classroom <<entity>>
-}
-
-package "Session & Configuration Entities" {
-  class "AttendanceConfiguration" as AttendanceConfig <<entity>>
-  class "AttendanceSession" as AttendanceSession <<entity>>
-}
-
-package "Attendance Entities" {
-  class "CheckInAttempt" as CheckInAttempt <<entity>>
-  class "AttendanceRecord" as AttendanceRecord <<entity>>
-}
-
-package "Audit Entities" {
-  class "AuditLog" as AuditLog <<entity>>
-}
-
 Student --> StudentUI
 Lecturer --> LecturerUI
 Admin --> AdminUI
+MobileHardware --> MobileSensor
 
 StudentUI --> AuthControl
 StudentUI --> CheckInControl
@@ -218,54 +185,7 @@ AdminUI --> AuthControl
 AdminUI --> CatalogControl
 AdminUI --> RoomControl
 
-AuthControl --> AuthRules
-CheckInControl --> CodeRules
-CheckInControl --> IdentityRules
 CheckInControl --> MobileSensor
-CheckInControl --> DistanceCalc
-CheckInControl --> StatusRules
-SessionControl --> SessionRules
-SessionControl --> CodeRules
-HistoryControl --> AuthRules
-AdjustmentControl --> SessionRules
-ReportControl --> ReportRules
-CatalogControl --> CatalogRules
-RoomControl --> LocationSettingRules
-RoomControl --> AttendanceConfig
-CodeRules --> AttendanceConfig
-StatusRules --> AttendanceConfig
-
-AuthControl --> UserAccount
-CheckInControl --> AttendanceSession
-CheckInControl --> Classroom
-CheckInControl --> CheckInAttempt
-CheckInControl --> AttendanceRecord
-SessionControl --> StudySession
-SessionControl --> ClassEnrollment
-SessionControl --> AttendanceSession
-SessionControl --> CheckInAttempt
-SessionControl --> AttendanceRecord
-HistoryControl --> ClassEnrollment
-HistoryControl --> ClassSection
-HistoryControl --> AttendanceRecord
-MonitorControl --> AttendanceSession
-MonitorControl --> ClassEnrollment
-MonitorControl --> AttendanceRecord
-AdjustmentControl --> AttendanceRecord
-AdjustmentControl --> CheckInAttempt
-AdjustmentControl --> AuditLog
-ReportControl --> ClassEnrollment
-ReportControl --> StudySession
-ReportControl --> AttendanceRecord
-ReportControl --> CheckInAttempt
-CatalogControl --> UserAccount
-CatalogControl --> StudentProfile
-CatalogControl --> LecturerProfile
-CatalogControl --> Subject
-CatalogControl --> ClassSection
-CatalogControl --> AuditLog
-RoomControl --> Classroom
-RoomControl --> AuditLog
 @enduml
 ```
 
@@ -1358,7 +1278,7 @@ Exportable --> [*]
 | UC08 Export Attendance Report | Lecturer | Lecturer Web Interface, Report Control, Report Eligibility Rules, ClassEnrollment, StudySession, AttendanceRecord, CheckInAttempt | Figure II-17, Figure II-18, Figure II-25 | BR-08 |
 | UC09 Manage System Catalog | Admin | Admin Web Interface, Catalog Control, Catalog Uniqueness Rules, UserAccount, StudentProfile, LecturerProfile, Subject, ClassSection, AuditLog | Figure II-19, Figure II-20 | BR-11 |
 | UC10 Configure Classroom Location | Admin | Admin Web Interface, Room Configuration Control, Classroom Location Setting Rules, AttendanceConfiguration, Classroom, AuditLog | Figure II-21, Figure II-22 | BR-03, NF-06 |
-| NF-06 Configurable attendance parameters | Student, Lecturer, Admin | AttendanceConfiguration, Attendance Code Rules, Attendance Status Calculation, Room Configuration Control | Figure II-1, Figure II-2, Figure II-5, Figure II-9, Figure II-11, Figure II-21 | NF-06 |
+| NF-06 Configurable attendance parameters | Student, Lecturer, Admin | AttendanceConfiguration, Attendance Code Rules, Attendance Status Calculation, Room Configuration Control | Figure II-1, Figure II-5, Figure II-9, Figure II-11, Figure II-21 | NF-06 |
 
 ---
 
@@ -1369,8 +1289,8 @@ Exportable --> [*]
 | UC list matches Requirement Section I.5.2 | Pass | UC01-UC10 only; Figures II-3 through II-22 |
 | UC names match Requirement Section I.5.2 | Pass | Headings II.2.1-II.2.10 |
 | Analysis uses COMET stereotypes | Pass | Figures II-1 through II-22 use `«boundary»`, `«control»`, `«state dependent control»`, `«entity»`, `«business logic»`, and `«algorithm»` |
-| Boundary objects delegate through control or logic objects | Pass | Figure II-2 and all interaction diagrams |
-| Contextual model uses concrete entity objects | Pass | Figure II-2 groups entities into four packages and links controls to named entities from Figure II-1 instead of using a placeholder entity group |
+| Boundary objects delegate through control objects | Pass | Figure II-2 and all interaction diagrams |
+| Static data structure is isolated from behavior views | Pass | Figure II-1 contains only entity classes and relationships; Figure II-2 contains only actors, boundary objects, and control objects; Section II.2 provides use-case-specific behavior diagrams |
 | Mobile device hardware is represented through a boundary object | Pass | Figure II-2, Figure II-5, Figure II-6, Figure II-9, and Figure II-10 use Mobile Device Sensor Interface |
 | NF-06 configurable attendance parameters are represented in Analysis | Pass | AttendanceConfiguration appears in Figure II-1 and is used by Attendance Code Rules, Attendance Status Calculation, and Room Configuration Control |
 | QR/PIN check-in records attempts before official results | Pass | Figures II-5, II-9, II-24 |
