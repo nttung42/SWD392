@@ -44,6 +44,11 @@ class "Classroom" as Classroom <<entity>> {
   AllowedAttendanceRadius
 }
 
+class "CampusBoundary" as CampusBoundary <<entity>> {
+  CampusBoundaryCode
+  BoundaryDescription
+}
+
 class "Subject" as Subject <<entity>> {
   SubjectCode
   SubjectName
@@ -117,16 +122,17 @@ class "AuditLog" as AuditLog <<entity>> {
 
 UserAccount "1" -- "0..1" StudentProfile
 UserAccount "1" -- "0..1" LecturerProfile
+CampusBoundary "1" *-- "0..*" Classroom : contains valid room locations
 LecturerProfile "1" -- "0..*" ClassSection
 Subject "1" -- "0..*" ClassSection
 ClassSection "1" -- "0..*" ClassEnrollment
 StudentProfile "1" -- "0..*" ClassEnrollment
-ClassSection "1" -- "0..*" StudySession
+ClassSection "1" *-- "0..*" StudySession
 Classroom "1" -- "0..*" StudySession
-StudySession "1" -- "0..1" AttendanceSession
-StudySession "1" -- "0..*" CheckInAttempt
+StudySession "1" *-- "0..1" AttendanceSession
+StudySession "1" *-- "0..*" CheckInAttempt
 StudentProfile "1" -- "0..*" CheckInAttempt
-StudySession "1" -- "0..*" AttendanceRecord
+StudySession "1" *-- "0..*" AttendanceRecord
 StudentProfile "1" -- "0..*" AttendanceRecord
 CheckInAttempt "0..1" -- "0..1" AttendanceRecord : source attempt
 AttendanceConfiguration "1" -- "0..*" AttendanceSession : configures timing
@@ -137,11 +143,11 @@ UserAccount "1" -- "0..*" AuditLog : actor
 
 `AttendanceRecord.AttendanceStatus` represents only official attendance outcomes: `Present`, `Late`, or `Absent`. Rejected submissions remain in `CheckInAttempt.AttemptStatus`. `CheckInAttempt.CheckInMethod` represents only student check-in methods: `QR` or `PIN`; manual changes are represented by `AttendanceRecord.ResultSource` and detailed in `AuditLog`.
 
-### **II.1.2 Contextual boundary-control class diagram**
+### **II.1.2 Contextual interface-control class diagram**
 
-This view is intentionally limited to system entry points and the control objects that coordinate actor requests. It does not expand business logic, algorithm, or entity objects; entity structure is shown in Figure II-1, and use-case behavior is shown in the separate interaction diagrams in Section II.2. Boundary objects do not directly manipulate entity objects.
+This view is intentionally limited to system entry points and the control objects that coordinate actor requests. It does not expand business logic, algorithm, or entity objects; entity structure is shown in Figure II-1, and use-case behavior is shown in the separate interaction diagrams in Section II.2. Interface objects do not directly manipulate entity objects.
 
-#### **Figure II-2 Contextual boundary-control class diagram for AFAS**
+#### **Figure II-2 Contextual interface-control class diagram for AFAS**
 
 ```plantuml
 @startuml
@@ -153,20 +159,20 @@ class "Lecturer" as Lecturer <<actor>>
 class "Admin" as Admin <<actor>>
 class "Mobile Device Hardware" as MobileHardware <<actor>>
 
-class "Student Mobile Interface" as StudentUI <<boundary>>
-class "Lecturer Web Interface" as LecturerUI <<boundary>>
-class "Admin Web Interface" as AdminUI <<boundary>>
-class "Mobile Device Sensor Interface" as MobileSensor <<boundary>>
+class "Student Mobile Interface" as StudentUI <<user interaction>>
+class "Lecturer Web Interface" as LecturerUI <<user interaction>>
+class "Admin Web Interface" as AdminUI <<user interaction>>
+class "Mobile Device Sensor Interface" as MobileSensor <<device I/O>>
 
-class "Authentication Control" as AuthControl <<control>>
-class "Check-in Control" as CheckInControl <<control>>
+class "Authentication Control" as AuthControl <<coordinator>>
+class "Check-in Control" as CheckInControl <<coordinator>>
 class "Session Control" as SessionControl <<state dependent control>>
-class "Attendance History Control" as HistoryControl <<control>>
-class "Monitor Control" as MonitorControl <<control>>
-class "Adjustment Control" as AdjustmentControl <<control>>
-class "Report Control" as ReportControl <<control>>
-class "Catalog Control" as CatalogControl <<control>>
-class "Room Configuration Control" as RoomControl <<control>>
+class "Attendance History Control" as HistoryControl <<coordinator>>
+class "Monitor Control" as MonitorControl <<coordinator>>
+class "Adjustment Control" as AdjustmentControl <<coordinator>>
+class "Report Control" as ReportControl <<coordinator>>
+class "Catalog Control" as CatalogControl <<coordinator>>
+class "Room Configuration Control" as RoomControl <<coordinator>>
 
 Student --> StudentUI
 Lecturer --> LecturerUI
@@ -186,6 +192,7 @@ AdminUI --> CatalogControl
 AdminUI --> RoomControl
 
 CheckInControl --> MobileSensor
+RoomControl --> MobileSensor
 @enduml
 ```
 
@@ -198,6 +205,7 @@ The object structuring hierarchy below groups analysis objects by COMET responsi
 * AFAS Analysis Objects
 ** Interface Objects
 *** User Interaction
+**** Role-specific Access Interface
 **** Student Mobile Interface
 **** Lecturer Web Interface
 **** Admin Web Interface
@@ -232,6 +240,7 @@ The object structuring hierarchy below groups analysis objects by COMET responsi
 **** UserAccount
 **** StudentProfile
 **** LecturerProfile
+**** CampusBoundary
 **** Classroom
 **** Subject
 **** ClassSection
@@ -248,19 +257,20 @@ The object structuring hierarchy below groups analysis objects by COMET responsi
 
 | **Object** | **Stereotype** | **Responsibility** | **Trace source** |
 | :--- | :--- | :--- | :--- |
-| Student Mobile Interface | `«boundary»` | Receives student authentication, QR, PIN, and history actions. | Student; UC01-UC04 |
-| Lecturer Web Interface | `«boundary»` | Receives lecturer session, monitor, adjustment, and export actions. | Lecturer; UC01, UC05-UC08 |
-| Admin Web Interface | `«boundary»` | Receives administrator catalog and classroom configuration actions. | Admin; UC01, UC09-UC10 |
-| Mobile Device Sensor Interface | `«boundary»` | Interfaces with mobile device hardware to request biometric verification, read GPS coordinates, read device identifier, and access camera/selfie evidence. | Mobile Device Hardware; UC02, UC04 |
-| Authentication Control | `«control»` | Coordinates user authentication and role access. | UC01, BR-01 |
-| Check-in Control | `«control»` | Coordinates QR/PIN evidence validation and attendance attempt handling. | UC02, UC04 |
+| Role-specific Access Interface | `«user interaction»` | Represents the active login interface for the user role that initiates authentication. It denotes one of Student Mobile Interface, Lecturer Web Interface, or Admin Web Interface in UC01. | Student, Lecturer, Admin; UC01 |
+| Student Mobile Interface | `«user interaction»` | Receives student authentication, QR, PIN, and history actions. | Student; UC01-UC04 |
+| Lecturer Web Interface | `«user interaction»` | Receives lecturer session, monitor, adjustment, and export actions. | Lecturer; UC01, UC05-UC08 |
+| Admin Web Interface | `«user interaction»` | Receives administrator catalog and classroom configuration actions. | Admin; UC01, UC09-UC10 |
+| Mobile Device Sensor Interface | `«device I/O»` | Interfaces with mobile device hardware to request biometric verification, read GPS coordinates, read device identifier, access camera/selfie evidence, and capture calibration location when an administrator performs on-site classroom setup. | Mobile Device Hardware; UC02, UC04, UC10 |
+| Authentication Control | `«coordinator»` | Coordinates user authentication and role access. | UC01, BR-01 |
+| Check-in Control | `«coordinator»` | Coordinates QR/PIN evidence validation and attendance attempt handling. | UC02, UC04 |
 | Session Control | `«state dependent control»` | Coordinates attendance session lifecycle: active, stopped, reopened, finalized. | UC05, BR-02, BR-08, BR-10, BR-12 |
-| Attendance History Control | `«control»` | Coordinates student attendance history retrieval and access checking. | UC03, BR-01 |
-| Monitor Control | `«control»` | Coordinates live attendance status visualization. | UC06 |
-| Adjustment Control | `«control»` | Coordinates manual attendance status adjustment and audit capture. | UC07, BR-09, BR-10 |
-| Report Control | `«control»` | Coordinates finalized attendance report preparation. | UC08, BR-08 |
-| Catalog Control | `«control»` | Coordinates catalog creation, update, deletion, and import validation. | UC09, BR-11 |
-| Room Configuration Control | `«control»` | Coordinates classroom location, allowed radius configuration, and default radius usage. | UC10, BR-03, NF-06 |
+| Attendance History Control | `«coordinator»` | Coordinates student attendance history retrieval and access checking. | UC03, BR-01 |
+| Monitor Control | `«coordinator»` | Coordinates live attendance status visualization after accepted QR or PIN check-ins. | UC02, UC04, UC06 |
+| Adjustment Control | `«coordinator»` | Coordinates manual attendance status adjustment and audit capture. | UC07, BR-09, BR-10 |
+| Report Control | `«coordinator»` | Coordinates finalized attendance report preparation. | UC08, BR-08 |
+| Catalog Control | `«coordinator»` | Coordinates catalog creation, update, deletion, and import validation. | UC09, BR-11 |
+| Room Configuration Control | `«coordinator»` | Coordinates classroom location, allowed radius configuration, and default radius usage. | UC10, BR-03, NF-06 |
 | Attendance Code Rules | `«business logic»` | Checks QR/PIN activity, configured validity window, configured refresh interval, and session match. | UC02, UC04, UC05, BR-02, BR-12, NF-06 |
 | Identity Evidence Rules | `«business logic»` | Checks biometric completion or selfie fallback evidence. | UC02, UC04, BR-04 |
 | Location Distance Calculation | `«algorithm»` | Calculates distance from submitted location to classroom range. | UC02, UC04, BR-03 |
@@ -268,17 +278,82 @@ The object structuring hierarchy below groups analysis objects by COMET responsi
 | Session Rules | `«business logic»` | Checks scheduled time window, assigned lecturer, active session uniqueness, absent assignment, and finalization. | UC05, UC07, BR-08, BR-10 |
 | Report Eligibility Rules | `«business logic»` | Ensures export uses finalized attendance results. | UC08, BR-08 |
 | Catalog Uniqueness Rules | `«business logic»` | Ensures catalog identifiers are unique. | UC09, BR-11 |
-| Classroom Location Setting Rules | `«business logic»` | Ensures the classroom location coordinate value is valid and allowed radius is greater than zero. | UC10, BR-03 |
+| Classroom Location Setting Rules | `«business logic»` | Ensures the classroom location coordinate value is valid, belongs to the university campus boundary, and has an allowed radius greater than zero. | UC10, BR-03 |
 | UserAccount, StudentProfile, LecturerProfile | `«entity»` | Store user and role profile information. | UC01, UC09 |
-| Classroom, Subject, ClassSection, ClassEnrollment, StudySession | `«entity»` | Store academic catalog, roster, classroom, and scheduled session information. | UC03, UC05, UC06, UC08-UC10 |
+| CampusBoundary, Classroom, Subject, ClassSection, ClassEnrollment, StudySession | `«entity»` | Store academic catalog, roster, campus boundary, classroom, and scheduled session information. | UC03, UC05, UC06, UC08-UC10 |
 | AttendanceConfiguration | `«entity»` | Stores configurable attendance timing and default classroom radius values required by maintainability requirements. | UC02, UC04, UC05, UC10, NF-06 |
 | AttendanceSession, CheckInAttempt, AttendanceRecord, AuditLog | `«entity»` | Store attendance lifecycle, evidence, official result, and audit information. | UC02, UC04-UC08, UC10 |
+
+### **II.1.4 Interface wireframes**
+
+The following analysis-level wireframes identify the user interaction surfaces required by the use cases. They do not introduce implementation technology; they only show the business information and actions visible at the system boundary.
+
+#### **Student Mobile Interface wireframes**
+
+```plantuml
+@startsalt
+{
+  {^"QR Check-in" | "PIN Check-in" | "History"}
+  {
+    "Identity status" | "Not verified / Verified"
+    "Attendance input" | "Scan active QR or enter active PIN"
+    "Evidence" | "Location, device, biometric or selfie proof"
+    [Submit check-in]
+    "Result" | "Accepted as Present/Late or rejected reason"
+  }
+}
+@endsalt
+```
+
+Trace: Student; UC02, UC03, UC04.
+
+#### **Lecturer Web Interface wireframes**
+
+```plantuml
+@startsalt
+{
+  {^"Session" | "Monitor" | "Adjust" | "Report"}
+  {
+    "Selected class session" | "Scheduled class and room"
+    [Start Attendance] | [Stop Receiving Check-ins] | [Finalize Attendance]
+    "Projector view" | "Dynamic QR, backup PIN, countdown"
+    "Live roster" | "Present / Late / Absent counts"
+    "Rejected attempts" | "Evidence summary and adjustment reason"
+    [Export finalized report]
+  }
+}
+@endsalt
+```
+
+Trace: Lecturer; UC05, UC06, UC07, UC08.
+
+#### **Admin Web Interface wireframes**
+
+```plantuml
+@startsalt
+{
+  {^"Catalog" | "Room Configuration"}
+  {
+    "Catalog grid" | "Accounts, subjects, class sections"
+    [Add] | [Edit] | [Delete] | [Import]
+    "Classroom" | "Room code and configured location"
+    "Allowed radius" | "Default or custom radius"
+    [Capture Current Location] | [Save Configuration]
+    "Validation" | "Duplicate ID, invalid coordinate, or out-of-bounds warning"
+  }
+}
+@endsalt
+```
+
+Trace: Admin; UC09, UC10.
 
 ---
 
 ## **II.2 Interaction diagrams**
 
 The following sequence and communication diagrams realize each use case from Section I.5.2. Message wording follows the use case steps and business rules from Section I.6.
+
+Sequence diagrams are kept to validate detailed main and alternative flows. Communication diagrams are also kept to match the SWD392 sample document style and to provide collaboration views that can be integrated in Design Modeling.
 
 ### **II.2.1 UC01 - Authenticate User**
 
@@ -288,26 +363,14 @@ The following sequence and communication diagrams realize each use case from Sec
 @startuml
 skinparam style strictuml
 autonumber
-actor "Student" as Student
-actor "Lecturer" as Lecturer
-actor "Admin" as Admin
-participant "Student Mobile Interface\n«boundary»" as StudentUI
-participant "Lecturer Web Interface\n«boundary»" as LecturerUI
-participant "Admin Web Interface\n«boundary»" as AdminUI
-participant "Authentication Control\n«control»" as AuthControl
+actor "Student / Lecturer / Admin" as User
+participant "Role-specific Access Interface\n«user interaction»" as AccessUI
+participant "Authentication Control\n«coordinator»" as AuthControl
 participant "Authentication Rules\n«business logic»" as AuthRules
 participant "UserAccount\n«entity»" as UserAccount
 
-alt Student opens mobile app
-  Student -> StudentUI : enter assigned school account credentials
-  StudentUI -> AuthControl : request authentication(credentials)
-else Lecturer opens web portal
-  Lecturer -> LecturerUI : enter assigned school account credentials
-  LecturerUI -> AuthControl : request authentication(credentials)
-else Admin opens web portal
-  Admin -> AdminUI : enter assigned school account credentials
-  AdminUI -> AuthControl : request authentication(credentials)
-end
+User -> AccessUI : enter assigned school account credentials
+AccessUI -> AuthControl : request authentication(credentials, requested role)
 
 AuthControl -> UserAccount : find account by submitted identity
 UserAccount --> AuthControl : account information or not found
@@ -315,61 +378,37 @@ AuthControl -> AuthRules : validate identity and role(account, credentials)
 AuthRules --> AuthControl : authentication result
 
 alt authentication succeeds
-  AuthControl --> StudentUI : grant student access when role matches
-  AuthControl --> LecturerUI : grant lecturer access when role matches
-  AuthControl --> AdminUI : grant admin access when role matches
-  StudentUI --> Student : show student homepage
-  LecturerUI --> Lecturer : show lecturer homepage
-  AdminUI --> Admin : show admin homepage
+  AuthControl --> AccessUI : grant access when role matches
+  AccessUI --> User : show role-specific homepage
 else invalid credentials
-  AuthControl --> StudentUI : deny access with error
-  AuthControl --> LecturerUI : deny access with error
-  AuthControl --> AdminUI : deny access with error
-  StudentUI --> Student : show authentication failure
-  LecturerUI --> Lecturer : show authentication failure
-  AdminUI --> Admin : show authentication failure
+  AuthControl --> AccessUI : deny access with error
+  AccessUI --> User : show authentication failure
 else forgot password selected
-  StudentUI -> AuthControl : request reset instruction(account information)
-  LecturerUI -> AuthControl : request reset instruction(account information)
-  AdminUI -> AuthControl : request reset instruction(account information)
-  AuthControl --> StudentUI : reset instruction result
-  AuthControl --> LecturerUI : reset instruction result
-  AuthControl --> AdminUI : reset instruction result
-  StudentUI --> Student : show reset instruction result
-  LecturerUI --> Lecturer : show reset instruction result
-  AdminUI --> Admin : show reset instruction result
+  AccessUI -> AuthControl : request reset instruction(account information)
+  AuthControl --> AccessUI : reset instruction result
+  AccessUI --> User : show reset instruction result
 end
 @enduml
 ```
+
+`Role-specific Access Interface` represents the active user-facing interface for the actor who initiated UC01: Student Mobile Interface, Lecturer Web Interface, or Admin Web Interface.
 
 #### **Figure II-4 Communication diagram for UC01 - Authenticate User**
 
 ```plantuml
 @startuml
-class "Student" as Student <<actor>>
-class "Lecturer" as Lecturer <<actor>>
-class "Admin" as Admin <<actor>>
-class "Student Mobile Interface" as StudentUI <<boundary>>
-class "Lecturer Web Interface" as LecturerUI <<boundary>>
-class "Admin Web Interface" as AdminUI <<boundary>>
-class "Authentication Control" as AuthControl <<control>>
+class "Student / Lecturer / Admin" as User <<actor>>
+class "Role-specific Access Interface" as AccessUI <<user interaction>>
+class "Authentication Control" as AuthControl <<coordinator>>
 class "Authentication Rules" as AuthRules <<business logic>>
 class "UserAccount" as UserAccount <<entity>>
 
-Student --> StudentUI : 1 enter credentials
-Lecturer --> LecturerUI : 1 enter credentials
-Admin --> AdminUI : 1 enter credentials
-StudentUI --> AuthControl : 1.1 request authentication
-LecturerUI --> AuthControl : 1.1 request authentication
-AdminUI --> AuthControl : 1.1 request authentication
+User --> AccessUI : 1 enter credentials
+AccessUI --> AuthControl : 1.1 request authentication
 AuthControl --> UserAccount : 1.1.1 find account
 AuthControl --> AuthRules : 1.1.2 validate identity and role
-AuthControl --> StudentUI : 2 return access result
-AuthControl --> LecturerUI : 2 return access result
-AuthControl --> AdminUI : 2 return access result
-StudentUI --> Student : 3 show homepage or error
-LecturerUI --> Lecturer : 3 show homepage or error
-AdminUI --> Admin : 3 show homepage or error
+AuthControl --> AccessUI : 2 return access result
+AccessUI --> User : 3 show homepage, reset result, or error
 @enduml
 ```
 
@@ -382,9 +421,9 @@ AdminUI --> Admin : 3 show homepage or error
 skinparam style strictuml
 autonumber
 actor "Student" as Student
-participant "Student Mobile Interface\n«boundary»" as StudentUI
-participant "Check-in Control\n«control»" as CheckInControl
-participant "Mobile Device Sensor Interface\n«boundary»" as MobileSensor
+participant "Student Mobile Interface\n«user interaction»" as StudentUI
+participant "Check-in Control\n«coordinator»" as CheckInControl
+participant "Mobile Device Sensor Interface\n«device I/O»" as MobileSensor
 participant "Identity Evidence Rules\n«business logic»" as IdentityRules
 participant "Attendance Code Rules\n«business logic»" as CodeRules
 participant "Location Distance Calculation\n«algorithm»" as DistanceCalc
@@ -394,7 +433,7 @@ participant "AttendanceConfiguration\n«entity»" as AttendanceConfig
 participant "Classroom\n«entity»" as Classroom
 participant "CheckInAttempt\n«entity»" as CheckInAttempt
 participant "AttendanceRecord\n«entity»" as AttendanceRecord
-participant "Monitor Control\n«control»" as MonitorControl
+participant "Monitor Control\n«coordinator»" as MonitorControl
 
 Student -> StudentUI : tap Scan QR Check-in
 StudentUI -> CheckInControl : request identity verification
@@ -416,56 +455,58 @@ else biometric unavailable
 else identity verification failed and no valid fallback proof
   MobileSensor --> CheckInControl : identity evidence failed
   CheckInControl --> StudentUI : identity evidence rejected
-  StudentUI --> Student : block check-in submission
+  break check-in submission blocked
+    StudentUI --> Student : block check-in submission
+  end
 end
 
 StudentUI --> Student : display camera view
 Student -> StudentUI : scan active QR code
 StudentUI -> CheckInControl : submit scanned code
 CheckInControl -> MobileSensor : read GPS coordinates and device identifier
-MobileSensor --> CheckInControl : submitted location and device evidence
-CheckInControl -> AttendanceSession : read active session code
-AttendanceSession --> CheckInControl : active session information
-CheckInControl -> CodeRules : verify code active and session match
-CodeRules -> AttendanceConfig : read QR validity seconds
-
-alt attendance code expired
-  CodeRules --> CheckInControl : invalid code
-  CheckInControl -> CheckInAttempt : record rejected attempt(status = Rejected, reason = ExpiredCode)
-  CheckInControl --> StudentUI : reject QR expired
-  StudentUI --> Student : show QR expired message
-else location unavailable
-  CodeRules --> CheckInControl : code valid
-  CheckInControl -> MobileSensor : request location services
+alt location unavailable
   MobileSensor --> CheckInControl : location unavailable
   CheckInControl --> StudentUI : request location services
   StudentUI --> Student : prompt to enable location services
-else code valid and location available
-  CodeRules --> CheckInControl : code valid
-  CheckInControl -> Classroom : read allowed attendance range
-  Classroom --> CheckInControl : classroom range
-  CheckInControl -> DistanceCalc : compare submitted location with classroom range
-  DistanceCalc --> CheckInControl : location check result
+else location and device evidence available
+  MobileSensor --> CheckInControl : submitted location and device evidence
+  CheckInControl -> AttendanceSession : read active session code
+  AttendanceSession --> CheckInControl : active session information
+  CheckInControl -> CodeRules : verify code active and session match
+  CodeRules -> AttendanceConfig : read QR validity seconds
 
-  alt outside allowed range
-    CheckInControl -> CheckInAttempt : record rejected attempt(status = Rejected, reason = OutsideLocation)
-    CheckInControl --> StudentUI : reject outside classroom range
-    StudentUI --> Student : show check-in not accepted
-  else within allowed range
-    CheckInControl -> CheckInAttempt : record accepted attempt(status = Accepted, method = QR)
-    CheckInControl -> AttendanceRecord : check existing official result
-    AttendanceRecord --> CheckInControl : existing result or none
-    alt official result already exists
-      CheckInControl --> StudentUI : return existing official result
-      StudentUI --> Student : show existing result
-    else no official result exists
-      CheckInControl -> StatusRules : determine Present or Late using configured threshold
-      StatusRules -> AttendanceConfig : read Late threshold minutes
-      StatusRules --> CheckInControl : official status
-      CheckInControl -> AttendanceRecord : register official result
-      CheckInControl -> MonitorControl : publish attendance status update
-      CheckInControl --> StudentUI : check-in accepted
-      StudentUI --> Student : show successful check-in time
+  alt attendance code expired
+    CodeRules --> CheckInControl : invalid code
+    CheckInControl -> CheckInAttempt : record rejected attempt(status = Rejected, reason = ExpiredCode)
+    CheckInControl --> StudentUI : reject QR expired
+    StudentUI --> Student : show QR expired message
+  else code valid
+    CodeRules --> CheckInControl : code valid
+    CheckInControl -> Classroom : read allowed attendance range
+    Classroom --> CheckInControl : classroom range
+    CheckInControl -> DistanceCalc : compare submitted location with classroom range
+    DistanceCalc --> CheckInControl : location check result
+
+    alt outside allowed range
+      CheckInControl -> CheckInAttempt : record rejected attempt(status = Rejected, reason = OutsideLocation)
+      CheckInControl --> StudentUI : reject outside classroom range
+      StudentUI --> Student : show check-in not accepted
+    else within allowed range
+      CheckInControl -> CheckInAttempt : record accepted attempt(status = Accepted, method = QR)
+      CheckInControl -> AttendanceRecord : check existing official result
+      AttendanceRecord --> CheckInControl : existing result or none
+      alt official result already exists
+        CheckInControl --> StudentUI : return existing official result
+        StudentUI --> Student : show existing result
+      else no official result exists
+        CheckInControl -> StatusRules : determine Present or Late using configured threshold
+        StatusRules -> AttendanceConfig : read Late threshold minutes
+        StatusRules --> CheckInControl : official status
+        CheckInControl -> AttendanceRecord : register official result
+        CheckInControl -> MonitorControl : publish attendance status update
+        CheckInControl --> StudentUI : check-in accepted
+        StudentUI --> Student : show successful check-in time
+      end
     end
   end
 end
@@ -477,9 +518,9 @@ end
 ```plantuml
 @startuml
 class "Student" as Student <<actor>>
-class "Student Mobile Interface" as StudentUI <<boundary>>
-class "Check-in Control" as CheckInControl <<control>>
-class "Mobile Device Sensor Interface" as MobileSensor <<boundary>>
+class "Student Mobile Interface" as StudentUI <<user interaction>>
+class "Check-in Control" as CheckInControl <<coordinator>>
+class "Mobile Device Sensor Interface" as MobileSensor <<device I/O>>
 class "Identity Evidence Rules" as IdentityRules <<business logic>>
 class "Attendance Code Rules" as CodeRules <<business logic>>
 class "Location Distance Calculation" as DistanceCalc <<algorithm>>
@@ -489,7 +530,7 @@ class "AttendanceConfiguration" as AttendanceConfig <<entity>>
 class "Classroom" as Classroom <<entity>>
 class "CheckInAttempt" as CheckInAttempt <<entity>>
 class "AttendanceRecord" as AttendanceRecord <<entity>>
-class "Monitor Control" as MonitorControl <<control>>
+class "Monitor Control" as MonitorControl <<coordinator>>
 
 Student --> StudentUI : 1 tap Scan QR
 StudentUI --> CheckInControl : 1.1 request identity verification
@@ -521,8 +562,8 @@ CheckInControl --> StudentUI : 3 return accepted/rejected result
 skinparam style strictuml
 autonumber
 actor "Student" as Student
-participant "Student Mobile Interface\n«boundary»" as StudentUI
-participant "Attendance History Control\n«control»" as HistoryControl
+participant "Student Mobile Interface\n«user interaction»" as StudentUI
+participant "Attendance History Control\n«coordinator»" as HistoryControl
 participant "Authentication Rules\n«business logic»" as AuthRules
 participant "ClassEnrollment\n«entity»" as ClassEnrollment
 participant "ClassSection\n«entity»" as ClassSection
@@ -554,8 +595,8 @@ end
 ```plantuml
 @startuml
 class "Student" as Student <<actor>>
-class "Student Mobile Interface" as StudentUI <<boundary>>
-class "Attendance History Control" as HistoryControl <<control>>
+class "Student Mobile Interface" as StudentUI <<user interaction>>
+class "Attendance History Control" as HistoryControl <<coordinator>>
 class "Authentication Rules" as AuthRules <<business logic>>
 class "ClassEnrollment" as ClassEnrollment <<entity>>
 class "ClassSection" as ClassSection <<entity>>
@@ -580,9 +621,9 @@ HistoryControl --> StudentUI : 2 return history or failure
 skinparam style strictuml
 autonumber
 actor "Student" as Student
-participant "Student Mobile Interface\n«boundary»" as StudentUI
-participant "Check-in Control\n«control»" as CheckInControl
-participant "Mobile Device Sensor Interface\n«boundary»" as MobileSensor
+participant "Student Mobile Interface\n«user interaction»" as StudentUI
+participant "Check-in Control\n«coordinator»" as CheckInControl
+participant "Mobile Device Sensor Interface\n«device I/O»" as MobileSensor
 participant "Identity Evidence Rules\n«business logic»" as IdentityRules
 participant "Attendance Code Rules\n«business logic»" as CodeRules
 participant "Location Distance Calculation\n«algorithm»" as DistanceCalc
@@ -592,6 +633,7 @@ participant "AttendanceConfiguration\n«entity»" as AttendanceConfig
 participant "Classroom\n«entity»" as Classroom
 participant "CheckInAttempt\n«entity»" as CheckInAttempt
 participant "AttendanceRecord\n«entity»" as AttendanceRecord
+participant "Monitor Control\n«coordinator»" as MonitorControl
 
 Student -> StudentUI : select PIN Check-in
 StudentUI -> CheckInControl : request identity verification
@@ -613,55 +655,58 @@ else biometric unavailable
 else identity verification failed and no valid fallback proof
   MobileSensor --> CheckInControl : identity evidence failed
   CheckInControl --> StudentUI : identity evidence rejected
-  StudentUI --> Student : block check-in submission
+  break check-in submission blocked
+    StudentUI --> Student : block check-in submission
+  end
 end
 
 StudentUI --> Student : display PIN input screen
 Student -> StudentUI : enter active 6-digit PIN
 StudentUI -> CheckInControl : submit PIN code
 CheckInControl -> MobileSensor : read GPS coordinates and device identifier
-MobileSensor --> CheckInControl : submitted location and device evidence
-CheckInControl -> AttendanceSession : read active PIN session
-AttendanceSession --> CheckInControl : active session information
-CheckInControl -> CodeRules : verify PIN is active
-CodeRules -> AttendanceConfig : read PIN refresh seconds
-
-alt PIN expired
-  CodeRules --> CheckInControl : invalid PIN
-  CheckInControl -> CheckInAttempt : record rejected attempt(status = Rejected, reason = ExpiredCode)
-  CheckInControl --> StudentUI : reject PIN expired
-  StudentUI --> Student : show PIN expired message
-else location unavailable
-  CodeRules --> CheckInControl : PIN valid
-  CheckInControl -> MobileSensor : request location services
+alt location unavailable
   MobileSensor --> CheckInControl : location unavailable
   CheckInControl --> StudentUI : request location services
   StudentUI --> Student : prompt to enable location services
-else PIN valid and location available
-  CodeRules --> CheckInControl : PIN valid
-  CheckInControl -> Classroom : read allowed attendance range
-  Classroom --> CheckInControl : classroom range
-  CheckInControl -> DistanceCalc : compare submitted location with classroom range
-  DistanceCalc --> CheckInControl : location check result
+else location and device evidence available
+  MobileSensor --> CheckInControl : submitted location and device evidence
+  CheckInControl -> AttendanceSession : read active PIN session
+  AttendanceSession --> CheckInControl : active session information
+  CheckInControl -> CodeRules : verify PIN is active
+  CodeRules -> AttendanceConfig : read PIN refresh seconds
 
-  alt outside allowed range
-    CheckInControl -> CheckInAttempt : record rejected attempt(status = Rejected, reason = OutsideLocation)
-    CheckInControl --> StudentUI : reject outside classroom range
-    StudentUI --> Student : show check-in not accepted
-  else within allowed range
-    CheckInControl -> CheckInAttempt : record accepted attempt(status = Accepted, method = PIN)
-    CheckInControl -> AttendanceRecord : check existing official result
-    AttendanceRecord --> CheckInControl : existing result or none
-    alt official result already exists
-      CheckInControl --> StudentUI : return existing official result
-      StudentUI --> Student : show existing result
-    else no official result exists
-      CheckInControl -> StatusRules : determine Present or Late using configured threshold
-      StatusRules -> AttendanceConfig : read Late threshold minutes
-      StatusRules --> CheckInControl : official status
-      CheckInControl -> AttendanceRecord : register official result
-      CheckInControl --> StudentUI : check-in accepted
-      StudentUI --> Student : show successful PIN check-in
+  alt PIN expired
+    CodeRules --> CheckInControl : invalid PIN
+    CheckInControl -> CheckInAttempt : record rejected attempt(status = Rejected, reason = ExpiredCode)
+    CheckInControl --> StudentUI : reject PIN expired
+    StudentUI --> Student : show PIN expired message
+  else PIN valid
+    CodeRules --> CheckInControl : PIN valid
+    CheckInControl -> Classroom : read allowed attendance range
+    Classroom --> CheckInControl : classroom range
+    CheckInControl -> DistanceCalc : compare submitted location with classroom range
+    DistanceCalc --> CheckInControl : location check result
+
+    alt outside allowed range
+      CheckInControl -> CheckInAttempt : record rejected attempt(status = Rejected, reason = OutsideLocation)
+      CheckInControl --> StudentUI : reject outside classroom range
+      StudentUI --> Student : show check-in not accepted
+    else within allowed range
+      CheckInControl -> CheckInAttempt : record accepted attempt(status = Accepted, method = PIN)
+      CheckInControl -> AttendanceRecord : check existing official result
+      AttendanceRecord --> CheckInControl : existing result or none
+      alt official result already exists
+        CheckInControl --> StudentUI : return existing official result
+        StudentUI --> Student : show existing result
+      else no official result exists
+        CheckInControl -> StatusRules : determine Present or Late using configured threshold
+        StatusRules -> AttendanceConfig : read Late threshold minutes
+        StatusRules --> CheckInControl : official status
+        CheckInControl -> AttendanceRecord : register official result
+        CheckInControl -> MonitorControl : publish attendance status update
+        CheckInControl --> StudentUI : check-in accepted
+        StudentUI --> Student : show successful PIN check-in
+      end
     end
   end
 end
@@ -673,9 +718,9 @@ end
 ```plantuml
 @startuml
 class "Student" as Student <<actor>>
-class "Student Mobile Interface" as StudentUI <<boundary>>
-class "Check-in Control" as CheckInControl <<control>>
-class "Mobile Device Sensor Interface" as MobileSensor <<boundary>>
+class "Student Mobile Interface" as StudentUI <<user interaction>>
+class "Check-in Control" as CheckInControl <<coordinator>>
+class "Mobile Device Sensor Interface" as MobileSensor <<device I/O>>
 class "Identity Evidence Rules" as IdentityRules <<business logic>>
 class "Attendance Code Rules" as CodeRules <<business logic>>
 class "Location Distance Calculation" as DistanceCalc <<algorithm>>
@@ -702,6 +747,7 @@ CheckInControl --> CheckInAttempt : 2.1.6 record attempt
 CheckInControl --> AttendanceRecord : 2.1.7 check/register official result
 CheckInControl --> StatusRules : 2.1.8 determine Present/Late by threshold
 StatusRules --> AttendanceConfig : 2.1.8.1 read Late threshold
+CheckInControl --> MonitorControl : 2.1.9 publish accepted status update
 CheckInControl --> StudentUI : 3 return accepted/rejected result
 @enduml
 ```
@@ -715,7 +761,7 @@ CheckInControl --> StudentUI : 3 return accepted/rejected result
 skinparam style strictuml
 autonumber
 actor "Lecturer" as Lecturer
-participant "Lecturer Web Interface\n«boundary»" as LecturerUI
+participant "Lecturer Web Interface\n«user interaction»" as LecturerUI
 participant "Session Control\n«state dependent control»" as SessionControl
 participant "Session Rules\n«business logic»" as SessionRules
 participant "Attendance Code Rules\n«business logic»" as CodeRules
@@ -770,6 +816,21 @@ else activation allowed
     SessionRules --> SessionControl : reopen allowed or denied
     SessionControl -> AttendanceSession : reopen or keep stopped
     SessionControl --> LecturerUI : show reopen result
+
+    alt reopen allowed
+      loop while reopened window is active
+        SessionControl -> CodeRules : refresh QR and PIN using configured intervals
+        CodeRules -> AttendanceConfig : read QR and PIN refresh seconds
+        CodeRules --> SessionControl : refreshed codes
+        SessionControl -> AttendanceSession : update displayed codes
+        SessionControl --> LecturerUI : update reopened QR and PIN
+      end
+
+      Lecturer -> LecturerUI : click Stop Receiving Check-ins again
+      LecturerUI -> SessionControl : request stop accepting reopened check-ins
+      SessionControl -> AttendanceSession : mark reopened session stopped
+      SessionControl --> LecturerUI : show review view
+    end
   end
 
   LecturerUI -> SessionControl : request results and rejected attempts
@@ -805,7 +866,7 @@ end
 ```plantuml
 @startuml
 class "Lecturer" as Lecturer <<actor>>
-class "Lecturer Web Interface" as LecturerUI <<boundary>>
+class "Lecturer Web Interface" as LecturerUI <<user interaction>>
 class "Session Control" as SessionControl <<state dependent control>>
 class "Session Rules" as SessionRules <<business logic>>
 class "Attendance Code Rules" as CodeRules <<business logic>>
@@ -820,7 +881,7 @@ Lecturer --> LecturerUI : 1 manage scheduled session
 LecturerUI --> SessionControl : 1.1 request sessions/start/stop/reopen/finalize
 SessionControl --> StudySession : 1.1.1 read assigned sessions
 SessionControl --> SessionRules : 1.1.2 validate lifecycle action
-SessionControl --> AttendanceSession : 1.1.3 activate, stop, reopen, or finalize
+SessionControl --> AttendanceSession : 1.1.3 activate, stop, reopen, stop reopened window, or finalize
 SessionControl --> CodeRules : 1.1.4 prepare and refresh QR/PIN codes
 CodeRules --> AttendanceConfig : 1.1.4.1 read QR/PIN refresh settings
 SessionControl --> AttendanceRecord : 1.1.5 read results, assign Absent, finalize
@@ -839,8 +900,8 @@ SessionControl --> LecturerUI : 2 show lifecycle result
 skinparam style strictuml
 autonumber
 actor "Lecturer" as Lecturer
-participant "Lecturer Web Interface\n«boundary»" as LecturerUI
-participant "Monitor Control\n«control»" as MonitorControl
+participant "Lecturer Web Interface\n«user interaction»" as LecturerUI
+participant "Monitor Control\n«coordinator»" as MonitorControl
 participant "Session Rules\n«business logic»" as SessionRules
 participant "AttendanceSession\n«entity»" as AttendanceSession
 participant "ClassEnrollment\n«entity»" as ClassEnrollment
@@ -862,8 +923,8 @@ alt session is active
   LecturerUI --> Lecturer : show live grid
 
   loop as accepted check-ins occur through UC02 or UC04
-    MonitorControl -> AttendanceRecord : read changed official result
-    AttendanceRecord --> MonitorControl : changed status
+    MonitorControl -> AttendanceRecord : obtain latest official result change
+    AttendanceRecord --> MonitorControl : latest Present or Late status
     MonitorControl --> LecturerUI : update student tile and count
     LecturerUI --> Lecturer : show Present or Late status update
   end
@@ -874,13 +935,15 @@ end
 @enduml
 ```
 
+The monitor interaction is modeled at the business-event level only: accepted QR and PIN check-ins change the official attendance result, and Monitor Control updates the lecturer view from that change. The concrete delivery mechanism is deferred to Design Modeling.
+
 #### **Figure II-14 Communication diagram for UC06 - Monitor Attendance in Real Time**
 
 ```plantuml
 @startuml
 class "Lecturer" as Lecturer <<actor>>
-class "Lecturer Web Interface" as LecturerUI <<boundary>>
-class "Monitor Control" as MonitorControl <<control>>
+class "Lecturer Web Interface" as LecturerUI <<user interaction>>
+class "Monitor Control" as MonitorControl <<coordinator>>
 class "Session Rules" as SessionRules <<business logic>>
 class "AttendanceSession" as AttendanceSession <<entity>>
 class "ClassEnrollment" as ClassEnrollment <<entity>>
@@ -891,7 +954,7 @@ LecturerUI --> MonitorControl : 1.1 request active session monitor
 MonitorControl --> AttendanceSession : 1.1.1 read session status
 MonitorControl --> SessionRules : 1.1.2 verify active session
 MonitorControl --> ClassEnrollment : 1.1.3 read roster
-MonitorControl --> AttendanceRecord : 1.1.4 read current and changed statuses
+MonitorControl --> AttendanceRecord : 1.1.4 obtain current statuses and latest result changes
 MonitorControl --> LecturerUI : 2 update grid and count
 @enduml
 ```
@@ -905,8 +968,8 @@ MonitorControl --> LecturerUI : 2 update grid and count
 skinparam style strictuml
 autonumber
 actor "Lecturer" as Lecturer
-participant "Lecturer Web Interface\n«boundary»" as LecturerUI
-participant "Adjustment Control\n«control»" as AdjustmentControl
+participant "Lecturer Web Interface\n«user interaction»" as LecturerUI
+participant "Adjustment Control\n«coordinator»" as AdjustmentControl
 participant "Session Rules\n«business logic»" as SessionRules
 participant "AttendanceRecord\n«entity»" as AttendanceRecord
 participant "CheckInAttempt\n«entity»" as CheckInAttempt
@@ -941,8 +1004,8 @@ end
 ```plantuml
 @startuml
 class "Lecturer" as Lecturer <<actor>>
-class "Lecturer Web Interface" as LecturerUI <<boundary>>
-class "Adjustment Control" as AdjustmentControl <<control>>
+class "Lecturer Web Interface" as LecturerUI <<user interaction>>
+class "Adjustment Control" as AdjustmentControl <<coordinator>>
 class "Session Rules" as SessionRules <<business logic>>
 class "AttendanceRecord" as AttendanceRecord <<entity>>
 class "CheckInAttempt" as CheckInAttempt <<entity>>
@@ -967,8 +1030,8 @@ AdjustmentControl --> LecturerUI : 2 show success or missing reason
 skinparam style strictuml
 autonumber
 actor "Lecturer" as Lecturer
-participant "Lecturer Web Interface\n«boundary»" as LecturerUI
-participant "Report Control\n«control»" as ReportControl
+participant "Lecturer Web Interface\n«user interaction»" as LecturerUI
+participant "Report Control\n«coordinator»" as ReportControl
 participant "Report Eligibility Rules\n«business logic»" as ReportRules
 participant "ClassEnrollment\n«entity»" as ClassEnrollment
 participant "StudySession\n«entity»" as StudySession
@@ -1004,8 +1067,8 @@ end
 ```plantuml
 @startuml
 class "Lecturer" as Lecturer <<actor>>
-class "Lecturer Web Interface" as LecturerUI <<boundary>>
-class "Report Control" as ReportControl <<control>>
+class "Lecturer Web Interface" as LecturerUI <<user interaction>>
+class "Report Control" as ReportControl <<coordinator>>
 class "Report Eligibility Rules" as ReportRules <<business logic>>
 class "ClassEnrollment" as ClassEnrollment <<entity>>
 class "StudySession" as StudySession <<entity>>
@@ -1032,8 +1095,8 @@ ReportControl --> LecturerUI : 2 return report content or empty state
 skinparam style strictuml
 autonumber
 actor "Admin" as Admin
-participant "Admin Web Interface\n«boundary»" as AdminUI
-participant "Catalog Control\n«control»" as CatalogControl
+participant "Admin Web Interface\n«user interaction»" as AdminUI
+participant "Catalog Control\n«coordinator»" as CatalogControl
 participant "Catalog Uniqueness Rules\n«business logic»" as CatalogRules
 participant "UserAccount\n«entity»" as UserAccount
 participant "StudentProfile\n«entity»" as StudentProfile
@@ -1084,8 +1147,8 @@ end
 ```plantuml
 @startuml
 class "Admin" as Admin <<actor>>
-class "Admin Web Interface" as AdminUI <<boundary>>
-class "Catalog Control" as CatalogControl <<control>>
+class "Admin Web Interface" as AdminUI <<user interaction>>
+class "Catalog Control" as CatalogControl <<coordinator>>
 class "Catalog Uniqueness Rules" as CatalogRules <<business logic>>
 class "UserAccount" as UserAccount <<entity>>
 class "StudentProfile" as StudentProfile <<entity>>
@@ -1116,10 +1179,12 @@ CatalogControl --> AdminUI : 2 return updated grid or validation error
 skinparam style strictuml
 autonumber
 actor "Admin" as Admin
-participant "Admin Web Interface\n«boundary»" as AdminUI
-participant "Room Configuration Control\n«control»" as RoomControl
+participant "Admin Web Interface\n«user interaction»" as AdminUI
+participant "Room Configuration Control\n«coordinator»" as RoomControl
+participant "Mobile Device Sensor Interface\n«device I/O»" as MobileSensor
 participant "Classroom Location Setting Rules\n«business logic»" as LocationSettingRules
 participant "Classroom\n«entity»" as Classroom
+participant "CampusBoundary\n«entity»" as CampusBoundary
 participant "AttendanceConfiguration\n«entity»" as AttendanceConfig
 participant "AuditLog\n«entity»" as AuditLog
 
@@ -1135,6 +1200,10 @@ AdminUI --> Admin : show location and allowed radius form
 
 alt on-site calibration
   Admin -> AdminUI : capture current location
+  AdminUI -> RoomControl : request current calibration location
+  RoomControl -> MobileSensor : read current GPS coordinates
+  MobileSensor --> RoomControl : captured classroom location
+  RoomControl --> AdminUI : captured location values
   AdminUI --> Admin : populate captured location values
 else manual entry
   Admin -> AdminUI : enter classroom center point
@@ -1143,11 +1212,17 @@ end
 Admin -> AdminUI : enter allowed radius and save configuration
 AdminUI -> RoomControl : submit location settings
 RoomControl -> LocationSettingRules : validate classroom location and allowed radius
+LocationSettingRules -> CampusBoundary : check location inside university boundary
+CampusBoundary --> LocationSettingRules : boundary check result
 
 alt invalid coordinate or radius
   LocationSettingRules --> RoomControl : setting value invalid
   RoomControl --> AdminUI : warning to verify location values
   AdminUI --> Admin : show coordinate or radius validation warning
+else location outside university boundary
+  LocationSettingRules --> RoomControl : location outside campus boundary
+  RoomControl --> AdminUI : out-of-bounds location warning
+  AdminUI --> Admin : show campus boundary warning
 else location accepted
   LocationSettingRules --> RoomControl : location settings accepted
   RoomControl -> Classroom : update room location settings
@@ -1163,10 +1238,12 @@ end
 ```plantuml
 @startuml
 class "Admin" as Admin <<actor>>
-class "Admin Web Interface" as AdminUI <<boundary>>
-class "Room Configuration Control" as RoomControl <<control>>
+class "Admin Web Interface" as AdminUI <<user interaction>>
+class "Room Configuration Control" as RoomControl <<coordinator>>
+class "Mobile Device Sensor Interface" as MobileSensor <<device I/O>>
 class "Classroom Location Setting Rules" as LocationSettingRules <<business logic>>
 class "Classroom" as Classroom <<entity>>
+class "CampusBoundary" as CampusBoundary <<entity>>
 class "AttendanceConfiguration" as AttendanceConfig <<entity>>
 class "AuditLog" as AuditLog <<entity>>
 
@@ -1174,8 +1251,10 @@ Admin --> AdminUI : 1 configure classroom location
 AdminUI --> RoomControl : 1.1 request rooms / submit settings
 RoomControl --> Classroom : 1.1.1 read or update classroom settings
 RoomControl --> AttendanceConfig : 1.1.2 read default classroom radius
-RoomControl --> LocationSettingRules : 1.1.3 validate coordinate and radius values
-RoomControl --> AuditLog : 1.1.4 record admin action
+RoomControl --> MobileSensor : 1.1.3 read current location for calibration
+RoomControl --> LocationSettingRules : 1.1.4 validate coordinate, campus boundary, and radius values
+LocationSettingRules --> CampusBoundary : 1.1.4.1 check university boundary
+RoomControl --> AuditLog : 1.1.5 record admin action
 RoomControl --> AdminUI : 2 return saved result or warning
 @enduml
 ```
@@ -1184,11 +1263,11 @@ RoomControl --> AdminUI : 2 return saved result or warning
 
 ## **II.3 State diagrams**
 
-### **II.3.1 AttendanceSession state**
+### **II.3.1 Session Control state**
 
-`AttendanceSession` is state-dependent because UC05 requires a lifecycle from scheduled session selection to active check-in, stopped review, optional short reopen, and finalization.
+`Session Control` is the `«state dependent control»` object for UC05 because it coordinates the lifecycle from scheduled session selection to active check-in, stopped review, optional short reopen, and finalization. The `AttendanceSession` entity records the lifecycle state, but the state machine below belongs to the control object that governs the lifecycle.
 
-#### **Figure II-23 State diagram for AttendanceSession**
+#### **Figure II-23 State diagram for Session Control**
 
 ```plantuml
 @startuml
@@ -1268,37 +1347,39 @@ Exportable --> [*]
 
 | **Requirement / UC** | **Actor** | **Analysis objects** | **Dynamic diagrams** | **Business rules covered** |
 | :--- | :--- | :--- | :--- | :--- |
-| UC01 Authenticate User | Student, Lecturer, Admin | Student Mobile Interface, Lecturer Web Interface, Admin Web Interface, Authentication Control, Authentication Rules, UserAccount | Figure II-3, Figure II-4 | BR-01 |
+| UC01 Authenticate User | Student, Lecturer, Admin | Role-specific Access Interface, Student Mobile Interface, Lecturer Web Interface, Admin Web Interface, Authentication Control, Authentication Rules, UserAccount | Figure II-3, Figure II-4 | BR-01 |
 | UC02 Check In via Dynamic QR Code | Student | Student Mobile Interface, Mobile Device Sensor Interface, Check-in Control, Identity Evidence Rules, Attendance Code Rules, AttendanceConfiguration, Location Distance Calculation, Attendance Status Calculation, AttendanceSession, Classroom, CheckInAttempt, AttendanceRecord, Monitor Control | Figure II-5, Figure II-6, Figure II-24, Figure II-25 | BR-02, BR-03, BR-04, BR-05, BR-06, BR-12, BR-13, NF-06 |
 | UC03 View Personal Attendance History | Student | Student Mobile Interface, Attendance History Control, Authentication Rules, ClassEnrollment, ClassSection, AttendanceRecord | Figure II-7, Figure II-8 | BR-01 |
-| UC04 Check In via PIN Fallback | Student | Student Mobile Interface, Mobile Device Sensor Interface, Check-in Control, Identity Evidence Rules, Attendance Code Rules, AttendanceConfiguration, Location Distance Calculation, Attendance Status Calculation, AttendanceSession, Classroom, CheckInAttempt, AttendanceRecord | Figure II-9, Figure II-10, Figure II-24, Figure II-25 | BR-03, BR-04, BR-05, BR-06, BR-07, BR-12, BR-13, NF-06 |
+| UC04 Check In via PIN Fallback | Student | Student Mobile Interface, Mobile Device Sensor Interface, Check-in Control, Identity Evidence Rules, Attendance Code Rules, AttendanceConfiguration, Location Distance Calculation, Attendance Status Calculation, AttendanceSession, Classroom, CheckInAttempt, AttendanceRecord, Monitor Control | Figure II-9, Figure II-10, Figure II-24, Figure II-25 | BR-03, BR-04, BR-05, BR-06, BR-07, BR-12, BR-13, NF-06 |
 | UC05 Manage Attendance Session | Lecturer | Lecturer Web Interface, Session Control, Session Rules, Attendance Code Rules, AttendanceConfiguration, StudySession, ClassEnrollment, AttendanceSession, CheckInAttempt, AttendanceRecord | Figure II-11, Figure II-12, Figure II-23 | BR-02, BR-06, BR-08, BR-10, BR-12, NF-06 |
 | UC06 Monitor Attendance in Real Time | Lecturer | Lecturer Web Interface, Monitor Control, Session Rules, AttendanceSession, ClassEnrollment, AttendanceRecord | Figure II-13, Figure II-14 | NF-01 |
 | UC07 Adjust Attendance Manually | Lecturer | Lecturer Web Interface, Adjustment Control, Session Rules, AttendanceRecord, CheckInAttempt, AuditLog | Figure II-15, Figure II-16, Figure II-25 | BR-09, BR-10 |
 | UC08 Export Attendance Report | Lecturer | Lecturer Web Interface, Report Control, Report Eligibility Rules, ClassEnrollment, StudySession, AttendanceRecord, CheckInAttempt | Figure II-17, Figure II-18, Figure II-25 | BR-08 |
 | UC09 Manage System Catalog | Admin | Admin Web Interface, Catalog Control, Catalog Uniqueness Rules, UserAccount, StudentProfile, LecturerProfile, Subject, ClassSection, AuditLog | Figure II-19, Figure II-20 | BR-11 |
-| UC10 Configure Classroom Location | Admin | Admin Web Interface, Room Configuration Control, Classroom Location Setting Rules, AttendanceConfiguration, Classroom, AuditLog | Figure II-21, Figure II-22 | BR-03, NF-06 |
+| UC10 Configure Classroom Location | Admin | Admin Web Interface, Mobile Device Sensor Interface, Room Configuration Control, Classroom Location Setting Rules, CampusBoundary, AttendanceConfiguration, Classroom, AuditLog | Figure II-21, Figure II-22 | BR-03, NF-06 |
 | NF-06 Configurable attendance parameters | Student, Lecturer, Admin | AttendanceConfiguration, Attendance Code Rules, Attendance Status Calculation, Room Configuration Control | Figure II-1, Figure II-5, Figure II-9, Figure II-11, Figure II-21 | NF-06 |
 
 ---
 
 ## **II.5 Verification checklist against Section I**
 
-| **Check item** | **Result** | **Evidence in this section** |
+| **Check item** | **Status** | **Evidence in this section** |
 | :--- | :--- | :--- |
 | UC list matches Requirement Section I.5.2 | Pass | UC01-UC10 only; Figures II-3 through II-22 |
 | UC names match Requirement Section I.5.2 | Pass | Headings II.2.1-II.2.10 |
-| Analysis uses COMET stereotypes | Pass | Figures II-1 through II-22 use `«boundary»`, `«control»`, `«state dependent control»`, `«entity»`, `«business logic»`, and `«algorithm»` |
-| Boundary objects delegate through control objects | Pass | Figure II-2 and all interaction diagrams |
-| Static data structure is isolated from behavior views | Pass | Figure II-1 contains only entity classes and relationships; Figure II-2 contains only actors, boundary objects, and control objects; Section II.2 provides use-case-specific behavior diagrams |
-| Mobile device hardware is represented through a boundary object | Pass | Figure II-2, Figure II-5, Figure II-6, Figure II-9, and Figure II-10 use Mobile Device Sensor Interface |
+| Analysis uses detailed COMET stereotypes | Pass | Figures II-1 through II-22 use `«user interaction»`, `«device I/O»`, `«coordinator»`, `«state dependent control»`, `«entity»`, `«business logic»`, and `«algorithm»` |
+| Interface objects delegate through coordinator/control objects | Pass | Figure II-2 and all interaction diagrams |
+| Static data structure is isolated from behavior views | Pass | Figure II-1 contains only entity classes and relationships; Figure II-2 contains only actors, interface objects, and control objects; Section II.2 provides use-case-specific behavior diagrams |
+| Mobile device hardware is represented through a device I/O object | Pass | Figure II-2, Figure II-5, Figure II-6, Figure II-9, Figure II-10, Figure II-21, and Figure II-22 use Mobile Device Sensor Interface |
+| Entity relationships distinguish lifecycle ownership where appropriate | Pass | Figure II-1 uses composition for campus-room containment and study-session-owned attendance lifecycle data |
+| Interface wireframes are included for key actor workflows | Pass | Section II.1.4 covers Student, Lecturer, and Admin wireframes with UC trace notes |
 | NF-06 configurable attendance parameters are represented in Analysis | Pass | AttendanceConfiguration appears in Figure II-1 and is used by Attendance Code Rules, Attendance Status Calculation, and Room Configuration Control |
-| QR/PIN check-in records attempts before official results | Pass | Figures II-5, II-9, II-24 |
+| QR/PIN check-in blocks invalid identity and missing location before official results | Pass | Figures II-5, II-9, II-24 |
 | BR-13 Late threshold is mapped to status calculation | Pass | Figures II-5, II-9, and Figure II-25 use the configured Late threshold |
 | Rejected attempts are retained for lecturer review | Pass | Figures II-5, II-9, II-11, II-24 |
-| UC05 includes start, stop, review, short reopen, adjustment handoff, Absent assignment, completed-list review, and finalization | Pass | Figure II-11 and Figure II-23 |
+| UC05 includes start, stop, review, short reopen, second stop after reopen, adjustment handoff, Absent assignment, completed-list review, and finalization | Pass | Figure II-11 and Figure II-23 |
 | UC07 records previous status, new status, reason, lecturer, and adjustment time | Pass | Figure II-15 |
 | UC08 exports only finalized attendance results | Pass | Figure II-17 and Figure II-25 |
 | Official attendance results exclude Rejected status | Pass | Figure II-1, Figure II-24, Figure II-25 |
-| UC10 validates coordinate and radius values and records audit action | Pass | Figure II-21 |
-| Removed untraced analysis objects and flows | Pass | Old external-login flow, lecturer location storage, campus polygon validation, untraced device lifecycle, network evidence details, and unsupported face-matching threshold are not modeled |
+| UC10 validates coordinate, university campus boundary, and radius values and records audit action | Pass | Figure II-21 |
+| Removed untraced analysis objects and flows | Pass | Old external-login flow, lecturer location storage, untraced device lifecycle, network evidence details, and unsupported face-matching threshold are not modeled |

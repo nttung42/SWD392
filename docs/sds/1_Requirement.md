@@ -728,6 +728,9 @@ This section keeps only the data dictionary needed for Requirement Modeling. Ent
 | ClassroomName | Text | Display name of the room. |
 | ClassroomLocation | Text | Standard classroom location used for attendance validation. |
 | AllowedAttendanceRadius | Decimal | Maximum allowed attendance radius in meters (defaults to 20m). |
+| **CampusBoundary** | | **University campus boundary used to validate classroom configuration** |
+| CampusBoundaryCode | Text | Unique identifier for the campus boundary definition. |
+| BoundaryDescription | Text | Business description of the accepted campus boundary used for classroom location validation. |
 | **Subject** | | **University subject course details** |
 | SubjectCode | Text | Subject code identifier (e.g., `SWD392`). |
 | SubjectName | Text | Detailed course name. |
@@ -754,8 +757,13 @@ This section keeps only the data dictionary needed for Requirement Modeling. Ent
 | QRCodeLastChangedAt | Date/Time | Exact timestamp when the QR attendance code was last refreshed. |
 | BackupPINCode | Text | 6-digit backup fallback attendance code. |
 | PINLastChangedAt | Date/Time | Exact timestamp when the PIN code was last refreshed (valid for 30s). |
-| LecturerLocation | Text | Lecturer's location evidence when session was activated, if available. |
 | SessionStatus | Text | Indicates whether the attendance session is active, stopped, or finalized. |
+| **AttendanceConfiguration** | | **Configurable attendance parameters** |
+| QRRefreshSeconds | Number | Number of seconds between QR code refreshes. |
+| QRValiditySeconds | Number | Maximum number of seconds an attendance QR code remains acceptable. |
+| PINRefreshSeconds | Number | Number of seconds between backup PIN refreshes. |
+| LateThresholdMinutes | Number | Number of minutes after scheduled class start that separates `Present` from `Late`. |
+| DefaultClassroomRadiusMeters | Decimal | Default allowed classroom attendance radius in meters. |
 | **CheckInAttempt** | | **Each QR/PIN submission attempt made by a student** |
 | CheckInAttemptCode | Text | Unique identifier for a submitted check-in attempt. |
 | StudentRollNumber | Text | Referencing the student who attempted check-in. |
@@ -767,7 +775,7 @@ This section keeps only the data dictionary needed for Requirement Modeling. Ent
 | DeviceIdentifier | Text | Device identifier captured as attendance evidence. |
 | DeviceDisplayName | Text | Device display name used during check-in. |
 | FaceEvidenceReference | Text | Reference to face verification proof when fallback identity verification is used. |
-| CheckInMethod | Text | Selected check-in method: `QR`, `PIN`, or `Manual`. |
+| CheckInMethod | Text | Selected student check-in method: `QR` or `PIN`. Manual lecturer changes are represented by the official attendance result source and audit log, not by a student check-in method. |
 | AttemptStatus | Text | Result of the check-in attempt: `Accepted` or `Rejected`. |
 | RejectionReason | Text | Reason why the attempt is rejected, such as `ExpiredCode`, `OutsideLocation`, or `IdentityVerificationFailed`. |
 | **AttendanceRecord** | | **Official attendance result for one student in one study session** |
@@ -775,6 +783,7 @@ This section keeps only the data dictionary needed for Requirement Modeling. Ent
 | StudentRollNumber | Text | Referencing the student. |
 | StudySessionCode | Text | Referencing the study session. |
 | AttendanceStatus | Text | Official attendance status: `Present`, `Late`, or `Absent`. |
+| ResultSource | Text | Source of the official attendance result, such as accepted QR/PIN attempt, absent assignment, or lecturer manual adjustment. |
 | SourceAttemptCode | Text | Reference to the accepted or reviewed check-in attempt, if available. |
 | FinalizedAt | Date/Time | Timestamp when the result became part of the finalized attendance sheet. |
 | **AuditLog** | | **Administrative audit history log** |
@@ -785,4 +794,3 @@ This section keeps only the data dictionary needed for Requirement Modeling. Ent
 | ActionDescription | Text | Detailed description of the logged action. |
 
 ---
-
