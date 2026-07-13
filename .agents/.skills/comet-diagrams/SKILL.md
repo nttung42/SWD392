@@ -29,7 +29,7 @@ Use this skill to produce COMET artifacts with strict phase separation and trace
 ## Phase Routing
 
 - For actor lists, use case diagrams, activity diagrams, and use case descriptions, work in Requirements only.
-- For entity classes, boundary/control/business-logic/algorithm objects, sequence diagrams, communication diagrams, and state machines, work in Analysis only.
+- For entity classes, COMET analysis objects (`«user interaction»`, `«device I/O»`, `«proxy»`, `«coordinator»`, `«state dependent control»`, `«timer»`, `«business logic»`, `«algorithm»`, `«service»`), sequence diagrams, communication diagrams, and state machines, work in Analysis only.
 - For integrated communication diagrams, subsystem structuring, component diagrams, deployment diagrams, active/passive tasks, architecture style, interfaces, design patterns, wrappers, persistence mapping, and quality attribute trade-offs, work in Design only.
 - For consistency checks, produce a quality report and traceability matrix.
 
@@ -44,6 +44,6 @@ Use this skill to produce COMET artifacts with strict phase separation and trace
 ## Fast Validation
 
 - Requirements: zero technology leakage, actor-initiated use cases, actor-visible value.
-- Analysis: every interaction object has a COMET stereotype, boundaries delegate through control or application logic, dynamic behavior follows use case steps.
+- Analysis: every interaction object has a COMET stereotype, boundary objects delegate through coordinator, state dependent control, service, business logic, or algorithm objects, dynamic behavior follows use case steps.
 - Design: subsystem boundaries come from integrated communication, complexity is justified by NFRs, interfaces and communication mechanisms are explicit.
 - Traceability: every artifact can be traced backward to actors and use cases.

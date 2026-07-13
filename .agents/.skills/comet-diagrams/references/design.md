@@ -9,6 +9,7 @@ Use this reference only for Phase 3 Design artifacts.
 - Required Artifacts
 - Architecture Guardrails
 - Subsystem Structuring
+- Architectural Communication Patterns
 - Component and Deployment Design
 - Concurrency and Task Architecture
 - Wrappers and Persistence
@@ -35,6 +36,7 @@ Do not design subsystems before considering the integrated communication view ac
 - Subsystem diagram with explicit subsystem stereotypes.
 - Component diagram with provided and required interfaces for communicating subsystems or services.
 - Deployment diagram when the design includes distributed components, runtime environments, external infrastructure, databases, gateways, or network paths.
+- Architectural communication pattern selection before protocol, channel, or middleware mapping.
 - Concurrent task architecture.
 - Task Interface Specification (TIS) and Task Behavior Specification (TBS) for active tasks.
 - Architecture selection and trade-off explanation.
@@ -58,21 +60,36 @@ Do not design subsystems before considering the integrated communication view ac
 ## Subsystem Structuring
 
 - Build an Integrated Communication Diagram after individual use case interactions and before subsystem partitioning.
+- Prefer individual communication diagrams in Analysis because they can be merged directly into the Integrated Communication Diagram.
+- When Analysis used a sequence diagram for a very long or complex use case, first convert or summarize its lifelines and ordered messages into communication-diagram form before integration.
 - Use interaction density and separation of concerns to group analysis objects into subsystems.
 - Objects that communicate heavily usually belong together unless a quality attribute says otherwise.
 - Classify every subsystem with one primary stereotype:
-  - `«client subsystem»`: User interaction, local presentation flow, client-side validation, display concerns.
+  - `«client subsystem»`: Client-side application responsibilities that may include local presentation flow, client coordination, or validation.
+  - `«user interaction subsystem»`: Human interface behavior and presentation interaction.
+  - `«input/output subsystem»`: Direct interaction with hardware devices, sensors, actuators, or external I/O boundaries.
   - `«service subsystem»`: Passive business or data services.
   - `«control subsystem»`: Real-time, embedded, IoT, device, or process-oriented control.
   - `«coordinator subsystem»`: Workflow orchestration across services, agents, or distributed components.
 - Justify borderline classifications with traceability and quality attributes.
 
+## Architectural Communication Patterns
+
+Select the COMET communication pattern before mapping it to a concrete protocol, channel, or middleware.
+
+- Synchronous message communication with reply: sender waits for a response before continuing.
+- Asynchronous message communication: sender posts a message and continues without waiting for a reply.
+- Asynchronous message communication with callback: sender continues, then receives a later callback or completion notification.
+- Subscription/notification (multicast): publisher notifies multiple subscribers without direct point-to-point coupling.
+
+After selecting the pattern, map it to a concrete design mechanism only if the design phase requires implementation detail.
+
 ## Component and Deployment Design
 
 - Model component dependencies with provided and required interfaces.
-- Label every cross-subsystem connector with a concrete protocol or channel.
-- Map synchronous communication to explicit protocols such as REST/HTTPS, gRPC, GraphQL over HTTPS, TCP, or domain-specific device protocols.
-- Map asynchronous communication to explicit channels such as Kafka, RabbitMQ, MQTT, AMQP, WebSocket events, message bus, or pub/sub topic.
+- Label every cross-subsystem connector with its COMET communication pattern.
+- When concrete design detail is required, map synchronous-with-reply communication to explicit protocols such as REST/HTTPS, gRPC, GraphQL over HTTPS, TCP, or domain-specific device protocols.
+- When concrete design detail is required, map asynchronous, callback, or subscription/notification communication to explicit channels such as Kafka, RabbitMQ, MQTT, AMQP, WebSocket events, message bus, or pub/sub topic.
 - Use an API Gateway or edge service when external clients interact with multiple service subsystems.
 - Keep internal service-to-service communication behind the edge boundary when using a gateway.
 - Map components to physical or virtual nodes such as client devices, load balancers, application servers, worker nodes, database servers, message brokers, device controllers, or cloud execution environments.
@@ -82,8 +99,11 @@ Do not design subsystems before considering the integrated communication view ac
 ## Concurrency and Task Architecture
 
 - Classify objects as active tasks or passive objects.
-- Classify active tasks as periodic or demand-driven.
-- Define synchronous, asynchronous, pub/sub, or event-driven communication.
+- Classify active tasks as event-driven, periodic, or demand-driven.
+- Use event-driven tasks for user interaction and I/O tasks awakened by external input, interrupts, or environment events.
+- Use periodic tasks for repeated sampling, polling, monitoring, or algorithm cycles.
+- Use demand-driven tasks for tasks awakened by internal requests or messages.
+- Define the communication pattern: synchronous with reply, asynchronous, asynchronous with callback, or subscription/notification.
 - For distributed asynchronous communication, specify message structure and buffering.
 
 ### Task Interface Specification Template
@@ -92,12 +112,14 @@ Do not design subsystems before considering the integrated communication view ac
 ### Task Interface Specification: <TaskName>
 
 **Task Type:** Active
-**Trigger:** Periodic every <interval> / Demand-driven by <event>
+**Activation:** Event-driven / Periodic / Demand-driven
+**Trigger:** External event or interrupt / Periodic every <interval> / Internal request or message
 **Provided Interface:** <operations/messages accepted>
 **Required Interface:** <dependencies called or messages produced>
 **Input Messages/Data:** <name, fields, constraints>
 **Output Messages/Data:** <name, fields, constraints>
-**Communication:** Synchronous / Asynchronous / Pub-sub / Event-driven
+**Communication Pattern:** Synchronous with reply / Asynchronous / Asynchronous with callback / Subscription-notification
+**Technology Mapping:** <protocol/channel/middleware, if design detail is required>
 **Buffering:** <queue size, overflow policy, ordering, retry>
 **Traceability:** <UC/control/subsystem>
 ```
@@ -178,6 +200,9 @@ For non-trivial design outputs, include a focused quality attribute mapping tabl
 | Availability | <retry/fallback/replication/failover> | <message/task> | <cost> | <UC/NFR> |
 | Security | <authentication/authorization/encryption/audit> | <interface/component> | <cost> | <UC/NFR> |
 | Modifiability | <patterns/wrappers/component boundaries> | <class/component> | <cost> | <UC/NFR> |
+| Testability | <interfaces/mocks/task isolation/test harness> | <component/interface/task> | <cost> | <UC/NFR> |
+| Reusability | <componentization/service contracts/generalized interfaces> | <component/subsystem/interface> | <cost> | <UC/NFR> |
+| Traceability | <UC-to-interaction-to-component mapping> | <integrated communication diagram/component/interface> | <documentation effort> | <UC/actor/NFR> |
 
 ### Architecture Trade-off Template
 
@@ -191,15 +216,17 @@ For non-trivial design outputs, include a focused quality attribute mapping tabl
 **Traceability:** <related use cases and analysis objects>
 ```
 
-### Asynchronous Message Specification Template
+### Message Communication Specification Template
 
 ```markdown
 ### Message: <MessageName>
 
 **Producer:** <subsystem/task>
 **Consumer:** <subsystem/task>
-**Delivery:** Asynchronous
-**Buffering:** <queue/buffer policy at design level>
+**COMET Communication Pattern:** Synchronous with reply / Asynchronous / Asynchronous with callback / Subscription-notification
+**Technology Mapping:** <protocol/channel/middleware, if required>
+**Delivery:** <blocking/non-blocking/callback/multicast>
+**Buffering:** <queue/buffer policy at design level; required for asynchronous communication>
 **Payload:**
 - fieldName: Type - meaning
 **Ordering:** <required/not required>
@@ -214,12 +241,13 @@ For non-trivial design outputs, include a focused quality attribute mapping tabl
 - Architectural complexity is proportional to stated NFRs.
 - Complex infrastructure choices cite a concrete NFR, topology reason, or quality attribute.
 - Component diagrams show provided and required interfaces.
-- Connectors specify protocols or channels.
+- Connectors specify COMET communication patterns before concrete protocols or channels.
 - Deployment diagrams map components to nodes, execution environments, and network paths.
 - Distributed asynchronous communication defines message structure and buffering.
+- Active tasks are classified as event-driven, periodic, or demand-driven.
 - TIS and TBS are provided for active tasks in concurrent or real-time designs.
 - Wrappers isolate databases, external systems, hardware, and legacy integrations.
 - Interfaces include parameters, returns, preconditions, postconditions, and invariants.
-- Architectural trade-offs cite quality attributes with concrete mechanisms.
+- Architectural trade-offs cite quality attributes with concrete mechanisms, including traceability, testability, and reusability where relevant.
 
 Load [plantuml-templates.md](plantuml-templates.md) only when PlantUML syntax examples are needed.

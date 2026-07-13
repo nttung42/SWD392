@@ -8,6 +8,7 @@ Use this reference only when producing executable PlantUML blocks.
   - Use Case Diagram
   - Activity Diagram
 - Analysis Templates
+  - Communication Diagram
   - Sequence Diagram
   - State Machine
 - Design Templates
@@ -65,22 +66,42 @@ stop
 
 ## Analysis Templates
 
+### Communication Diagram
+
+Use this as the default interaction diagram for ordinary COMET use cases.
+
+```plantuml
+@startuml
+object "Order UI\n«user interaction»" as UI
+object "Order Coordinator\n«coordinator»" as Coordinator
+object "Pricing Rules\n«business logic»" as Pricing
+object "Order\n«entity»" as Order
+
+UI --> Coordinator : 1: request order placement
+Coordinator --> Pricing : 1.1: validate pricing
+Coordinator --> Order : 1.2: create order record
+Coordinator --> UI : 1.3: return placement result
+@enduml
+```
+
 ### Sequence Diagram
+
+Use this only for very long, deeply conditional, or loop-heavy interactions.
 
 ```plantuml
 @startuml
 actor "Customer" as Customer
-participant "Order UI\n«boundary»" as UI
-participant "Order Control\n«control»" as Control
+participant "Order UI\n«user interaction»" as UI
+participant "Order Coordinator\n«coordinator»" as Coordinator
 participant "Order\n«entity»" as Order
 participant "Pricing Rules\n«business logic»" as Pricing
 
 Customer -> UI: submit order information
-UI -> Control: request order placement
-Control -> Pricing: validate pricing
-Pricing --> Control: pricing result
-Control -> Order: create order record
-Control --> UI: placement result
+UI -> Coordinator: request order placement
+Coordinator -> Pricing: validate pricing
+Pricing --> Coordinator: pricing result
+Coordinator -> Order: create order record
+Coordinator --> UI: placement result
 UI --> Customer: show confirmation
 @enduml
 ```
@@ -106,20 +127,20 @@ Use the simple modular templates first unless the Requirements, NFRs, topology, 
 
 ```plantuml
 @startuml
-object "Order UI\n«boundary»" as OrderUI
-object "Order Control\n«control»" as OrderControl
-object "Payment Control\n«control»" as PaymentControl
+object "Order UI\n«user interaction»" as OrderUI
+object "Order Coordinator\n«coordinator»" as OrderCoordinator
+object "Payment Coordinator\n«coordinator»" as PaymentCoordinator
 object "Pricing Rules\n«business logic»" as PricingRules
 object "Fraud Check\n«algorithm»" as FraudCheck
 object "Order\n«entity»" as Order
 object "Payment\n«entity»" as Payment
 
-OrderUI --> OrderControl : UC-01 submit order
-OrderControl --> PricingRules : UC-01 calculate total
-OrderControl --> PaymentControl : UC-01 request payment
-PaymentControl --> FraudCheck : UC-02 assess risk
-OrderControl --> Order : UC-01 create/update
-PaymentControl --> Payment : UC-02 create/update
+OrderUI --> OrderCoordinator : UC-01 submit order
+OrderCoordinator --> PricingRules : UC-01 calculate total
+OrderCoordinator --> PaymentCoordinator : UC-01 request payment
+PaymentCoordinator --> FraudCheck : UC-02 assess risk
+OrderCoordinator --> Order : UC-01 create/update
+PaymentCoordinator --> Payment : UC-02 create/update
 @enduml
 ```
 
@@ -129,7 +150,7 @@ Use this when the system can be deployed as one application while preserving cle
 
 ```plantuml
 @startuml
-package "User Interface\n«client subsystem»" as UI {
+package "User Interface\n«user interaction subsystem»" as UI {
   package "Presentation Module" as Presentation
 }
 
@@ -138,10 +159,10 @@ package "Payment Handling\n«service subsystem»" as PaymentModule
 package "Inventory Management\n«service subsystem»" as InventoryModule
 package "Shared Domain Rules\n«service subsystem»" as DomainRules
 
-Presentation --> OrderModule : in-process call
-OrderModule --> DomainRules : in-process call
-OrderModule --> PaymentModule : in-process call
-OrderModule --> InventoryModule : in-process call
+Presentation --> OrderModule : synchronous with reply
+OrderModule --> DomainRules : synchronous with reply
+OrderModule --> PaymentModule : synchronous with reply
+OrderModule --> InventoryModule : synchronous with reply
 @enduml
 ```
 
@@ -211,16 +232,18 @@ Use this only when separate deployability, scale, reliability, ownership, or top
 
 ```plantuml
 @startuml
-package "Web App\n«client subsystem»" as WebApp
+package "Web App\n«user interaction subsystem»" as WebApp
 package "Order Coordination\n«coordinator subsystem»" as OrderCoord
 package "Payment Service\n«service subsystem»" as PaymentSvc
 package "Inventory Service\n«service subsystem»" as InventorySvc
+package "Device I/O\n«input/output subsystem»" as DeviceIO
 package "Device Control\n«control subsystem»" as DeviceControl
 
-WebApp --> OrderCoord
-OrderCoord --> PaymentSvc
-OrderCoord --> InventorySvc
-OrderCoord --> DeviceControl
+WebApp --> OrderCoord : synchronous with reply
+OrderCoord --> PaymentSvc : synchronous with reply
+OrderCoord --> InventorySvc : asynchronous
+DeviceIO --> DeviceControl : asynchronous callback
+DeviceControl --> OrderCoord : subscription/notification
 @enduml
 ```
 
@@ -236,11 +259,11 @@ component "Payment Component" as Payment
 interface "IOrderPlacement" as IOrderPlacement
 interface "IPaymentAuthorization" as IPaymentAuthorization
 
-Gateway ..> IOrderPlacement : HTTPS/REST
+Gateway ..> IOrderPlacement : synchronous with reply; HTTPS/REST
 Ordering - IOrderPlacement
 Ordering ..> IPaymentAuthorization : requires
 Payment - IPaymentAuthorization
-Ordering ..> Payment : gRPC
+Ordering ..> Payment : synchronous with reply; gRPC
 @enduml
 ```
 

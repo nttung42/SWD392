@@ -52,7 +52,7 @@ Every artifact must trace backward:
 
 - All analysis classes have stereotypes.
 - All sequence or communication diagram lifelines have stereotypes.
-- Boundary objects delegate through control or application logic.
+- Boundary objects (`«user interaction»`, `«device I/O»`, `«input»`, `«output»`, `«proxy»`) delegate through `«coordinator»`, `«state dependent control»`, `«service»`, `«business logic»`, or `«algorithm»`.
 - Entity objects are not manipulated directly by actors or boundaries.
 - Alternatives and exceptions from use cases are modeled.
 - State machines exist for strongly state-dependent controls.
@@ -65,10 +65,11 @@ Every artifact must trace backward:
 - Architectural complexity is proportional to stated NFRs.
 - Complex infrastructure choices cite a concrete NFR, topology reason, or quality attribute.
 - The simplest viable architecture is considered before distributed alternatives.
-- Subsystems are classified as `«client subsystem»`, `«service subsystem»`, `«control subsystem»`, or `«coordinator subsystem»`.
+- Subsystems are classified as `«client subsystem»`, `«user interaction subsystem»`, `«input/output subsystem»`, `«service subsystem»`, `«control subsystem»`, or `«coordinator subsystem»`.
 - Active/passive task classification is explicit.
-- Active tasks are classified as periodic or demand-driven.
-- Communication type and protocol/channel are explicit.
+- Active tasks are classified as event-driven, periodic, or demand-driven.
+- COMET communication pattern is selected before protocol/channel mapping.
+- Communication pattern and any required protocol/channel are explicit.
 - Component diagrams show provided and required interfaces.
 - Deployment diagrams map components to physical or virtual nodes, execution environments, and network paths.
 - Distributed asynchronous communication defines message structure and buffering.
@@ -79,10 +80,10 @@ Every artifact must trace backward:
 - Distributed service designs avoid direct shared database access across service subsystems.
 - GoF patterns are named, justified, and linked to quality attributes.
 - Interfaces include parameters, returns, preconditions, postconditions, and invariants.
-- Architectural trade-offs cite quality attributes with concrete mechanisms.
+- Architectural trade-offs cite quality attributes with concrete mechanisms, including traceability, testability, and reusability where relevant.
 
 ## Severity Guidance
 
-- High: phase leakage, missing actor/use case source, boundary directly manipulating entity, unsupported distributed architecture, missing critical traceability.
-- Medium: incomplete alternatives, missing stereotypes, vague subsystem boundary, connector without protocol, interface missing contract fields.
+- High: phase leakage, missing actor/use case source, boundary object directly manipulating entity, unsupported distributed architecture, missing critical traceability.
+- Medium: incomplete alternatives, missing stereotypes, vague subsystem boundary, connector without communication pattern, interface missing contract fields.
 - Low: naming inconsistency, minor PlantUML style issue, traceability note that is present but imprecise.
