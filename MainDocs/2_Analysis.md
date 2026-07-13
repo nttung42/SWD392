@@ -75,101 +75,11 @@ AC --> User : 3: Return Session Token / Redirect
 
 ---
 
-### **2. UC02: Register Device UUID**
-
-#### **Figure II-2A: Sequence Diagram for UC02 - Register Device UUID**
-```plantuml
-@startuml
-skinparam style strictuml
-autonumber
-actor SV as "Student"
-boundary SAF as "StudentAppForm"
-boundary MD as "MobileDeviceHardware"
-control DBC as "DeviceBindingController"
-entity ST as "Student"
-boundary OTP as "EmailOtpGateway"
-entity SL as "SystemLog"
-
-SV -> SAF : Login on mobile device
-activate SAF
-SAF -> MD : GetDeviceUUID()
-activate MD
-MD --> SAF : DeviceUUID
-deactivate MD
-SAF -> DBC : CheckBinding(StudentId, DeviceUUID)
-activate DBC
-DBC -> ST : ReadStudentBinding(StudentId)
-activate ST
-ST --> DBC : Current DeviceUUID or null
-deactivate ST
-
-alt Case A: First login (no device bound yet)
-    DBC -> ST : SaveDeviceUUID(DeviceUUID)
-    DBC -> SL : WriteLog(StudentId, Action="Device_Bound")
-    DBC --> SAF : Binding success
-    SAF --> SV : Redirect to mobile dashboard
-else Case B: Bound device matches
-    DBC --> SAF : Device trusted
-    SAF --> SV : Redirect to mobile dashboard
-else Case C: Bound device mismatch (reset required)
-    DBC --> SAF : Device mismatch, reset required
-    deactivate DBC
-    SAF --> SV : Display "Device mismatch, request reset"
-    SV -> SAF : Click "Request Reset"
-    SAF -> DBC : RequestResetOTP(StudentId)
-    activate DBC
-    DBC -> OTP : SendOtpEmail(StudentEmail)
-    activate OTP
-    OTP --> DBC : Email sent
-    deactivate OTP
-    DBC --> SAF : OTP sent successfully
-    deactivate DBC
-    SAF --> SV : Display OTP input screen
-    SV -> SAF : Enter OTP and click "Submit"
-    SAF -> DBC : VerifyOtpAndRebind(StudentId, OTP, DeviceUUID)
-    activate DBC
-    DBC -> OTP : VerifyOTP(StudentEmail, OTP)
-    activate OTP
-    OTP --> DBC : OTP Valid
-    deactivate OTP
-    DBC -> ST : ReplaceDeviceUUID(DeviceUUID)
-    DBC -> SL : WriteLog(StudentId, Action="Device_Reset_Success")
-    DBC --> SAF : Rebind success
-    deactivate DBC
-    SAF --> SV : Rebind successful, redirect to dashboard
-end
-deactivate SAF
-@enduml
-```
-
-#### **Figure II-2B: Communication Diagram for UC02 - Register Device UUID**
-```plantuml
-@startuml
-class Student as SV <<actor>>
-class StudentAppForm as SAF <<boundary>>
-class MobileDeviceHardware as MD <<boundary>>
-class DeviceBindingController as DBC <<control>>
-class Student as ST <<entity>>
-class EmailOtpGateway as OTP <<boundary>>
-class SystemLog as SL <<entity>>
-
-SV --> SAF : 1: Login / Request Reset
-SAF --> MD : 1.1: GetDeviceUUID()
-SAF --> DBC : 2: CheckBinding() / VerifyOtpAndRebind()
-DBC --> ST : 2.1: ReadStudentBinding() / SaveDeviceUUID()
-DBC --> OTP : 2.2: SendOtpEmail() / VerifyOTP()
-DBC --> SL : 2.3: WriteLog()
-DBC --> SAF : 3: Return status/redirect
-@enduml
-```
-
----
-
-### **3. UC03: Scan Dynamic QR Check-in**
+### **2. UC02: Scan Dynamic QR Check-in**
 
 To ensure clarity and handle complex anti-fraud logic without cluttering the diagrams, the interaction is split into one Happy Path scenario and three separate Exception Scenario diagrams.
 
-#### **Figure II-3A1: Sequence Diagram for UC03 - Happy Path Scenario**
+#### **Figure II-2A1: Sequence Diagram for UC02 - Happy Path Scenario**
 ```plantuml
 @startuml
 skinparam style strictuml
@@ -179,32 +89,30 @@ boundary SAF as "StudentAppForm"
 control AC as "AttendanceController"
 entity V as "AttendanceVersion"
 entity R as "Room"
-entity ST as "Student"
 entity AR as "AttendanceRecord"
 
 Student -> SAF : Tap "Scan QR Check-in"
 activate SAF
-note over SAF : 1. Locally verifies Student Face ID\n2. Acquires GPS, Device UUID, Wifi SSID, & IP\n3. Scans dynamic QR token
-SAF -> AC : SubmitAttendance(StudentId, DynamicToken, Coordinates, DeviceUUID, WifiSSID, PublicIP)
+note over SAF : 1. Locally verifies Student Face ID\n2. Acquires GPS, Device UUID, Device Name, Wifi SSID, & IP\n3. Scans dynamic QR token
+SAF -> AC : SubmitAttendance(StudentId, DynamicToken, Coordinates, DeviceUUID, DeviceName, WifiSSID, PublicIP)
 activate AC
 
 AC -> V : ValidateToken(DynamicToken)
 activate V
-V --> AC : TokenStatus = Valid
+V --> AC : TokenStatus = Valid, LecturerCoordinates
 deactivate V
 
-AC -> R : VerifyProximity(Coordinates)
-activate R
-note over R : Calculates Haversine distance\nand checks against AllowedRadius
-R --> AC : ProximityResult = InRadius(Distance)
-deactivate R
+alt Case A: LecturerCoordinates are available
+    AC -> AC : VerifyProximity(Coordinates, LecturerCoordinates)
+else Case B: LecturerCoordinates are null
+    AC -> R : VerifyProximity(Coordinates)
+    activate R
+    note over R : Calculates Haversine distance\nand checks against AllowedRadius of the classroom
+    R --> AC : ProximityResult = InRadius(Distance)
+    deactivate R
+end
 
-AC -> ST : VerifyDeviceBinding(DeviceUUID)
-activate ST
-ST --> AC : IsMatched = True
-deactivate ST
-
-AC -> AR : CreateRecord(StudentId, Distance, DeviceUUID, WifiSSID, Status="Present", Mode="QR")
+AC -> AR : CreateRecord(StudentId, Distance, DeviceUUID, DeviceName, WifiSSID, PublicIP, Status="Present", Mode="QR")
 activate AR
 AR --> AC : RecordSaved = True
 deactivate AR
@@ -216,7 +124,7 @@ deactivate SAF
 @enduml
 ```
 
-#### **Figure II-3A2: Sequence Diagram for UC03 - Exception Scenario: Token Expired**
+#### **Figure II-2A2: Sequence Diagram for UC02 - Exception Scenario: Token Expired**
 ```plantuml
 @startuml
 skinparam style strictuml
@@ -228,7 +136,7 @@ entity V as "AttendanceVersion"
 
 Student -> SAF : Scan QR on screen
 activate SAF
-SAF -> AC : SubmitAttendance(StudentId, DynamicToken, Coordinates, DeviceUUID, WifiSSID, PublicIP)
+SAF -> AC : SubmitAttendance(StudentId, DynamicToken, Coordinates, DeviceUUID, DeviceName, WifiSSID, PublicIP)
 activate AC
 
 AC -> V : ValidateToken(DynamicToken)
@@ -257,7 +165,7 @@ entity AR as "AttendanceRecord"
 
 Student -> SAF : Scan QR on screen
 activate SAF
-SAF -> AC : SubmitAttendance(StudentId, DynamicToken, Coordinates, DeviceUUID, WifiSSID, PublicIP)
+SAF -> AC : SubmitAttendance(StudentId, DynamicToken, Coordinates, DeviceUUID, DeviceName, WifiSSID, PublicIP)
 activate AC
 
 AC -> V : ValidateToken(DynamicToken)
@@ -282,46 +190,9 @@ deactivate SAF
 @enduml
 ```
 
-#### **Figure II-3A4: Sequence Diagram for UC03 - Exception Scenario: Device UUID Mismatch**
-```plantuml
-@startuml
-skinparam style strictuml
-autonumber
-actor Student as "Student"
-boundary SAF as "StudentAppForm"
-control AC as "AttendanceController"
-entity V as "AttendanceVersion"
-entity R as "Room"
-entity ST as "Student"
 
-Student -> SAF : Scan QR on screen
-activate SAF
-SAF -> AC : SubmitAttendance(StudentId, DynamicToken, Coordinates, DeviceUUID, WifiSSID, PublicIP)
-activate AC
 
-AC -> V : ValidateToken(DynamicToken)
-activate V
-V --> AC : TokenStatus = Valid
-deactivate V
-
-AC -> R : VerifyProximity(Coordinates)
-activate R
-R --> AC : ProximityResult = InRadius(Distance)
-deactivate R
-
-AC -> ST : VerifyDeviceBinding(DeviceUUID)
-activate ST
-ST --> AC : IsMatched = False
-deactivate ST
-
-AC --> SAF : Result = Failure("Device UUID mismatch")
-deactivate AC
-SAF --> Student : Show error "Device UUID mismatch. Attendance must be logged on your registered device."
-deactivate SAF
-@enduml
-```
-
-#### **Figure II-3B: Communication Diagram for UC03 - Scan Dynamic QR Check-in**
+#### **Figure II-2B: Communication Diagram for UC02 - Scan Dynamic QR Check-in**
 ```plantuml
 @startuml
 class Student as Student <<actor>>
@@ -329,24 +200,22 @@ class StudentAppForm as SAF <<boundary>>
 class AttendanceController as AC <<control>>
 class AttendanceVersion as V <<entity>>
 class Room as R <<entity>>
-class Student as ST <<entity>>
 class AttendanceRecord as AR <<entity>>
 
 Student --> SAF : 1: Scan QR Check-in
 SAF --> AC : 2: SubmitAttendance()
 AC --> V : 2.1: ValidateToken()
-AC --> R : 2.2: VerifyProximity()
-AC --> ST : 2.3: VerifyDeviceBinding()
-AC --> AR : 2.4: CreateRecord()
+AC --> R : 2.2: VerifyProximity() (if fallback)
+AC --> AR : 2.3: CreateRecord()
 AC --> SAF : 3: Return Result
 @enduml
 ```
 
 ---
 
-### **4. UC04: View Attendance History**
+### **3. UC03: View Attendance History**
 
-#### **Figure II-4A: Sequence Diagram for UC04 - View Attendance History**
+#### **Figure II-3A: Sequence Diagram for UC03 - View Attendance History**
 ```plantuml
 @startuml
 skinparam style strictuml
@@ -381,7 +250,7 @@ deactivate SAF
 @enduml
 ```
 
-#### **Figure II-4B: Communication Diagram for UC04 - View Attendance History**
+#### **Figure II-3B: Communication Diagram for UC03 - View Attendance History**
 ```plantuml
 @startuml
 class Student as SV <<actor>>
@@ -402,11 +271,11 @@ AC --> SAF : 2: Return history data
 
 ---
 
-### **5. UC05: PIN Fallback Check-in**
+### **4. UC04: PIN Fallback Check-in**
 
 This use case provides a manual fallback when the projector QR scanner cannot be scanned. The student manually inputs the 6-digit PIN displayed on the classroom screen.
 
-#### **Figure II-5A: Sequence Diagram for UC05 - PIN Fallback Check-in (Happy Path Scenario)**
+#### **Figure II-4A: Sequence Diagram for UC04 - PIN Fallback Check-in (Happy Path Scenario)**
 ```plantuml
 @startuml
 skinparam style strictuml
@@ -416,33 +285,31 @@ boundary SAF as "StudentAppForm"
 control AC as "AttendanceController"
 entity V as "AttendanceVersion"
 entity R as "Room"
-entity ST as "Student"
 entity AR as "AttendanceRecord"
 
 Student -> SAF : Tap "PIN Check-in"
 activate SAF
-note over SAF : 1. Locally verifies Student Face ID\n2. Acquires GPS, Device UUID\n3. Displays PIN input screen
+note over SAF : 1. Locally verifies Student Face ID\n2. Acquires GPS, Device UUID, Device Name, & IP\n3. Displays PIN input screen
 Student -> SAF : Enter PIN code "847291"
 
-SAF -> AC : SubmitPINAttendance(StudentId, PINCode, Coordinates, DeviceUUID)
+SAF -> AC : SubmitPINAttendance(StudentId, PINCode, Coordinates, DeviceUUID, DeviceName, PublicIP)
 activate AC
 
 AC -> V : ValidatePIN(PINCode)
 activate V
-V --> AC : PINStatus = Valid
+V --> AC : PINStatus = Valid, LecturerCoordinates
 deactivate V
 
-AC -> R : VerifyProximity(Coordinates)
-activate R
-R --> AC : ProximityResult = InRadius(Distance)
-deactivate R
+alt Case A: LecturerCoordinates are available
+    AC -> AC : VerifyProximity(Coordinates, LecturerCoordinates)
+else Case B: LecturerCoordinates are null
+    AC -> R : VerifyProximity(Coordinates)
+    activate R
+    R --> AC : ProximityResult = InRadius(Distance)
+    deactivate R
+end
 
-AC -> ST : VerifyDeviceBinding(DeviceUUID)
-activate ST
-ST --> AC : IsMatched = True
-deactivate ST
-
-AC -> AR : CreateRecord(StudentId, Distance, DeviceUUID, Status="Present", Mode="PIN")
+AC -> AR : CreateRecord(StudentId, Distance, DeviceUUID, DeviceName, WifiSSID="", PublicIP, Status="Present", Mode="PIN")
 activate AR
 AR --> AC : RecordSaved = True
 deactivate AR
@@ -454,9 +321,9 @@ deactivate SAF
 @enduml
 ```
 
-*Note: The alternative flow exception paths (PIN Expired, Location Out of Geofence, and Device Mismatch) follow the exact corresponding logic structures depicted in Figures II-3A2, II-3A3, and II-3A4, with the dynamic token verification replaced by the 6-digit PIN check.*
+*Note: The alternative flow exception paths (PIN Expired, Location Out of Geofence, and Device Mismatch) follow the exact corresponding logic structures depicted in Figures II-2A2 and II-2A3, with the dynamic token verification replaced by the 6-digit PIN check.*
 
-#### **Figure II-5B: Communication Diagram for UC05 - PIN Fallback Check-in**
+#### **Figure II-4B: Communication Diagram for UC04 - PIN Fallback Check-in**
 ```plantuml
 @startuml
 class Student as Student <<actor>>
@@ -464,24 +331,22 @@ class StudentAppForm as SAF <<boundary>>
 class AttendanceController as AC <<control>>
 class AttendanceVersion as V <<entity>>
 class Room as R <<entity>>
-class Student as ST <<entity>>
 class AttendanceRecord as AR <<entity>>
 
 Student --> SAF : 1: Tap PIN Check-in / Submit PIN
 SAF --> AC : 2: SubmitPINAttendance()
 AC --> V : 2.1: ValidatePIN()
-AC --> R : 2.2: VerifyProximity()
-AC --> ST : 2.3: VerifyDeviceBinding()
-AC --> AR : 2.4: CreateRecord()
+AC --> R : 2.2: VerifyProximity() (if fallback)
+AC --> AR : 2.3: CreateRecord()
 AC --> SAF : 3: Return Result
 @enduml
 ```
 
 ---
 
-### **6. UC06: Activate Dynamic QR Session**
+### **5. UC05: Activate Dynamic QR Session**
 
-#### **Figure II-6A: Sequence Diagram for UC06 - Activate Dynamic QR Session**
+#### **Figure II-5A: Sequence Diagram for UC05 - Activate Dynamic QR Session**
 ```plantuml
 @startuml
 skinparam style strictuml
@@ -509,12 +374,13 @@ deactivate LWP
 
 GV -> LWP : Click "Start Attendance"
 activate LWP
-LWP -> SC : ActivateAttendanceSession(SessionId)
+note over LWP : Acquires Lecturer GPS coordinates (if available)
+LWP -> SC : ActivateAttendanceSession(SessionId, LecturerLatitude, LecturerLongitude)
 activate SC
 
 SC -> SC : VerifySessionTimeWindow()
 
-SC -> V : InitializeVersion(SessionId)
+SC -> V : InitializeVersion(SessionId, LecturerLatitude, LecturerLongitude)
 activate V
 V --> SC : AttendanceVersion Created (IsActive=True)
 deactivate V
@@ -556,7 +422,7 @@ end
 @enduml
 ```
 
-#### **Figure II-6B: Communication Diagram for UC06 - Activate Dynamic QR Session**
+#### **Figure II-5B: Communication Diagram for UC05 - Activate Dynamic QR Session**
 ```plantuml
 @startuml
 class Lecturer as GV <<actor>>
@@ -569,10 +435,10 @@ class PINRefreshTimer as PT <<control>>
 
 GV --> LWP : 1: Click Start Attendance
 LWP --> SC : 1.1: GetSessionDetails()
-LWP --> SC : 1.2: ActivateAttendanceSession()
+LWP --> SC : 1.2: ActivateAttendanceSession(SessionId, Lat, Lon)
 
 SC --> S : 1.1.1: ReadSessionInfo()
-SC --> V : 1.2.1: InitializeVersion()
+SC --> V : 1.2.1: InitializeVersion(SessionId, Lat, Lon)
 SC --> QT : 1.2.2: StartTimer(10s)
 SC --> PT : 1.2.3: StartTimer(30s)
 
@@ -583,9 +449,9 @@ PT --> LWP : 3: OnTimerTick() / PushPIN()
 
 ---
 
-### **7. UC07: Real-time Attendance Monitor**
+### **6. UC06: Real-time Attendance Monitor**
 
-#### **Figure II-7A: Sequence Diagram for UC07 - Real-time Attendance Monitor**
+#### **Figure II-6A: Sequence Diagram for UC06 - Real-time Attendance Monitor**
 ```plantuml
 @startuml
 skinparam style strictuml
@@ -632,7 +498,7 @@ end
 @enduml
 ```
 
-#### **Figure II-7B: Communication Diagram for UC07 - Real-time Attendance Monitor**
+#### **Figure II-6B: Communication Diagram for UC06 - Real-time Attendance Monitor**
 ```plantuml
 @startuml
 class Lecturer as GV <<actor>>
@@ -653,9 +519,9 @@ LWP --> LWP : 2.1: UpdateStudentTile() / UpdateCounter()
 
 ---
 
-### **8. UC08: Manual Attendance Adjustment**
+### **7. UC07: Manual Attendance Adjustment**
 
-#### **Figure II-8A: Sequence Diagram for UC08 - Manual Attendance Adjustment**
+#### **Figure II-7A: Sequence Diagram for UC07 - Manual Attendance Adjustment**
 ```plantuml
 @startuml
 skinparam style strictuml
@@ -700,7 +566,7 @@ deactivate LWP
 @enduml
 ```
 
-#### **Figure II-8B: Communication Diagram for UC08 - Manual Attendance Adjustment**
+#### **Figure II-7B: Communication Diagram for UC07 - Manual Attendance Adjustment**
 ```plantuml
 @startuml
 class Lecturer as GV <<actor>>
@@ -719,9 +585,9 @@ AC --> LWP : 2: Return Success
 
 ---
 
-### **9. UC09: Export Attendance Report**
+### **8. UC08: Export Attendance Report**
 
-#### **Figure II-9A: Sequence Diagram for UC09 - Export Attendance Report**
+#### **Figure II-8A: Sequence Diagram for UC08 - Export Attendance Report**
 ```plantuml
 @startuml
 skinparam style strictuml
@@ -768,7 +634,7 @@ deactivate LWP
 @enduml
 ```
 
-#### **Figure II-9B: Communication Diagram for UC09 - Export Attendance Report**
+#### **Figure II-8B: Communication Diagram for UC08 - Export Attendance Report**
 ```plantuml
 @startuml
 class Lecturer as GV <<actor>>
@@ -791,9 +657,9 @@ RC --> LWP : 2: Return file stream
 
 ---
 
-### **10. UC10: Manage System Catalog**
+### **9. UC09: Manage System Catalog**
 
-#### **Figure II-10A: Sequence Diagram for UC10 - Manage System Catalog**
+#### **Figure II-9A: Sequence Diagram for UC09 - Manage System Catalog**
 ```plantuml
 @startuml
 skinparam style strictuml
@@ -849,7 +715,7 @@ deactivate AWP
 @enduml
 ```
 
-#### **Figure II-10B: Communication Diagram for UC10 - Manage System Catalog**
+#### **Figure II-9B: Communication Diagram for UC09 - Manage System Catalog**
 ```plantuml
 @startuml
 class Admin as AD <<actor>>
@@ -877,7 +743,7 @@ CC --> AWP : 2: Return success/refresh
 
 ### **11. UC11: Configure Room Coordinates & Allowed Radius**
 
-#### **Figure II-11A: Sequence Diagram for UC11 - Configure Room Coordinates**
+#### **Figure II-10A: Sequence Diagram for UC10 - Configure Room Coordinates**
 ```plantuml
 @startuml UC11_Sequence_Diagram
 skinparam style strictuml
@@ -948,7 +814,7 @@ deactivate AWP
 @enduml
 ```
 
-#### **Figure II-11B: Communication Diagram for UC11 - Configure Room Coordinates**
+#### **Figure II-10B: Communication Diagram for UC10 - Configure Room Coordinates**
 ```plantuml
 @startuml
 class Admin as AD <<actor>>

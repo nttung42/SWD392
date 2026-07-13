@@ -1,0 +1,8 @@
+-bỏ IP verify
+-sửa non-functional requiremnets: tách rõ với functional req, xét ngưỡng, số liệu cụ thể cho non-func
+-đổi use case thành hành động vd: adjust attendance manually
+-Chỉ gửi UUID device không bắt buộc đăng ký UUID device, thông báo khi đăng nhập thiết bị lạ
+-Xem lại business rule: must, if else, only, kĩ thuật hóa quá
+-Sửa lại tên usecase Pin (fallback) Checkin
+-mã hóa hình ảnh user
+-gps lưu bằng chứng chứ không dùng để xác minh
