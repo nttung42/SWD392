@@ -1,17 +1,17 @@
 # **Requirement Specification**
-
+  
 ## **Anti-Fraud Attendance System (AFAS)**
-
+  
 **Subject: SWD392**
-
+  
 **Version: 1.0**
-
+  
 - Hanoi, May 2026 -
-
+  
 ---
-
+  
 ## **Record of Changes**
-
+  
 | **Version** | **Date** | **A/M/D*** | **In charge** | **Change Description** |
 | :--- | :--- | :--- | :--- | :--- |
 | V1.0 | 26/05/2026 | A | SWD392 Team | Initial release of Requirement Specification (Section I) for AFAS including Problem Description, Features, Context, NFRs, Use Cases, Activity Diagrams, and Data Dictionary. |
@@ -20,36 +20,36 @@
 | V1.3 | 09/06/2026 | M | SWD392 Team | Added cross-phase traceability framework: source-to-feature matrix, business process model, anti-fraud rule catalog, missing dynamic analysis diagrams for UC02/UC04/UC09/UC10, analysis-to-design transformation matrices, NFR realization matrix, DB rule mappings, implementation traceability, and verification coverage matrix. |
 | V1.4 | 13/07/2026 | M | SWD392 Team | Refined Requirement Modeling scope for SWD392: removed production-grade email/network evidence from MVP, simplified NFRs, renamed UC05 to Manage Attendance Session, added business rule catalog, requirement traceability matrix, and end-to-end activity diagram. |
 | V1.5 | 14/07/2026 | M | SWD392 Team | Added University Identity System as an external system for user authentication in Requirement Modeling. |
-
+  
 *\*A - Added, M - Modified, D - Deleted*
-
+  
 ---
-
+  
 ### **Contents**
-
-*   [I. Requirement Specification](#i-requirement-specification)
-    *   [I.1 Problem description](#i1-problem-description)
-    *   [I.2 Major Features](#i2-major-features)
-    *   [I.3 System context](#i3-system-context)
-    *   [I.4 Non-functional Requirements](#i4-non-functional-requirements)
-    *   [I.5 Functional requirements](#i5-functional-requirements)
-        *   [I.5.1 Use case diagrams](#i51-use-case-diagrams)
-        *   [I.5.2 Use case descriptions](#i52-use-case-descriptions)
-        *   [I.5.3 Activity diagrams](#i53-activity-diagrams)
-    *   [I.6 Business Rules](#i6-business-rules)
-    *   [I.7 Requirement Traceability](#i7-requirement-traceability)
-    *   [I.8 Data Requirements](#i8-data-requirements)
-
+  
+*   [I. Requirement Specification](#i-requirement-specification )
+    *   [I.1 Problem description](#i1-problem-description )
+    *   [I.2 Major Features](#i2-major-features )
+    *   [I.3 System context](#i3-system-context )
+    *   [I.4 Non-functional Requirements](#i4-non-functional-requirements )
+    *   [I.5 Functional requirements](#i5-functional-requirements )
+        *   [I.5.1 Use case diagrams](#i51-use-case-diagrams )
+        *   [I.5.2 Use case descriptions](#i52-use-case-descriptions )
+        *   [I.5.3 Activity diagrams](#i53-activity-diagrams )
+    *   [I.6 Business Rules](#i6-business-rules )
+    *   [I.7 Requirement Traceability](#i7-requirement-traceability )
+    *   [I.8 Data Requirements](#i8-data-requirements )
+  
 ---
-
+  
 ## **I. Requirement Specification**
-
+  
 ## **I.1 Problem description**
-
+  
 **Purpose:** Automate the classroom attendance process and implement robust defense layers to prevent common attendance fraud, such as proxy check-ins (friends checking in for absent students) and sharing classroom QR codes with absent students off-campus. The system simulates a university environment of approximately 8,000 students.
-
+  
 The core requirements are described as follows:
-
+  
 1.  **Authentication:** Students, lecturers, and administrators must log into the system using their assigned university identity before performing role-specific actions. The identity is confirmed by the existing University Identity System.
 2.  **Dynamic QR Code Attendance:** To prevent students from taking photos of the QR code and sharing it with absent peers, the lecturer starts an attendance session which displays a dynamic QR code on the projector screen. The QR attendance code refreshes every 10 seconds, and the system accepts it only within a short validity window.
 3.  **Geofencing:** During check-in, the student's submitted location is compared with the classroom's configured location and allowed radius. If the student is outside the allowed classroom range, the attempt is rejected and retained for lecturer review.
@@ -60,160 +60,97 @@ The core requirements are described as follows:
 8.  **Manual Adjustments:** Lecturers can review rejected attempts and manually adjust a student's attendance status when there is a legitimate reason.
 9.  **Reporting:** Lecturers can export finalized attendance sheets to spreadsheet formats such as Excel.
 10. **System Configurations:** Administrators manage users, subjects, class sections, and classroom location settings, including the allowed attendance radius.
-
+  
 ---
-
+  
 ## **I.2 Major Features**
-
+  
 The system comprises three main portals: Student Mobile App, Lecturer Web Portal, and Admin Web Portal.
-
+  
 ### **Features for Students (Mobile & Web):**
 *   **F01: Personal Authentication:** Login using the assigned university identity confirmed by the University Identity System.
 *   **F02: Identity Verification:** Complete biometric verification, or capture a face selfie when biometric verification is unavailable.
 *   **F03: Scan QR Code:** Open camera, verify student identity, scan the dynamic QR code, and submit location and device evidence.
 *   **F04: Check In via PIN Fallback:** Enter the 6-digit PIN code displayed on the lecturer screen if the camera is broken. Location and device evidence are still recorded.
 *   **F05: View Attendance History:** Track attended, late, and absent sessions with visual statistics.
-
+  
 ### **Features for Lecturers (Web Portal):**
 *   **F06: Class Section Management:** View assigned classes, schedule, and student rosters.
 *   **F07: Manage Attendance Session:** Start the session, display dynamic QR (10s refresh) and PIN (30s refresh), stop receiving check-ins, and finalize the result.
 *   **F08: Real-time Attendance Monitor:** Track live check-in progress with color-coded student names.
 *   **F09: Manual Adjustments:** Manually change official student attendance status (`Present`, `Late`, or `Absent`) and accept a rejected check-in attempt when there is a legitimate reason.
 *   **F10: Export Attendance Report:** Export attendance history sheets to spreadsheet formats such as Excel.
-
+  
 ### **Features for Administrators (Web Portal):**
 *   **F11: System Catalog Management:** Manage AFAS role profiles (Students, Lecturers), Subjects, and Class Sections.
 *   **F12: Classroom Location Configuration:** Setup room location and custom allowed radius.
-
-
-
+  
+  
+  
 ## **I.3 System context**
-
+  
 The system context diagram models the boundary between the Anti-Fraud Attendance System (AFAS) and the external actors or devices involved in the attendance process.
+  
 
-```plantuml
-@startuml System_Context_Class_Diagram
-skinparam ClassBackgroundColor #F9F9F9
-skinparam ClassBorderColor #2E86C1
-skinparam ArrowColor #2E86C1
-skinparam ClassFontSize 12
-
-class "Anti-Fraud Attendance System" as Anti_Fraud_Attendance_System <<software system>>
-
-class Student <<external user>>
-
-class Lecturer <<external user>>
-
-class Admin <<external user>>
-
-class "Mobile Device Hardware" as MobileDeviceHardware <<external I/O device>>
-
-class "University Identity System" as UniversityIdentitySystem <<external system>>
-
-Student "1..*" --> "1" Anti_Fraud_Attendance_System : Interacts with >
-Lecturer "1..*" --> "1" Anti_Fraud_Attendance_System : Interacts with >
-Admin "1..*" --> "1" Anti_Fraud_Attendance_System : Interacts with >
-
-Anti_Fraud_Attendance_System "1" --> "1..*" MobileDeviceHardware : Communicates with >
-Anti_Fraud_Attendance_System "1" --> "1" UniversityIdentitySystem : Requests identity confirmation >
-@enduml
 ```
+Error: sharp conversion failure
 
+Please make sure you have libvips installed.
+```  
+
+  
 ---
-
+  
 ## **I.4 Non-functional Requirements**
-
+  
 *   **NF-01 Performance & Concurrency:**
     *   The attendance confirmation result must be shown within **< 2.0 seconds** for 95% of check-in attempts under a peak load of **500 - 1,000 concurrent students** within a 5-minute window.
     *   Live attendance monitor updates must appear on the lecturer's screen within **< 1.0 second** after the check-in is accepted.
-
+  
 *   **NF-02 Location Accuracy:**
     *   The system must support classroom attendance validation with an acceptable location error tolerance of **15 - 20 meters**.
-
+  
 *   **NF-03 Usability:**
     *   System interfaces must be clear, readable, and usable on common mobile and desktop screens.
-
+  
 *   **NF-04 Security & Privacy:**
     *   Student authentication and attendance evidence must be protected from unauthorized access.
     *   Student face evidence captured during fallback checks must be protected and automatically removed after the semester ends.
-
+  
 *   **NF-05 Reliability & Availability:**
     *   If the attendance session cannot be continued due to network interruption, lecturers must be able to reopen a short check-in window or perform manual adjustment with reason.
-
+  
 *   **NF-06 Maintainability:**
     *   QR validity duration, Late threshold, and classroom radius must be configurable without changing source code.
-
+  
 *   **NF-07 Scalability:**
     *   The system must support approximately **8,000 students** while satisfying the peak classroom check-in metrics stated in NF-01.
-
-
-
-
-
+  
+  
+  
+  
+  
 ## **I.5 Functional requirements**
-
+  
 ### **I.5.1 Use case diagrams**
-
+  
 The functional requirements are summarized in one system-level use case diagram. All use cases are inside the AFAS system boundary.
-
+  
 #### **Overview Use Case Diagram**
-```plantuml
-@startuml Overview_Use_Case_Diagram
-left to right direction
-skinparam ActorBackgroundColor #F9F9F9
-skinparam ActorBorderColor #2E86C1
-skinparam UseCaseBackgroundColor #AED6F1
-skinparam UseCaseBorderColor #2E86C1
-skinparam ArrowColor #2E86C1
 
-actor Student
-actor Lecturer
-actor Admin
-actor "University Identity System" as UIS <<external system>>
-actor "Mobile Device Hardware" as MDH <<external I/O device>>
-
-rectangle "Anti-Fraud Attendance System" as AFAS {
-    usecase "UC01: Authenticate User" as UC01
-    usecase "UC02: Check In via Dynamic QR Code" as UC02
-    usecase "UC03: View Personal Attendance History" as UC03
-    usecase "UC04: Check In via PIN Fallback" as UC04
-    usecase "UC05: Manage Attendance Session" as UC05
-    usecase "UC06: Monitor Attendance in Real Time" as UC06
-    usecase "UC07: Adjust Attendance Manually" as UC07
-    usecase "UC08: Export Attendance Report" as UC08
-    usecase "UC09: Manage System Catalog" as UC09
-    usecase "UC10: Configure Classroom Location" as UC10
-}
-
-Student --> UC01
-Student --> UC02
-Student --> UC03
-Student --> UC04
-
-Lecturer --> UC01
-Lecturer --> UC05
-Lecturer --> UC06
-Lecturer --> UC07
-Lecturer --> UC08
-
-Admin --> UC01
-Admin --> UC09
-Admin --> UC10
-
-UC01 --> UIS
-UC02 --> MDH
-UC04 --> MDH
-UC10 --> MDH
-
-@enduml
 ```
+Error: sharp conversion failure
 
+Please make sure you have libvips installed.
+```  
+
+  
 ---
-
+  
 ### **I.5.2 Use case descriptions**
-
+  
 Below are the detailed descriptions for all **10 Use Cases** of the AFAS system:
-
+  
 #### **Table I-1: Use case description for UC01 - Authenticate User**
 | **Field** | **Description** |
 | :--- | :--- |
@@ -230,9 +167,9 @@ Below are the detailed descriptions for all **10 Use Cases** of the AFAS system:
 | **Exceptions:** | **E3.1 Identity not confirmed:** If the University Identity System does not confirm the user identity, AFAS denies access.<br>**E4.1 No AFAS role profile:** If the user's identity is confirmed but no matching AFAS role profile exists, AFAS denies access and informs the user that their role is not registered. |
 | **Priority:** | High |
 | **Business Rules:** | BR-01 |
-
+  
 ---
-
+  
 #### **Table I-2: Use case description for UC02 - Check In via Dynamic QR Code**
 | **Field** | **Description** |
 | :--- | :--- |
@@ -249,9 +186,9 @@ Below are the detailed descriptions for all **10 Use Cases** of the AFAS system:
 | **Exceptions:** | **E3.2 Identity verification failed:** If biometric verification fails and no valid fallback proof is provided, the system blocks the check-in submission.<br>**E8.1 Attendance code expired:** If the attendance code has expired, the system rejects the check-in and returns "QR expired". No valid attendance result is created.<br>**E9.1 Student not enrolled:** If the student is not enrolled in the target class section, the system records the attempt as `Rejected`, notifies the student that the check-in is not allowed, and creates no official attendance result.<br>**E10.1 Location unavailable:** If the app cannot obtain the student's current location, the submission is blocked and the student is prompted to enable location services.<br>**E10.2 Outside allowed classroom range:** If the submitted location is outside the classroom's allowed range, the system records the attempt as `Rejected`, notifies the student that the check-in is not accepted, and keeps the attempt available for lecturer review.<br>**E12.1 Official result already exists:** If the student already has an official attendance result for this study session, the system returns the existing result without creating a duplicate official result. |
 | **Priority:** | High |
 | **Business Rules:** | BR-02, BR-03, BR-04, BR-05, BR-06, BR-12, BR-13, BR-14 |
-
+  
 ---
-
+  
 #### **Table I-3: Use case description for UC03 - View Personal Attendance History**
 | **Field** | **Description** |
 | :--- | :--- |
@@ -267,9 +204,9 @@ Below are the detailed descriptions for all **10 Use Cases** of the AFAS system:
 | **Exceptions:** | **E3.1 System unavailable:** App informs the student that attendance history cannot be loaded and asks the student to try again later. |
 | **Priority:** | Medium |
 | **Business Rules:** | BR-01 |
-
+  
 ---
-
+  
 #### **Table I-4: Use case description for UC04 - Check In via PIN Fallback**
 | **Field** | **Description** |
 | :--- | :--- |
@@ -286,9 +223,9 @@ Below are the detailed descriptions for all **10 Use Cases** of the AFAS system:
 | **Exceptions:** | **E3.2 Identity verification failed:** If biometric verification fails and no valid fallback proof is provided, the system blocks the check-in submission.<br>**E7.1 PIN Expired:** If the student enters a PIN that has expired, the system rejects it. No valid attendance result is created.<br>**E8.1 Student not enrolled:** If the student is not enrolled in the target class section, the system records the attempt as `Rejected`, notifies the student that the check-in is not allowed, and creates no official attendance result.<br>**E9.1 Location unavailable:** If the app cannot obtain the student's current location, the submission is blocked and the student is prompted to enable location services.<br>**E9.2 Official result already exists:** If the student already has an official attendance result for this study session, the system returns the existing result without creating a duplicate official result.<br>**E9.4 Outside allowed classroom range:** If the submitted location is outside the classroom's allowed range, the system records the attempt as `Rejected`, notifies the student that the check-in is not accepted, and keeps the attempt available for lecturer review. |
 | **Priority:** | High |
 | **Business Rules:** | BR-02, BR-03, BR-04, BR-05, BR-06, BR-07, BR-12, BR-13, BR-14 |
-
+  
 ---
-
+  
 #### **Table I-5: Use case description for UC05 - Manage Attendance Session**
 | **Field** | **Description** |
 | :--- | :--- |
@@ -304,9 +241,9 @@ Below are the detailed descriptions for all **10 Use Cases** of the AFAS system:
 | **Exceptions:** | **E4.1 Outside scheduled hours:** If lecturer tries to start session outside the class time slot, system denies activation.<br>**E5.1 Session already active:** If the selected study session already has an active attendance session, system denies creating another active session. |
 | **Priority:** | High |
 | **Business Rules:** | BR-02, BR-06, BR-08, BR-10, BR-12 |
-
+  
 ---
-
+  
 #### **Table I-6: Use case description for UC06 - Monitor Attendance in Real Time**
 | **Field** | **Description** |
 | :--- | :--- |
@@ -322,9 +259,9 @@ Below are the detailed descriptions for all **10 Use Cases** of the AFAS system:
 | **Exceptions:** | **E5.1 Connection Interrupted:** If live updates are interrupted, Web Portal displays a warning and allows the lecturer to refresh the monitor. |
 | **Priority:** | High |
 | **Business Rules:** | None. See NF-01 for real-time update performance. |
-
+  
 ---
-
+  
 #### **Table I-7: Use case description for UC07 - Adjust Attendance Manually**
 | **Field** | **Description** |
 | :--- | :--- |
@@ -340,9 +277,9 @@ Below are the detailed descriptions for all **10 Use Cases** of the AFAS system:
 | **Exceptions:** | **E5.1 Missing reason:** If the lecturer changes status without inputting a mandatory reason, the system prompts them to write a reason before saving.<br>**E5.2 Finalized session:** If the target session is already finalized, the system rejects the adjustment and informs the lecturer that finalized attendance cannot be modified. |
 | **Priority:** | High |
 | **Business Rules:** | BR-10 |
-
+  
 ---
-
+  
 #### **Table I-8: Use case description for UC08 - Export Attendance Report**
 | **Field** | **Description** |
 | :--- | :--- |
@@ -358,9 +295,9 @@ Below are the detailed descriptions for all **10 Use Cases** of the AFAS system:
 | **Exceptions:** | **E3.1 No records exist:** If no attendance sessions have been run for the class, system displays an empty-state message and disables the export button. |
 | **Priority:** | Medium |
 | **Business Rules:** | BR-08 |
-
+  
 ---
-
+  
 #### **Table I-9: Use case description for UC09 - Manage System Catalog**
 | **Field** | **Description** |
 | :--- | :--- |
@@ -376,9 +313,9 @@ Below are the detailed descriptions for all **10 Use Cases** of the AFAS system:
 | **Exceptions:** | **E5.1 Duplicate ID:** If Admin attempts to add a student ID that already exists, system displays a validation error: "ID already exists". |
 | **Priority:** | High |
 | **Business Rules:** | BR-11 |
-
+  
 ---
-
+  
 #### **Table I-10: Use case description for UC10 - Configure Classroom Location**
 | **Field** | **Description** |
 | :--- | :--- |
@@ -395,302 +332,65 @@ Below are the detailed descriptions for all **10 Use Cases** of the AFAS system:
 | **Exceptions:** | **E8.1 Out-of-bounds Location:** If Admin inputs a location that is not within the university's boundary, system prompts a warning to verify the number. |
 | **Priority:** | High |
 | **Business Rules:** | BR-03 |
-
+  
 ---
-
+  
 ### **I.5.3 Activity diagrams**
-
+  
 Below are the activity diagrams modeling the end-to-end attendance process and the key event flows of check-in, session management, and manual adjustment.
-
+  
 #### **Figure I-11: Overall activity diagram for attendance process**
+  
 
-```plantuml
-@startuml Overall_Attendance_Process_Activity
-skinparam ActivityBackgroundColor #AED6F1
-skinparam ActivityBorderColor #2E86C1
-skinparam ActivityDiamondBackgroundColor #AED6F1
-skinparam ActivityDiamondBorderColor #2E86C1
-skinparam ArrowColor #2E86C1
-skinparam ActivityFontSize 12
-skinparam swimlaneBorderColor #2E86C1
-skinparam swimlaneHeaderFontStyle bold
-
-|Admin|
-start
-:1. Configure classroom location\nand allowed radius;
-:2. Maintain users, subjects,\nand class sections;
-
-|Lecturer|
-:3. Open assigned class session;
-:4. Start attendance session;
-
-|System|
-:5. Display dynamic QR code\nand backup PIN;
-
-|Student|
-:6. Scan QR code\nor enter PIN;
-:7. Complete biometric verification\nor provide face selfie proof;
-
-|System|
-:8. Check attendance code validity;
-:9. Check classroom location range;
-
-if (Check-in accepted?) then ([Yes])
-  :10. Record official result\n(Present or Late);
-  |Lecturer|
-  :11. Monitor live attendance status;
-else ([No])
-  |System|
-  :10a. Record rejected attempt\nwith reason;
-  |Lecturer|
-  :11a. Review rejected attempt;
-endif
-
-|Lecturer|
-if (Manual adjustment needed?) then ([Yes])
-  :12. Adjust attendance status\nwith reason;
-else ([No])
-endif
-:13. Stop receiving check-ins;
-|System|
-:14. Assign Absent to enrolled students\nwithout official Present or Late;
-|Lecturer|
-:15. Review completed attendance list;
-:16. Finalize attendance result;
-:17. Export attendance report;
-stop
-@enduml
 ```
+Error: sharp conversion failure
 
+Please make sure you have libvips installed.
+```  
+
+  
 ---
-
+  
 #### **Figure I-12: Activity diagram for UC02 - Check In via Dynamic QR Code**
+  
 
-```plantuml
-@startuml UC02_Activity_Swimlane
-skinparam ActivityBackgroundColor #AED6F1
-skinparam ActivityBorderColor #2E86C1
-skinparam ActivityDiamondBackgroundColor #AED6F1
-skinparam ActivityDiamondBorderColor #2E86C1
-skinparam ArrowColor #2E86C1
-skinparam ActivityFontSize 12
-skinparam swimlaneBorderColor #2E86C1
-skinparam swimlaneHeaderFontStyle bold
-
-|Student|
-start
-:1. Tap "Scan QR Check-in" button;
-
-|System|
-:2. Request student identity verification;
-
-|Student|
-:3. Perform identity verification;
-
-|System|
-if (Identity verified successfully?) then ([No / Fallback])
-  :A3.1 Prompt face selfie capture\nas fallback proof;
-  |Student|
-  :Capture face selfie;
-else ([Yes])
-endif
-
-|System|
-if (Is accepted identity proof available?) then ([No])
-  :E3.2 Block check-in submission;
-else ([Yes])
-  :4. Open camera for scanning;
-
-  |Student|
-  :5. Point camera at projector QR code;
-
-  |System|
-  :6. Read scanned attendance code;
-  :7. Collect student's location,\ndevice evidence, and current time;
-  :8. Submit check-in evidence to system;
-
-  if (Is the QR attendance code active and valid?) then ([No])
-    :E8.1 Reject - QR code expired;
-    :Show expired session error alert;
-  else ([Yes])
-    if (Is student enrolled in\nthe target class section?) then ([No])
-      :9. Record attempt as\nRejected - Not enrolled;
-      :Show check-in not allowed;
-    else ([Yes])
-      if (Is student within the allowed classroom range?) then ([No])
-        :10. Record attempt as\nRejected - Outside location;
-        :Show rejected check-in message;
-      else ([Yes])
-        :11. Record accepted attempt\nwith official system time;
-        :12. Determine official status\nfrom scheduled start time\n(Present / Late);
-        :13. Update Lecturer Monitor;
-        :14. Display "Check-in Successful" message;
-      endif
-    endif
-  endif
-endif
-
-stop
-@enduml
 ```
+Error: sharp conversion failure
 
+Please make sure you have libvips installed.
+```  
+
+  
 ---
-
+  
 #### **Figure I-13: Activity diagram for UC05 - Manage Attendance Session**
+  
 
-```plantuml
-@startuml UC05_Activity_Swimlane
-skinparam ActivityBackgroundColor #AED6F1
-skinparam ActivityBorderColor #2E86C1
-skinparam ActivityDiamondBackgroundColor #AED6F1
-skinparam ActivityDiamondBorderColor #2E86C1
-skinparam ArrowColor #2E86C1
-skinparam ActivityFontSize 12
-skinparam swimlaneBorderColor #2E86C1
-skinparam swimlaneHeaderFontStyle bold
-
-|Lecturer|
-start
-:1. Navigate to assigned classes list;
-:2. Select class section and current scheduled session;
-:3. Click "Start Attendance" button;
-
-|System|
-if (Is the request within the scheduled class time window?) then ([No])
-  :E4.1 Reject - outside scheduled time window;
-  |Lecturer|
-  :View attendance session\ncannot be started;
-else ([Yes])
-
-  |System|
-  if (Is another attendance session already active?) then ([Yes])
-    :E5.1 Reject - session already active;
-    |Lecturer|
-    :View attendance session\ncannot be duplicated;
-  else ([No])
-
-    |System|
-    :5. Activate the attendance session;
-    :6. Start refreshing dynamic QR code\nand backup PIN;
-
-    |System|
-    :7. Display projector view (QR code + PIN + countdown);
-
-    |Lecturer|
-    :8. Project screen for students to scan;
-
-    repeat
-
-      |System|
-      :Refresh dynamic QR code (every 10s)\nand backup PIN (every 30s);
-
-      |System|
-      :Update displayed QR and PIN on the screen;
-      :Refresh live list of checked-in students;
-
-      |Lecturer|
-      :Monitor real-time class check-in progress;
-
-    repeat while (Receiving check-ins?) is ([Yes])
-    -> [Lecturer clicks Stop Receiving Check-ins];
-
-    |Lecturer|
-    :9. Click "Stop Receiving Check-ins";
-
-    |System|
-    :10. Stop accepting new QR/PIN check-ins;
-
-    |Lecturer|
-    :11. Review attendance results\nand rejected attempts;
-
-    if (Need manual adjustment?) then ([Yes])
-      :12. Adjust attendance status\nusing UC07;
-    else ([No])
-    endif
-
-    |System|
-    :13. Assign Absent to enrolled students\nwithout official Present or Late;
-
-    |Lecturer|
-    :14. Review completed attendance list;
-    :15. Click "Finalize Attendance";
-
-    |System|
-    :16. Mark attendance result as finalized;
-    :17. Close projector view and return to session dashboard;
-  endif
-endif
-
-stop
-@enduml
 ```
+Error: sharp conversion failure
 
+Please make sure you have libvips installed.
+```  
+
+  
 ---
-
+  
 #### **Figure I-14: Activity diagram for UC07 - Adjust Attendance Manually**
+  
 
-```plantuml
-@startuml UC07_Activity_Swimlane
-skinparam ActivityBackgroundColor #AED6F1
-skinparam ActivityBorderColor #2E86C1
-skinparam ActivityDiamondBackgroundColor #AED6F1
-skinparam ActivityDiamondBorderColor #2E86C1
-skinparam ArrowColor #2E86C1
-skinparam ActivityFontSize 12
-skinparam swimlaneBorderColor #2E86C1
-skinparam swimlaneHeaderFontStyle bold
-
-|Lecturer|
-start
-:1. Open attendance roster\nfor a session;
-:2. Select a student record\nor rejected attempt;
-:3. Click "Adjust Status";
-
-|System|
-if (Is target session finalized?) then ([Yes])
-  :E5.2 Reject adjustment;
-  |Lecturer|
-  :View finalized attendance\ncannot be modified;
-else ([No])
-  |System|
-  :4. Display current attendance status\nor no official result,\nevidence summary, and adjustment form;
-
-  |Lecturer|
-  :5. Select new official status\n(Present / Late / Absent);
-  :6. Enter adjustment reason;
-  :7. Click "Save";
-
-  |System|
-  if (Is reason provided?) then ([No])
-    :E5.1 Reject save and request reason;
-    |Lecturer|
-    :Enter required reason;
-    :Click "Save";
-  else ([Yes])
-  endif
-
-  |System|
-  if (Does official result exist?) then ([Yes])
-    :8. Update attendance status;
-  else ([No])
-    :8. Create official attendance result\nfrom reviewed rejected attempt;
-  endif
-  :9. Refresh attendance roster;
-
-  |Lecturer|
-  :10. View updated attendance status;
-endif
-
-stop
-@enduml
 ```
+Error: sharp conversion failure
 
+Please make sure you have libvips installed.
+```  
+
+  
 ---
-
+  
 ## **I.6 Business Rules**
-
+  
 The following business rules use stable IDs so that later Analysis, Design, and Test artifacts can reference the same rule without ambiguity.
-
+  
 | **ID** | **Business Rule** |
 | :--- | :--- |
 | **BR-01** | All users must have their identity confirmed by the University Identity System before accessing role-specific functions, and users can access only data/actions allowed by their AFAS role. |
@@ -706,11 +406,11 @@ The following business rules use stable IDs so that later Analysis, Design, and 
 | **BR-12** | Time checks for QR validity, PIN validity, and Late status use the official system time. |
 | **BR-13** | A check-in accepted within the first 15 minutes after the scheduled class start time is `Present`; a later accepted check-in is `Late`. |
 | **BR-14** | A student may check in only for a study session whose class section includes that student in its enrollment roster. |
-
+  
 ---
-
+  
 ## **I.7 Requirement Traceability**
-
+  
 | **Source Requirement** | **Feature(s)** | **Use Case(s)** | **Business Rule(s)** |
 | :--- | :--- | :--- | :--- |
 | Dynamic QR attendance | F03, F07 | UC02, UC05 | BR-02, BR-12, BR-13 |
@@ -723,15 +423,15 @@ The following business rules use stable IDs so that later Analysis, Design, and 
 | Excel/spreadsheet export | F10 | UC08 | BR-08 |
 | System catalog and classroom setup | F11, F12 | UC09, UC10 | BR-03, BR-11 |
 | Enrollment authorization | F03, F04, F06 | UC02, UC04, UC05 | BR-14 |
-
+  
 ---
-
+  
 ## **I.8 Data Requirements**
-
+  
 This section keeps only the data dictionary needed for Requirement Modeling. Entity class diagrams and object relationships belong to Analysis Modeling.
-
+  
 ### **Table I-11: Data Description (Data dictionary)**
-
+  
 | **Name** | **Data Type** | **Description** |
 | :--- | :--- | :--- |
 | **UserAccount** | | **AFAS user role profile data** |
@@ -814,5 +514,6 @@ This section keeps only the data dictionary needed for Requirement Modeling. Ent
 | ResultSource | Text | Source of the official attendance result, such as accepted QR/PIN attempt, absent assignment, or lecturer manual adjustment. |
 | SourceAttemptCode | Text | Reference to the accepted or reviewed check-in attempt, if available. |
 | FinalizedAt | Date/Time | Timestamp when the result became part of the finalized attendance sheet. |
-
+  
 ---
+  

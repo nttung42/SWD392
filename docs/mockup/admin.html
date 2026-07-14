@@ -150,11 +150,6 @@
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 14v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Entity Catalog
       </div>
-      <div class="menu-item" onclick="switchTab('logs')" id="menu-logs">
-        <!-- Audit Icon -->
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 6v6l4 2"/></svg>
-        Audit Log Trails
-      </div>
     </div>
 
     <!-- Main Content Area -->
@@ -356,46 +351,6 @@
         </div>
       </div>
 
-      <!-- TAB 3: AUDIT TRAIL LOGS -->
-      <div class="admin-tab" id="tab-logs">
-        <h2 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">Security & Transactional Audit Trails</h2>
-        
-        <table>
-          <thead>
-            <tr>
-              <th>Timestamp</th>
-              <th>Operator</th>
-              <th>Action Category</th>
-              <th>Entity Affected</th>
-              <th>Audit Description</th>
-            </tr>
-          </thead>
-          <tbody id="logs-tbody">
-            <tr>
-              <td style="color:var(--text-muted);">09:02:14</td>
-              <td>admin@fpt.edu.vn</td>
-              <td><span class="status-badge" style="background:hsla(200,80%,55%,0.15); color:var(--info);">SYSTEM_INIT</span></td>
-              <td>CORE_DB</td>
-              <td>PostgreSQL tables loaded, Redis cache connections online.</td>
-            </tr>
-            <tr>
-              <td style="color:var(--text-muted);">09:05:40</td>
-              <td>admin@fpt.edu.vn</td>
-              <td><span class="status-badge" style="background:hsla(145,80%,45%,0.15); color:var(--success);">ROSTER_SEED</span></td>
-              <td>CLASS_SECTIONS</td>
-              <td>Imported roster list (35 students) into class section SE302_S2.</td>
-            </tr>
-            <tr>
-              <td style="color:var(--text-muted);">09:15:32</td>
-              <td>gomaah@fpt.edu.vn</td>
-              <td><span class="status-badge" style="background:hsla(38,95%,55%,0.15); color:var(--warning);">DEVICE_CLEAR</span></td>
-              <td>STUDENT:HE170321</td>
-              <td>Cleared bound device UUID mapping at student request.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
     </div>
 
   </div>
@@ -404,14 +359,12 @@
     // Tab switching logic
     const tabs = {
       rooms: document.getElementById('tab-rooms'),
-      catalog: document.getElementById('tab-catalog'),
-      logs: document.getElementById('tab-logs')
+      catalog: document.getElementById('tab-catalog')
     };
 
     const menuItems = {
       rooms: document.getElementById('menu-rooms'),
-      catalog: document.getElementById('menu-catalog'),
-      logs: document.getElementById('menu-logs')
+      catalog: document.getElementById('menu-catalog')
     };
 
     function logEvent(action, desc) {
@@ -483,8 +436,6 @@
       const radius = radiusSlider.value;
 
       logEvent('GEOFENCE_SAVE', `Saved room ${room} configuration. Coordinates: ${lat}, ${lng}, Radius: ${radius}m`);
-      addAuditRow('GEOFENCE_UPDATE', `ROOM:${room}`, `Updated boundary parameters: Lat:${lat}, Long:${lng}, Radius:${radius}m.`);
-      
       alert(`Geofencing boundary parameters for ${room} saved to database successfully.`);
     });
 
@@ -496,8 +447,6 @@
       document.getElementById('btn-clear-bind').innerText = "Cleared";
 
       logEvent('DEVICE_UNBIND', 'Administrator cleared hardware binding mapping UUID for student HE170123.');
-      addAuditRow('DEVICE_UNBIND', 'STUDENT:HE170123', 'Cleared device UUID mapping from account.');
-      
       alert("Hardware device UUID binding for student HE170123 cleared successfully. Student is now allowed to bind a new mobile device.");
     });
 
@@ -509,30 +458,7 @@
       btn.innerText = "Cleared";
 
       logEvent('DEVICE_UNBIND', `Administrator cleared hardware binding mapping UUID for student ${studentId}.`);
-      addAuditRow('DEVICE_UNBIND', `STUDENT:${studentId}`, 'Cleared device UUID mapping from account.');
     };
-
-    // Helper to add audit log rows
-    const logsTbody = document.getElementById('logs-tbody');
-    function addAuditRow(category, entity, desc) {
-      const row = document.createElement('tr');
-      const now = new Date();
-      const timestamp = now.toLocaleTimeString();
-
-      row.innerHTML = `
-        <td style="color:var(--text-muted);">${timestamp}</td>
-        <td>admin@fpt.edu.vn</td>
-        <td><span class="status-badge" style="background:hsla(320, 80%, 60%, 0.15); color:var(--secondary);">${category}</span></td>
-        <td style="font-weight:600;">${entity}</td>
-        <td>${desc}</td>
-      `;
-
-      if (logsTbody.firstChild) {
-        logsTbody.insertBefore(row, logsTbody.firstChild);
-      } else {
-        logsTbody.appendChild(row);
-      }
-    }
   </script>
 </body>
 </html>

@@ -237,7 +237,7 @@
       </div>
 
       <div style="margin-bottom: 20px;">
-        <label for="adjust-reason">Justification / Audit Reason</label>
+        <label for="adjust-reason">Adjustment Reason</label>
         <textarea id="adjust-reason" rows="3" placeholder="e.g. Student reported GPS signal drift inside concrete classroom structure, verified manually."></textarea>
       </div>
 
@@ -665,13 +665,12 @@
       const reason = adjustReason.value.trim();
 
       if (!reason) {
-        alert("Please specify adjustment justification for the system audit log.");
+        alert("Please specify an adjustment reason.");
         return;
       }
 
       // Update local state record
       const record = checkinRecords.find(r => r.studentId === studentId);
-      const oldStatus = record.status;
       record.status = newStatus;
       record.method = 'Manual';
       record.gpsOffset = '0m (Overridden)';
@@ -706,7 +705,7 @@
 
       adjustModal.style.display = 'none';
 
-      logEvent('AUDIT_LOG', `Manual override: ${record.studentName} status changed from ${oldStatus.toUpperCase()} to ${newStatus.toUpperCase()}. Reason: "${reason}"`);
+      logEvent('ATTENDANCE_ADJUSTED', `Manual override applied for ${record.studentName} (${record.studentId}) as ${newStatus.toUpperCase()}.`);
     });
 
     // Excel Export Simulation
