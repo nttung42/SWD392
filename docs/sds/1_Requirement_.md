@@ -427,78 +427,78 @@ The following business rules use stable IDs so that later Analysis, Design, and 
 ---
   
 ## **I.8 Data Requirements**
-  
+
 This section keeps only the data dictionary needed for Requirement Modeling. Entity class diagrams and object relationships belong to Analysis Modeling.
-  
+
 ### **Table I-11: Data Description (Data dictionary)**
-  
+
 | **Name** | **Data Type** | **Description** |
 | :--- | :--- | :--- |
-| **UserAccount** | | **AFAS user role profile data** |
-| AccountCode | Text | Unique identifier for the account. |
+| **Account** | | **AFAS user role profile data** |
+| Id | Text | Unique account identifier. |
 | UniversityIdentityCode | Text | Identifier of the user's identity in the University Identity System. |
-| SchoolEmail | Text | Registered school email address received from or aligned with the university identity. |
+| Email | Text | Registered FPT school email address received from or aligned with the university identity. |
 | FullName | Text | Full display name of the user. |
-| UserRole | Text | System access role. Must be one of: `Student`, `Lecturer`, `Admin`. |
-| RegistrationDate | Date/Time | The date and time when the account was first registered. |
-| **StudentProfile** | | **Student profile data** |
-| StudentRollNumber | Text | Unique student roll number (e.g. `SE170123`). |
-| AccountCode | Text | Links the student profile to their user account. |
-| **LecturerProfile** | | **Lecturer profile data** |
-| LecturerCode | Text | Assigned school lecturer ID (e.g. `HueCTM`). |
-| AccountCode | Text | Links the lecturer profile to their user account. |
+| Role | Text | System access role. Must be one of: `Student`, `Lecturer`, `Admin`. |
+| RegistrationDate | Date/Time | Date and time the account was registered. |
+| **Student** | | **Student profile mapping** |
+| StudentId | Text | Unique student roll number (e.g. `SE170123`). |
+| AccountId | Text | Links the student profile to their account. |
+| **Lecturer** | | **Lecturer profile mapping** |
+| LecturerId | Text | Assigned school lecturer ID (e.g. `HueCTM`). |
+| AccountId | Text | Links the lecturer profile to their account. |
 | DepartmentName | Text | Faculty department name. |
-| **Classroom** | | **Classroom location configurations** |
-| ClassroomCode | Text | Physical classroom identifier (e.g., `AL-L402`). |
-| ClassroomName | Text | Display name of the room. |
-| ClassroomLatitude | Decimal | Latitude of the classroom center point used for attendance validation. |
-| ClassroomLongitude | Decimal | Longitude of the classroom center point used for attendance validation. |
-| AllowedAttendanceRadius | Decimal | Maximum allowed attendance radius in meters (defaults to 20m). |
+| **Room** | | **Classroom geo catalog** |
+| RoomId | Text | Physical classroom code (e.g., `AL-L402`). |
+| RoomName | Text | Easy-to-read room display name. |
+| Latitude | Decimal | Classroom center point latitude used for attendance validation. |
+| Longitude | Decimal | Classroom center point longitude used for attendance validation. |
+| AllowedRadius | Decimal | Maximum allowed check-in range in meters. |
 | **CampusBoundary** | | **University campus boundary used to validate classroom configuration** |
 | CampusBoundaryCode | Text | Unique identifier for the campus boundary definition. |
 | BoundaryCoordinates | Text | Configured coordinate boundary used to check whether a classroom location belongs to the campus area. |
-| **Subject** | | **University subject course details** |
+| **Subject** | | **University subject catalog** |
 | SubjectCode | Text | Subject code identifier (e.g., `SWD392`). |
-| SubjectName | Text | Detailed course name. |
-| CreditValue | Number | Credit value of the course (must be greater than 0). |
+| SubjectName | Text | Detailed subject name. |
+| Credits | Number | Credit value of the course (must be greater than 0). |
 | **ClassSection** | | **Assigned course class section** |
-| ClassSectionCode | Text | Class section code (e.g., `SWD392_SU26_SE1701`). |
-| ClassSectionName | Text | Friendly segment name of the class. |
+| ClassSectionId | Text | Class section code (e.g., `SWD392_SU26_SE1701`). |
+| ClassSectionName | Text | Friendly class segment name. |
 | SubjectCode | Text | Reference subject code. |
-| LecturerCode | Text | Reference lecturer teaching this class. |
-| SemesterName | Text | Academic semester name. |
-| **ClassEnrollment** | | **Class enrollment roster** |
-| ClassSectionCode | Text | Reference class section code. |
-| StudentRollNumber | Text | Enrolled student roll number. |
-| **StudySession** | | **Scheduled study session date/time** |
-| StudySessionCode | Text | Unique identifier of the class session. |
-| ClassSectionCode | Text | Belongs to class section code. |
-| ClassroomCode | Text | Physical classroom location of the session. |
+| LecturerId | Text | Lecturer assigned to teach. |
+| Semester | Text | Academic semester name. |
+| **ClassSectionStudent** | | **Course class roster map** |
+| ClassSectionId | Text | Reference class section ID. |
+| StudentId | Text | Enrolled student roll number. |
+| **Session** | | **Scheduled study session date/time** |
+| SessionId | Text | Scheduled session unique ID. |
+| ClassSectionId | Text | Belongs to class section code. |
+| RoomId | Text | Physical room location of the session. |
 | SessionDate | Date | Scheduled calendar date. |
 | StartTime | Time | Scheduled class start hour. |
 | EndTime | Time | Scheduled class end hour. |
 | **AttendanceSession** | | **Dynamic QR/PIN attendance session** |
-| StudySessionCode | Text | Ties the attendance session to a specific scheduled study session. |
-| CurrentAttendanceCode | Text | Current active attendance code displayed in the QR for verification. |
-| QRCodeLastChangedAt | Date/Time | Exact timestamp when the QR attendance code was last refreshed. |
-| BackupPINCode | Text | 6-digit backup fallback attendance code. |
-| PINLastChangedAt | Date/Time | Exact timestamp when the PIN code was last refreshed (valid for 30s). |
+| SessionId | Text | Ties the attendance session to a specific scheduled study session. |
+| DynamicToken | Text | Current active attendance code represented in the QR for verification. |
+| QRRefreshedAt | Date/Time | Exact timestamp when the QR attendance code was last refreshed. |
+| PINCode | Text | 6-digit backup fallback attendance code. |
+| PINRefreshedAt | Date/Time | Exact timestamp when the PIN code was last refreshed. |
 | SessionStatus | Text | Indicates whether the attendance session is active, stopped, or finalized. |
 | **AttendanceConfiguration** | | **Configurable attendance parameters** |
 | QRRefreshSeconds | Number | Number of seconds between QR code refreshes. |
 | QRValiditySeconds | Number | Maximum number of seconds an attendance QR code remains acceptable. |
 | PINRefreshSeconds | Number | Number of seconds between backup PIN refreshes. |
 | LateThresholdMinutes | Number | Number of minutes after scheduled class start that separates `Present` from `Late`. |
-| DefaultClassroomRadiusMeters | Decimal | Default allowed classroom attendance radius in meters. |
+| DefaultAllowedRadius | Decimal | Default allowed classroom attendance radius in meters. |
 | **CheckInAttempt** | | **Each QR/PIN submission attempt made by a student** |
-| CheckInAttemptCode | Text | Unique identifier for a submitted check-in attempt. |
-| StudentRollNumber | Text | Referencing the student who attempted check-in. |
-| StudySessionCode | Text | Referencing the active study session. |
+| CheckInAttemptId | Text | Unique identifier for a submitted check-in attempt. |
+| StudentId | Text | Referencing the student who attempted check-in. |
+| SessionId | Text | Referencing the active study session. |
 | SubmittedAt | Date/Time | Timestamp when the check-in evidence was submitted. |
 | SubmittedLatitude | Decimal | Latitude submitted by the student's device. |
 | SubmittedLongitude | Decimal | Longitude submitted by the student's device. |
 | LocationAccuracyMeters | Decimal | Accuracy estimate reported with the submitted location evidence. |
-| DistanceFromClassroom | Decimal | Calculated distance from the configured classroom location. |
+| DistanceFromRoom | Decimal | Calculated distance from the configured room location. |
 | LocationCheckResult | Text | Result of the location check: `Within allowed range` or `Outside allowed range`. |
 | DeviceIdentifier | Text | Device identifier captured as attendance evidence. |
 | DeviceDisplayName | Text | Device display name used during check-in. |
@@ -507,13 +507,12 @@ This section keeps only the data dictionary needed for Requirement Modeling. Ent
 | AttemptStatus | Text | Result of the check-in attempt: `Accepted` or `Rejected`. |
 | RejectionReason | Text | Reason why the attempt is rejected, such as `ExpiredCode`, `OutsideLocation`, or `IdentityVerificationFailed`. |
 | **AttendanceRecord** | | **Official attendance result for one student in one study session** |
-| AttendanceRecordCode | Text | Unique identifier for the official attendance result. |
-| StudentRollNumber | Text | Referencing the student. |
-| StudySessionCode | Text | Referencing the study session. |
+| AttendanceRecordId | Text | Unique identifier for the official attendance result. |
+| StudentId | Text | Referencing the student. |
+| SessionId | Text | Referencing the study session. |
 | AttendanceStatus | Text | Official attendance status: `Present`, `Late`, or `Absent`. |
 | ResultSource | Text | Source of the official attendance result, such as accepted QR/PIN attempt, absent assignment, or lecturer manual adjustment. |
-| SourceAttemptCode | Text | Reference to the accepted or reviewed check-in attempt, if available. |
+| SourceCheckInAttemptId | Text | Reference to the accepted or reviewed check-in attempt, if available. |
 | FinalizedAt | Date/Time | Timestamp when the result became part of the finalized attendance sheet. |
-  
+
 ---
-  

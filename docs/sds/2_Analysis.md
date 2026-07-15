@@ -17,32 +17,32 @@ The following entity classes are derived from the Data Requirements in Section I
 skinparam style strictuml
 hide circle
 
-class "UserAccount" as UserAccount <<entity>> {
-  AccountCode
+class "Account" as Account <<entity>> {
+  Id
   UniversityIdentityCode
-  SchoolEmail
+  Email
   FullName
-  UserRole
+  Role
   RegistrationDate
 }
 
-class "StudentProfile" as StudentProfile <<entity>> {
-  StudentRollNumber
-  AccountCode
+class "Student" as Student <<entity>> {
+  StudentId
+  AccountId
 }
 
-class "LecturerProfile" as LecturerProfile <<entity>> {
-  LecturerCode
-  AccountCode
+class "Lecturer" as Lecturer <<entity>> {
+  LecturerId
+  AccountId
   DepartmentName
 }
 
-class "Classroom" as Classroom <<entity>> {
-  ClassroomCode
-  ClassroomName
-  ClassroomLatitude
-  ClassroomLongitude
-  AllowedAttendanceRadius
+class "Room" as Room <<entity>> {
+  RoomId
+  RoomName
+  Latitude
+  Longitude
+  AllowedRadius
 }
 
 class "CampusBoundary" as CampusBoundary <<entity>> {
@@ -53,33 +53,37 @@ class "CampusBoundary" as CampusBoundary <<entity>> {
 class "Subject" as Subject <<entity>> {
   SubjectCode
   SubjectName
-  CreditValue
+  Credits
 }
 
 class "ClassSection" as ClassSection <<entity>> {
-  ClassSectionCode
+  ClassSectionId
   ClassSectionName
-  SemesterName
+  SubjectCode
+  LecturerId
+  Semester
 }
 
-class "ClassEnrollment" as ClassEnrollment <<entity>> {
-  ClassSectionCode
-  StudentRollNumber
+class "ClassSectionStudent" as ClassSectionStudent <<entity>> {
+  ClassSectionId
+  StudentId
 }
 
-class "StudySession" as StudySession <<entity>> {
-  StudySessionCode
+class "Session" as Session <<entity>> {
+  SessionId
+  ClassSectionId
+  RoomId
   SessionDate
   StartTime
   EndTime
 }
 
 class "AttendanceSession" as AttendanceSession <<entity>> {
-  StudySessionCode
-  CurrentAttendanceCode
-  QRCodeLastChangedAt
-  BackupPINCode
-  PINLastChangedAt
+  SessionId
+  DynamicToken
+  QRRefreshedAt
+  PINCode
+  PINRefreshedAt
   SessionStatus
 }
 
@@ -88,16 +92,18 @@ class "AttendanceConfiguration" as AttendanceConfig <<entity>> {
   QRValiditySeconds
   PINRefreshSeconds
   LateThresholdMinutes
-  DefaultClassroomRadiusMeters
+  DefaultAllowedRadius
 }
 
 class "CheckInAttempt" as CheckInAttempt <<entity>> {
-  CheckInAttemptCode
+  CheckInAttemptId
+  StudentId
+  SessionId
   SubmittedAt
   SubmittedLatitude
   SubmittedLongitude
   LocationAccuracyMeters
-  DistanceFromClassroom
+  DistanceFromRoom
   LocationCheckResult
   DeviceIdentifier
   DeviceDisplayName
@@ -108,30 +114,32 @@ class "CheckInAttempt" as CheckInAttempt <<entity>> {
 }
 
 class "AttendanceRecord" as AttendanceRecord <<entity>> {
-  AttendanceRecordCode
+  AttendanceRecordId
+  StudentId
+  SessionId
   AttendanceStatus
   ResultSource
-  SourceAttemptCode
+  SourceCheckInAttemptId
   FinalizedAt
 }
 
-UserAccount "1" -- "0..1" StudentProfile
-UserAccount "1" -- "0..1" LecturerProfile
-CampusBoundary "1" -- "0..*" Classroom : contains valid room locations
-LecturerProfile "1" -- "0..*" ClassSection
+Account "1" -- "0..1" Student
+Account "1" -- "0..1" Lecturer
+CampusBoundary "1" -- "0..*" Room : contains valid room locations
+Lecturer "1" -- "0..*" ClassSection
 Subject "1" -- "0..*" ClassSection
-ClassSection "1" -- "0..*" ClassEnrollment
-StudentProfile "1" -- "0..*" ClassEnrollment
-ClassSection "1" *-- "0..*" StudySession
-Classroom "1" -- "0..*" StudySession
-StudySession "1" *-- "0..1" AttendanceSession
-StudySession "1" *-- "0..*" CheckInAttempt
-StudentProfile "1" -- "0..*" CheckInAttempt
-StudySession "1" *-- "0..*" AttendanceRecord
-StudentProfile "1" -- "0..*" AttendanceRecord
+ClassSection "1" -- "0..*" ClassSectionStudent
+Student "1" -- "0..*" ClassSectionStudent
+ClassSection "1" *-- "0..*" Session
+Room "1" -- "0..*" Session
+Session "1" *-- "0..1" AttendanceSession
+Session "1" *-- "0..*" CheckInAttempt
+Student "1" -- "0..*" CheckInAttempt
+Session "1" *-- "0..*" AttendanceRecord
+Student "1" -- "0..*" AttendanceRecord
 CheckInAttempt "0..1" -- "0..1" AttendanceRecord : source attempt
 AttendanceConfiguration "1" -- "0..*" AttendanceSession : configures timing
-AttendanceConfiguration "1" -- "0..*" Classroom : default radius source
+AttendanceConfiguration "1" -- "0..*" Room : default radius source
 @enduml
 ```
 
@@ -139,9 +147,9 @@ AttendanceConfiguration "1" -- "0..*" Classroom : default radius source
 
 Additional static constraints:
 
-- `AttendanceRecord` has at most one official result for each `{StudentRollNumber, StudySessionCode}` pair, supporting BR-06.
-- A check-in attempt is valid for official attendance only when the student belongs to `ClassEnrollment` for the target `StudySession` class section, supporting BR-14.
-- `UserAccount` is associated with either `StudentProfile` or `LecturerProfile` according to `UserRole`; administrative accounts have no student or lecturer profile.
+- `AttendanceRecord` has at most one official result for each `{StudentId, SessionId}` pair, supporting BR-06.
+- A check-in attempt is valid for official attendance only when the student belongs to `ClassSectionStudent` for the target `Session` class section, supporting BR-14.
+- `Account` is associated with either `Student` or `Lecturer` according to `Role`; administrative accounts have no student or lecturer mapping.
 
 ### **II.1.2 Contextual interface-control class diagram**
 
@@ -237,21 +245,21 @@ The object structuring hierarchy below groups analysis objects by COMET responsi
 **** Session Rules
 **** Report Eligibility Rules
 **** Catalog Uniqueness Rules
-**** Classroom Location Setting Rules
+**** Room Location Setting Rules
 **** Attendance Status Calculation
 *** Algorithm
 **** Location Distance Calculation
 ** Entity Objects
 *** User and Academic Entities
-**** UserAccount
-**** StudentProfile
-**** LecturerProfile
+**** Account
+**** Student
+**** Lecturer
 **** CampusBoundary
-**** Classroom
+**** Room
 **** Subject
 **** ClassSection
-**** ClassEnrollment
-**** StudySession
+**** ClassSectionStudent
+**** Session
 *** Attendance Entities
 **** AttendanceConfiguration
 **** AttendanceSession
@@ -284,10 +292,10 @@ The object structuring hierarchy below groups analysis objects by COMET responsi
 | Session Rules | `«business logic»` | Checks scheduled time window, assigned lecturer, active session uniqueness, absent assignment, finalization, and whether manual adjustment is still allowed. | UC05, UC07, BR-08, BR-10 |
 | Report Eligibility Rules | `«business logic»` | Ensures export uses finalized attendance results. | UC08, BR-08 |
 | Catalog Uniqueness Rules | `«business logic»` | Ensures catalog identifiers are unique. | UC09, BR-11 |
-| Classroom Location Setting Rules | `«business logic»` | Ensures the classroom location coordinate value is valid, belongs to the university campus boundary, and has an allowed radius greater than zero. | UC10, BR-03 |
-| UserAccount, StudentProfile, LecturerProfile | `«entity»` | Store AFAS role profile information linked to university identity. | UC01, UC09 |
-| CampusBoundary, Classroom, Subject, ClassSection, ClassEnrollment, StudySession | `«entity»` | Store academic catalog, roster, campus boundary, classroom coordinates, and scheduled session information. | UC02-UC06, UC08-UC10 |
-| AttendanceConfiguration | `«entity»` | Stores configurable attendance timing and default classroom radius values required by maintainability requirements. | UC02, UC04, UC05, UC10, NF-06 |
+| Room Location Setting Rules | `«business logic»` | Ensures the classroom location coordinate value is valid, belongs to the university campus boundary, and has an allowed radius greater than zero. | UC10, BR-03 |
+| Account, Student, Lecturer | `«entity»` | Store AFAS role profile information linked to university identity. | UC01, UC09 |
+| CampusBoundary, Room, Subject, ClassSection, ClassSectionStudent, Session | `«entity»` | Store academic catalog, roster, campus boundary, classroom coordinates, and scheduled session information. | UC02-UC06, UC08-UC10 |
+| AttendanceConfiguration | `«entity»` | Stores configurable attendance timing and default allowed radius values required by maintainability requirements. | UC02, UC04, UC05, UC10, NF-06 |
 | AttendanceSession, CheckInAttempt, AttendanceRecord | `«entity»` | Store attendance lifecycle, evidence, and official result information. | UC02, UC04-UC08 |
 
 ### **II.1.4 Interface wireframes**
@@ -342,7 +350,7 @@ Trace: Lecturer; UC05, UC06, UC07, UC08.
   {
     "Catalog grid" | "Accounts, subjects, class sections"
     [Add] | [Edit] | [Delete] | [Import]
-    "Classroom" | "Room code and configured location"
+    "Room" | "Room code and configured location"
     "Allowed radius" | "Default or custom radius"
     [Capture Current Location] | [Save Configuration]
     "Validation" | "Duplicate ID, invalid coordinate, or out-of-bounds warning"
@@ -375,7 +383,7 @@ participant "Authentication Control\n«coordinator»" as AuthControl
 participant "Authentication Rules\n«business logic»" as AuthRules
 participant "University Identity System Interface\n«external system interface»" as UISInterface
 participant "University Identity System\n«external system»" as UIS
-participant "UserAccount\n«entity»" as UserAccount
+participant "Account\n«entity»" as Account
 
 User -> AccessUI : select login
 AccessUI -> AuthControl : request authentication(requested role)
@@ -386,8 +394,8 @@ UIS --> UISInterface : identity confirmed or not confirmed
 UISInterface --> AuthControl : identity confirmation result
 
 alt identity confirmed and AFAS role profile exists
-  AuthControl -> UserAccount : find role profile by university identity
-  UserAccount --> AuthControl : role profile
+  AuthControl -> Account : find role profile by university identity
+  Account --> AuthControl : role profile
   AuthControl -> AuthRules : validate role access(role profile, requested role)
   AuthRules --> AuthControl : role access result
   AuthControl --> AccessUI : grant access when role matches
@@ -414,13 +422,13 @@ class "Authentication Control" as AuthControl <<coordinator>>
 class "Authentication Rules" as AuthRules <<business logic>>
 class "University Identity System Interface" as UISInterface <<external system interface>>
 class "University Identity System" as UIS <<external system>>
-class "UserAccount" as UserAccount <<entity>>
+class "Account" as Account <<entity>>
 
 User --> AccessUI : 1 select login
 AccessUI --> AuthControl : 1.1 request authentication
 AuthControl --> UISInterface : 1.1.1 request identity confirmation
 UISInterface --> UIS : 1.1.1.1 confirm identity
-AuthControl --> UserAccount : 1.1.2 find role profile
+AuthControl --> Account : 1.1.2 find role profile
 AuthControl --> AuthRules : 1.1.3 validate role access
 AuthControl --> AccessUI : 2 return access result
 AccessUI --> User : 3 show homepage or access denial
@@ -445,9 +453,9 @@ participant "Location Distance Calculation\n«algorithm»" as DistanceCalc
 participant "Attendance Status Calculation\n«business logic»" as StatusRules
 participant "AttendanceSession\n«entity»" as AttendanceSession
 participant "AttendanceConfiguration\n«entity»" as AttendanceConfig
-participant "StudySession\n«entity»" as StudySession
-participant "ClassEnrollment\n«entity»" as ClassEnrollment
-participant "Classroom\n«entity»" as Classroom
+participant "Session\n«entity»" as Session
+participant "ClassSectionStudent\n«entity»" as ClassSectionStudent
+participant "Room\n«entity»" as Room
 participant "CheckInAttempt\n«entity»" as CheckInAttempt
 participant "AttendanceRecord\n«entity»" as AttendanceRecord
 participant "Monitor Control\n«coordinator»" as MonitorControl
@@ -499,18 +507,18 @@ else location and device evidence available
     StudentUI --> Student : show QR expired message
   else code valid
     CodeRules --> CheckInControl : code valid
-    CheckInControl -> StudySession : read class section and scheduled start time
-    StudySession --> CheckInControl : class section and session start time
-    CheckInControl -> ClassEnrollment : verify student enrollment in class section
-    ClassEnrollment --> CheckInControl : enrollment result
+    CheckInControl -> Session : read class section and scheduled start time
+    Session --> CheckInControl : class section and session start time
+    CheckInControl -> ClassSectionStudent : verify student enrollment in class section
+    ClassSectionStudent --> CheckInControl : enrollment result
 
     alt student not enrolled
       CheckInControl -> CheckInAttempt : record rejected attempt(status = Rejected, reason = NotEnrolled)
       CheckInControl --> StudentUI : reject not enrolled
       StudentUI --> Student : show check-in not allowed
     else student enrolled
-      CheckInControl -> Classroom : read classroom coordinates and allowed range
-      Classroom --> CheckInControl : classroom coordinates and range
+      CheckInControl -> Room : read classroom coordinates and allowed range
+      Room --> CheckInControl : classroom coordinates and range
       CheckInControl -> DistanceCalc : compare submitted coordinates, accuracy, and classroom range
       DistanceCalc --> CheckInControl : location check result
 
@@ -555,9 +563,9 @@ class "Location Distance Calculation" as DistanceCalc <<algorithm>>
 class "Attendance Status Calculation" as StatusRules <<business logic>>
 class "AttendanceSession" as AttendanceSession <<entity>>
 class "AttendanceConfiguration" as AttendanceConfig <<entity>>
-class "StudySession" as StudySession <<entity>>
-class "ClassEnrollment" as ClassEnrollment <<entity>>
-class "Classroom" as Classroom <<entity>>
+class "Session" as Session <<entity>>
+class "ClassSectionStudent" as ClassSectionStudent <<entity>>
+class "Room" as Room <<entity>>
 class "CheckInAttempt" as CheckInAttempt <<entity>>
 class "AttendanceRecord" as AttendanceRecord <<entity>>
 class "Monitor Control" as MonitorControl <<coordinator>>
@@ -572,9 +580,9 @@ CheckInControl --> MobileSensor : 2.1.1 read GPS coordinates and device identifi
 CheckInControl --> AttendanceSession : 2.1.2 read active session
 CheckInControl --> CodeRules : 2.1.3 verify active code using official system time
 CodeRules --> AttendanceConfig : 2.1.3.1 read QR validity
-CheckInControl --> StudySession : 2.1.4 read class section and scheduled start time
-CheckInControl --> ClassEnrollment : 2.1.5 verify enrollment
-CheckInControl --> Classroom : 2.1.6 read classroom coordinates and range
+CheckInControl --> Session : 2.1.4 read class section and scheduled start time
+CheckInControl --> ClassSectionStudent : 2.1.5 verify enrollment
+CheckInControl --> Room : 2.1.6 read classroom coordinates and range
 CheckInControl --> DistanceCalc : 2.1.7 compare submitted coordinates
 CheckInControl --> CheckInAttempt : 2.1.8 record attempt
 CheckInControl --> AttendanceRecord : 2.1.9 check/register official result
@@ -597,7 +605,7 @@ actor "Student" as Student
 participant "Student Mobile Interface\n«user interaction»" as StudentUI
 participant "Attendance History Control\n«coordinator»" as HistoryControl
 participant "Authentication Rules\n«business logic»" as AuthRules
-participant "ClassEnrollment\n«entity»" as ClassEnrollment
+participant "ClassSectionStudent\n«entity»" as ClassSectionStudent
 participant "ClassSection\n«entity»" as ClassSection
 participant "AttendanceRecord\n«entity»" as AttendanceRecord
 
@@ -607,8 +615,8 @@ HistoryControl -> AuthRules : check student access
 
 alt access allowed
   AuthRules --> HistoryControl : allowed
-  HistoryControl -> ClassEnrollment : read enrolled class sections
-  ClassEnrollment --> HistoryControl : class section references
+  HistoryControl -> ClassSectionStudent : read enrolled class sections
+  ClassSectionStudent --> HistoryControl : class section references
   HistoryControl -> ClassSection : read class section information
   ClassSection --> HistoryControl : class section list
   HistoryControl -> AttendanceRecord : read attendance records for student
@@ -630,14 +638,14 @@ class "Student" as Student <<actor>>
 class "Student Mobile Interface" as StudentUI <<user interaction>>
 class "Attendance History Control" as HistoryControl <<coordinator>>
 class "Authentication Rules" as AuthRules <<business logic>>
-class "ClassEnrollment" as ClassEnrollment <<entity>>
+class "ClassSectionStudent" as ClassSectionStudent <<entity>>
 class "ClassSection" as ClassSection <<entity>>
 class "AttendanceRecord" as AttendanceRecord <<entity>>
 
 Student --> StudentUI : 1 select History tab
 StudentUI --> HistoryControl : 1.1 request history
 HistoryControl --> AuthRules : 1.1.1 check access
-HistoryControl --> ClassEnrollment : 1.1.2 read enrolled sections
+HistoryControl --> ClassSectionStudent : 1.1.2 read enrolled sections
 HistoryControl --> ClassSection : 1.1.3 read class section details
 HistoryControl --> AttendanceRecord : 1.1.4 read statuses
 HistoryControl --> StudentUI : 2 return history or failure
@@ -662,9 +670,9 @@ participant "Location Distance Calculation\n«algorithm»" as DistanceCalc
 participant "Attendance Status Calculation\n«business logic»" as StatusRules
 participant "AttendanceSession\n«entity»" as AttendanceSession
 participant "AttendanceConfiguration\n«entity»" as AttendanceConfig
-participant "StudySession\n«entity»" as StudySession
-participant "ClassEnrollment\n«entity»" as ClassEnrollment
-participant "Classroom\n«entity»" as Classroom
+participant "Session\n«entity»" as Session
+participant "ClassSectionStudent\n«entity»" as ClassSectionStudent
+participant "Room\n«entity»" as Room
 participant "CheckInAttempt\n«entity»" as CheckInAttempt
 participant "AttendanceRecord\n«entity»" as AttendanceRecord
 participant "Monitor Control\n«coordinator»" as MonitorControl
@@ -716,18 +724,18 @@ else location and device evidence available
     StudentUI --> Student : show PIN expired message
   else PIN valid
     CodeRules --> CheckInControl : PIN valid
-    CheckInControl -> StudySession : read class section and scheduled start time
-    StudySession --> CheckInControl : class section and session start time
-    CheckInControl -> ClassEnrollment : verify student enrollment in class section
-    ClassEnrollment --> CheckInControl : enrollment result
+    CheckInControl -> Session : read class section and scheduled start time
+    Session --> CheckInControl : class section and session start time
+    CheckInControl -> ClassSectionStudent : verify student enrollment in class section
+    ClassSectionStudent --> CheckInControl : enrollment result
 
     alt student not enrolled
       CheckInControl -> CheckInAttempt : record rejected attempt(status = Rejected, reason = NotEnrolled)
       CheckInControl --> StudentUI : reject not enrolled
       StudentUI --> Student : show check-in not allowed
     else student enrolled
-      CheckInControl -> Classroom : read classroom coordinates and allowed range
-      Classroom --> CheckInControl : classroom coordinates and range
+      CheckInControl -> Room : read classroom coordinates and allowed range
+      Room --> CheckInControl : classroom coordinates and range
       CheckInControl -> DistanceCalc : compare submitted coordinates, accuracy, and classroom range
       DistanceCalc --> CheckInControl : location check result
 
@@ -772,9 +780,9 @@ class "Location Distance Calculation" as DistanceCalc <<algorithm>>
 class "Attendance Status Calculation" as StatusRules <<business logic>>
 class "AttendanceSession" as AttendanceSession <<entity>>
 class "AttendanceConfiguration" as AttendanceConfig <<entity>>
-class "StudySession" as StudySession <<entity>>
-class "ClassEnrollment" as ClassEnrollment <<entity>>
-class "Classroom" as Classroom <<entity>>
+class "Session" as Session <<entity>>
+class "ClassSectionStudent" as ClassSectionStudent <<entity>>
+class "Room" as Room <<entity>>
 class "CheckInAttempt" as CheckInAttempt <<entity>>
 class "AttendanceRecord" as AttendanceRecord <<entity>>
 class "Monitor Control" as MonitorControl <<coordinator>>
@@ -789,9 +797,9 @@ CheckInControl --> MobileSensor : 2.1.1 read GPS coordinates and device identifi
 CheckInControl --> AttendanceSession : 2.1.2 read active PIN
 CheckInControl --> CodeRules : 2.1.3 verify PIN using official system time
 CodeRules --> AttendanceConfig : 2.1.3.1 read PIN refresh setting
-CheckInControl --> StudySession : 2.1.4 read class section and scheduled start time
-CheckInControl --> ClassEnrollment : 2.1.5 verify enrollment
-CheckInControl --> Classroom : 2.1.6 read classroom coordinates and range
+CheckInControl --> Session : 2.1.4 read class section and scheduled start time
+CheckInControl --> ClassSectionStudent : 2.1.5 verify enrollment
+CheckInControl --> Room : 2.1.6 read classroom coordinates and range
 CheckInControl --> DistanceCalc : 2.1.7 compare submitted coordinates
 CheckInControl --> CheckInAttempt : 2.1.8 record attempt
 CheckInControl --> AttendanceRecord : 2.1.9 check/register official result
@@ -816,16 +824,16 @@ participant "Session Control\n«state dependent control»" as SessionControl
 participant "Session Rules\n«business logic»" as SessionRules
 participant "Attendance Code Rules\n«business logic»" as CodeRules
 participant "AttendanceConfiguration\n«entity»" as AttendanceConfig
-participant "StudySession\n«entity»" as StudySession
-participant "ClassEnrollment\n«entity»" as ClassEnrollment
+participant "Session\n«entity»" as Session
+participant "ClassSectionStudent\n«entity»" as ClassSectionStudent
 participant "AttendanceSession\n«entity»" as AttendanceSession
 participant "CheckInAttempt\n«entity»" as CheckInAttempt
 participant "AttendanceRecord\n«entity»" as AttendanceRecord
 
 Lecturer -> LecturerUI : navigate to My Scheduled Classes
 LecturerUI -> SessionControl : request assigned scheduled sessions
-SessionControl -> StudySession : read sessions assigned to lecturer
-StudySession --> SessionControl : scheduled sessions
+SessionControl -> Session : read sessions assigned to lecturer
+Session --> SessionControl : scheduled sessions
 SessionControl --> LecturerUI : assigned classes and sessions
 Lecturer -> LecturerUI : select current session and click Start Attendance
 LecturerUI -> SessionControl : request session activation
@@ -894,8 +902,8 @@ else activation allowed
     LecturerUI -> SessionControl : continue after UC07 adjustment
   end
 
-  SessionControl -> ClassEnrollment : read enrolled students
-  ClassEnrollment --> SessionControl : enrolled students
+  SessionControl -> ClassSectionStudent : read enrolled students
+  ClassSectionStudent --> SessionControl : enrolled students
   SessionControl -> AttendanceRecord : assign Absent to students without Present or Late
   AttendanceRecord --> SessionControl : completed attendance list
   SessionControl --> LecturerUI : show completed attendance list
@@ -921,22 +929,22 @@ class "Session Control" as SessionControl <<state dependent control>>
 class "Session Rules" as SessionRules <<business logic>>
 class "Attendance Code Rules" as CodeRules <<business logic>>
 class "AttendanceConfiguration" as AttendanceConfig <<entity>>
-class "StudySession" as StudySession <<entity>>
-class "ClassEnrollment" as ClassEnrollment <<entity>>
+class "Session" as Session <<entity>>
+class "ClassSectionStudent" as ClassSectionStudent <<entity>>
 class "AttendanceSession" as AttendanceSession <<entity>>
 class "CheckInAttempt" as CheckInAttempt <<entity>>
 class "AttendanceRecord" as AttendanceRecord <<entity>>
 
 Lecturer --> LecturerUI : 1 manage scheduled session
 LecturerUI --> SessionControl : 1.1 request sessions/start/stop/reopen/finalize
-SessionControl --> StudySession : 1.1.1 read assigned sessions
+SessionControl --> Session : 1.1.1 read assigned sessions
 SessionControl --> SessionRules : 1.1.2 validate lifecycle action
 SessionControl --> AttendanceSession : 1.1.3 activate, stop, reopen, stop reopened window, or finalize
 SessionControl --> CodeRules : 1.1.4 prepare and refresh QR/PIN codes
 CodeRules --> AttendanceConfig : 1.1.4.1 read QR/PIN refresh settings
 SessionControl --> AttendanceRecord : 1.1.5 read results, assign Absent, finalize
 SessionControl --> CheckInAttempt : 1.1.6 read rejected attempts
-SessionControl --> ClassEnrollment : 1.1.7 read enrolled students
+SessionControl --> ClassSectionStudent : 1.1.7 read enrolled students
 SessionControl --> LecturerUI : 2 show lifecycle result
 @enduml
 ```
@@ -954,7 +962,7 @@ participant "Lecturer Web Interface\n«user interaction»" as LecturerUI
 participant "Monitor Control\n«coordinator»" as MonitorControl
 participant "Session Rules\n«business logic»" as SessionRules
 participant "AttendanceSession\n«entity»" as AttendanceSession
-participant "ClassEnrollment\n«entity»" as ClassEnrollment
+participant "ClassSectionStudent\n«entity»" as ClassSectionStudent
 participant "AttendanceRecord\n«entity»" as AttendanceRecord
 
 Lecturer -> LecturerUI : open live attendance monitor
@@ -969,8 +977,8 @@ alt session is not active
   LecturerUI --> Lecturer : show monitor unavailable
 else session is active
   SessionRules --> MonitorControl : monitor allowed
-  MonitorControl -> ClassEnrollment : read class roster
-  ClassEnrollment --> MonitorControl : enrolled students
+  MonitorControl -> ClassSectionStudent : read class roster
+  ClassSectionStudent --> MonitorControl : enrolled students
   MonitorControl -> AttendanceRecord : read current attendance statuses
   AttendanceRecord --> MonitorControl : current statuses
   MonitorControl --> LecturerUI : student grid and attendance count
@@ -1002,14 +1010,14 @@ class "Lecturer Web Interface" as LecturerUI <<user interaction>>
 class "Monitor Control" as MonitorControl <<coordinator>>
 class "Session Rules" as SessionRules <<business logic>>
 class "AttendanceSession" as AttendanceSession <<entity>>
-class "ClassEnrollment" as ClassEnrollment <<entity>>
+class "ClassSectionStudent" as ClassSectionStudent <<entity>>
 class "AttendanceRecord" as AttendanceRecord <<entity>>
 
 Lecturer --> LecturerUI : 1 open monitor
 LecturerUI --> MonitorControl : 1.1 request active session monitor
 MonitorControl --> AttendanceSession : 1.1.1 read session status
 MonitorControl --> SessionRules : 1.1.2 verify active session
-MonitorControl --> ClassEnrollment : 1.1.3 read roster
+MonitorControl --> ClassSectionStudent : 1.1.3 read roster
 MonitorControl --> AttendanceRecord : 1.1.4 read current statuses and changed official results
 MonitorControl --> LecturerUI : 2 show unavailable, update grid, or show interruption warning
 @enduml
@@ -1056,7 +1064,7 @@ else adjustment context allowed
     AdjustmentControl --> LecturerUI : adjustment saved
     LecturerUI --> Lecturer : show updated student status
   else selected rejected attempt and no official record exists
-    AdjustmentControl -> AttendanceRecord : create official result(ResultSource = ManualAdjustment, SourceAttemptCode = selected attempt)
+    AdjustmentControl -> AttendanceRecord : create official result(ResultSource = ManualAdjustment, SourceCheckInAttemptId = selected attempt)
     AdjustmentControl --> LecturerUI : adjustment saved
     LecturerUI --> Lecturer : show created official status
   end
@@ -1096,8 +1104,8 @@ actor "Lecturer" as Lecturer
 participant "Lecturer Web Interface\n«user interaction»" as LecturerUI
 participant "Report Control\n«coordinator»" as ReportControl
 participant "Report Eligibility Rules\n«business logic»" as ReportRules
-participant "ClassEnrollment\n«entity»" as ClassEnrollment
-participant "StudySession\n«entity»" as StudySession
+participant "ClassSectionStudent\n«entity»" as ClassSectionStudent
+participant "Session\n«entity»" as Session
 participant "AttendanceRecord\n«entity»" as AttendanceRecord
 participant "CheckInAttempt\n«entity»" as CheckInAttempt
 
@@ -1111,10 +1119,10 @@ alt no finalized records or no sessions exist
   LecturerUI --> Lecturer : show no records available
 else finalized records exist
   ReportRules --> ReportControl : export allowed
-  ReportControl -> ClassEnrollment : read roster
-  ClassEnrollment --> ReportControl : student roster
-  ReportControl -> StudySession : read class sessions
-  StudySession --> ReportControl : session dates
+  ReportControl -> ClassSectionStudent : read roster
+  ClassSectionStudent --> ReportControl : student roster
+  ReportControl -> Session : read class sessions
+  Session --> ReportControl : session dates
   ReportControl -> AttendanceRecord : read finalized Present, Late, Absent statuses
   AttendanceRecord --> ReportControl : official attendance matrix
   ReportControl -> CheckInAttempt : read check-in modes, warnings, and rejected attempts
@@ -1133,16 +1141,16 @@ class "Lecturer" as Lecturer <<actor>>
 class "Lecturer Web Interface" as LecturerUI <<user interaction>>
 class "Report Control" as ReportControl <<coordinator>>
 class "Report Eligibility Rules" as ReportRules <<business logic>>
-class "ClassEnrollment" as ClassEnrollment <<entity>>
-class "StudySession" as StudySession <<entity>>
+class "ClassSectionStudent" as ClassSectionStudent <<entity>>
+class "Session" as Session <<entity>>
 class "AttendanceRecord" as AttendanceRecord <<entity>>
 class "CheckInAttempt" as CheckInAttempt <<entity>>
 
 Lecturer --> LecturerUI : 1 click Export Report
 LecturerUI --> ReportControl : 1.1 request report
 ReportControl --> ReportRules : 1.1.1 verify finalized results
-ReportControl --> ClassEnrollment : 1.1.2 read roster
-ReportControl --> StudySession : 1.1.3 read sessions
+ReportControl --> ClassSectionStudent : 1.1.2 read roster
+ReportControl --> Session : 1.1.3 read sessions
 ReportControl --> AttendanceRecord : 1.1.4 read finalized Present/Late/Absent statuses
 ReportControl --> CheckInAttempt : 1.1.5 read modes, warnings, rejected attempts
 ReportControl --> LecturerUI : 2 return report content or empty state
@@ -1161,9 +1169,9 @@ actor "Admin" as Admin
 participant "Admin Web Interface\n«user interaction»" as AdminUI
 participant "Catalog Control\n«coordinator»" as CatalogControl
 participant "Catalog Uniqueness Rules\n«business logic»" as CatalogRules
-participant "UserAccount\n«entity»" as UserAccount
-participant "StudentProfile\n«entity»" as StudentProfile
-participant "LecturerProfile\n«entity»" as LecturerProfile
+participant "Account\n«entity»" as Account
+participant "Student\n«entity»" as Student
+participant "Lecturer\n«entity»" as Lecturer
 participant "Subject\n«entity»" as Subject
 participant "ClassSection\n«entity»" as ClassSection
 
@@ -1184,16 +1192,16 @@ else batch import selected
   AdminUI -> CatalogControl : submit batch catalog data
   CatalogControl -> CatalogRules : validate imported records
   CatalogRules --> CatalogControl : import validation result
-  CatalogControl -> UserAccount : record valid imported accounts
-  CatalogControl -> StudentProfile : record valid imported students
+  CatalogControl -> Account : record valid imported accounts
+  CatalogControl -> Student : record valid imported students
   CatalogControl -> Subject : record valid imported subjects
   CatalogControl --> AdminUI : import result
   AdminUI --> Admin : show imported records and validation feedback
 else valid single change
   CatalogRules --> CatalogControl : valid change
-  CatalogControl -> UserAccount : record user account change when applicable
-  CatalogControl -> StudentProfile : record student profile change when applicable
-  CatalogControl -> LecturerProfile : record lecturer profile change when applicable
+  CatalogControl -> Account : record user account change when applicable
+  CatalogControl -> Student : record student change when applicable
+  CatalogControl -> Lecturer : record lecturer change when applicable
   CatalogControl -> Subject : record subject change when applicable
   CatalogControl -> ClassSection : record class section change when applicable
   CatalogControl --> AdminUI : catalog updated
@@ -1210,18 +1218,18 @@ class "Admin" as Admin <<actor>>
 class "Admin Web Interface" as AdminUI <<user interaction>>
 class "Catalog Control" as CatalogControl <<coordinator>>
 class "Catalog Uniqueness Rules" as CatalogRules <<business logic>>
-class "UserAccount" as UserAccount <<entity>>
-class "StudentProfile" as StudentProfile <<entity>>
-class "LecturerProfile" as LecturerProfile <<entity>>
+class "Account" as Account <<entity>>
+class "Student" as Student <<entity>>
+class "Lecturer" as Lecturer <<entity>>
 class "Subject" as Subject <<entity>>
 class "ClassSection" as ClassSection <<entity>>
 
 Admin --> AdminUI : 1 manage catalog
 AdminUI --> CatalogControl : 1.1 view/add/edit/delete/import records
 CatalogControl --> CatalogRules : 1.1.1 validate fields and uniqueness
-CatalogControl --> UserAccount : 1.1.2 record account change
-CatalogControl --> StudentProfile : 1.1.3 record student change
-CatalogControl --> LecturerProfile : 1.1.4 record lecturer change
+CatalogControl --> Account : 1.1.2 record account change
+CatalogControl --> Student : 1.1.3 record student change
+CatalogControl --> Lecturer : 1.1.4 record lecturer change
 CatalogControl --> Subject : 1.1.5 record subject change
 CatalogControl --> ClassSection : 1.1.6 record class section change
 CatalogControl --> AdminUI : 2 return updated grid or validation error
@@ -1240,16 +1248,16 @@ actor "Admin" as Admin
 participant "Admin Web Interface\n«user interaction»" as AdminUI
 participant "Room Configuration Control\n«coordinator»" as RoomControl
 participant "Mobile Device Sensor Interface\n«device I/O»" as MobileSensor
-participant "Classroom Location Setting Rules\n«business logic»" as LocationSettingRules
-participant "Classroom\n«entity»" as Classroom
+participant "Room Location Setting Rules\n«business logic»" as LocationSettingRules
+participant "Room\n«entity»" as Room
 participant "CampusBoundary\n«entity»" as CampusBoundary
 participant "AttendanceConfiguration\n«entity»" as AttendanceConfig
 
 Admin -> AdminUI : click Room Management
 AdminUI -> RoomControl : request classroom list
-RoomControl -> Classroom : read physical classrooms
-Classroom --> RoomControl : classroom list
-RoomControl -> AttendanceConfig : read default classroom radius
+RoomControl -> Room : read physical classrooms
+Room --> RoomControl : classroom list
+RoomControl -> AttendanceConfig : read default allowed radius
 AttendanceConfig --> RoomControl : default radius value
 RoomControl --> AdminUI : classroom list with configuration action
 Admin -> AdminUI : select classroom and configure location
@@ -1282,7 +1290,7 @@ else location outside university boundary
   AdminUI --> Admin : show campus boundary warning
 else location accepted
   LocationSettingRules --> RoomControl : location settings accepted
-  RoomControl -> Classroom : update room location settings
+  RoomControl -> Room : update room location settings
   RoomControl --> AdminUI : configuration saved
   AdminUI --> Admin : show saved configuration
 end
@@ -1297,15 +1305,15 @@ class "Admin" as Admin <<actor>>
 class "Admin Web Interface" as AdminUI <<user interaction>>
 class "Room Configuration Control" as RoomControl <<coordinator>>
 class "Mobile Device Sensor Interface" as MobileSensor <<device I/O>>
-class "Classroom Location Setting Rules" as LocationSettingRules <<business logic>>
-class "Classroom" as Classroom <<entity>>
+class "Room Location Setting Rules" as LocationSettingRules <<business logic>>
+class "Room" as Room <<entity>>
 class "CampusBoundary" as CampusBoundary <<entity>>
 class "AttendanceConfiguration" as AttendanceConfig <<entity>>
 
 Admin --> AdminUI : 1 configure classroom location
 AdminUI --> RoomControl : 1.1 request rooms / submit settings
-RoomControl --> Classroom : 1.1.1 read or update classroom settings
-RoomControl --> AttendanceConfig : 1.1.2 read default classroom radius
+RoomControl --> Room : 1.1.1 read or update room location settings
+RoomControl --> AttendanceConfig : 1.1.2 read default allowed radius
 RoomControl --> MobileSensor : 1.1.3 read current location for calibration
 RoomControl --> LocationSettingRules : 1.1.4 validate coordinate, campus boundary, and radius values
 LocationSettingRules --> CampusBoundary : 1.1.4.1 check university boundary
@@ -1382,18 +1390,18 @@ Finalized --> [*]
 
 | **Requirement / UC** | **Actor** | **Analysis objects** | **Dynamic diagrams** | **Business rules covered** |
 | :--- | :--- | :--- | :--- | :--- |
-| UC01 Authenticate User | Student, Lecturer, Admin, University Identity System | Role-specific Access Interface, Student Mobile Interface, Lecturer Web Interface, Admin Web Interface, University Identity System Interface, Authentication Control, Authentication Rules, UserAccount | Figure II-3, Figure II-4 | BR-01 |
-| UC02 Check In via Dynamic QR Code | Student | Student Mobile Interface, Mobile Device Sensor Interface, Check-in Control, Identity Evidence Rules, Attendance Code Rules, AttendanceConfiguration, Location Distance Calculation, Attendance Status Calculation, AttendanceSession, StudySession, ClassEnrollment, Classroom, CheckInAttempt, AttendanceRecord, Monitor Control | Figure II-5, Figure II-6, Figure II-24, Figure II-25 | BR-02, BR-03, BR-04, BR-05, BR-06, BR-12, BR-13, BR-14, NF-02, NF-06 |
-| UC03 View Personal Attendance History | Student | Student Mobile Interface, Attendance History Control, Authentication Rules, ClassEnrollment, ClassSection, AttendanceRecord | Figure II-7, Figure II-8 | BR-01 |
-| UC04 Check In via PIN Fallback | Student | Student Mobile Interface, Mobile Device Sensor Interface, Check-in Control, Identity Evidence Rules, Attendance Code Rules, AttendanceConfiguration, Location Distance Calculation, Attendance Status Calculation, AttendanceSession, StudySession, ClassEnrollment, Classroom, CheckInAttempt, AttendanceRecord, Monitor Control | Figure II-9, Figure II-10, Figure II-24, Figure II-25 | BR-02, BR-03, BR-04, BR-05, BR-06, BR-07, BR-12, BR-13, BR-14, NF-02, NF-06 |
-| UC05 Manage Attendance Session | Lecturer | Lecturer Web Interface, Session Control, Session Rules, Attendance Code Rules, AttendanceConfiguration, StudySession, ClassEnrollment, AttendanceSession, CheckInAttempt, AttendanceRecord | Figure II-11, Figure II-12, Figure II-23 | BR-02, BR-06, BR-08, BR-10, BR-12, NF-06 |
-| UC06 Monitor Attendance in Real Time | Lecturer | Lecturer Web Interface, Monitor Control, Session Rules, AttendanceSession, ClassEnrollment, AttendanceRecord | Figure II-13, Figure II-14 | NF-01 |
+| UC01 Authenticate User | Student, Lecturer, Admin, University Identity System | Role-specific Access Interface, Student Mobile Interface, Lecturer Web Interface, Admin Web Interface, University Identity System Interface, Authentication Control, Authentication Rules, Account | Figure II-3, Figure II-4 | BR-01 |
+| UC02 Check In via Dynamic QR Code | Student | Student Mobile Interface, Mobile Device Sensor Interface, Check-in Control, Identity Evidence Rules, Attendance Code Rules, AttendanceConfiguration, Location Distance Calculation, Attendance Status Calculation, AttendanceSession, Session, ClassSectionStudent, Room, CheckInAttempt, AttendanceRecord, Monitor Control | Figure II-5, Figure II-6, Figure II-24, Figure II-25 | BR-02, BR-03, BR-04, BR-05, BR-06, BR-12, BR-13, BR-14, NF-02, NF-06 |
+| UC03 View Personal Attendance History | Student | Student Mobile Interface, Attendance History Control, Authentication Rules, ClassSectionStudent, ClassSection, AttendanceRecord | Figure II-7, Figure II-8 | BR-01 |
+| UC04 Check In via PIN Fallback | Student | Student Mobile Interface, Mobile Device Sensor Interface, Check-in Control, Identity Evidence Rules, Attendance Code Rules, AttendanceConfiguration, Location Distance Calculation, Attendance Status Calculation, AttendanceSession, Session, ClassSectionStudent, Room, CheckInAttempt, AttendanceRecord, Monitor Control | Figure II-9, Figure II-10, Figure II-24, Figure II-25 | BR-02, BR-03, BR-04, BR-05, BR-06, BR-07, BR-12, BR-13, BR-14, NF-02, NF-06 |
+| UC05 Manage Attendance Session | Lecturer | Lecturer Web Interface, Session Control, Session Rules, Attendance Code Rules, AttendanceConfiguration, Session, ClassSectionStudent, AttendanceSession, CheckInAttempt, AttendanceRecord | Figure II-11, Figure II-12, Figure II-23 | BR-02, BR-06, BR-08, BR-10, BR-12, NF-06 |
+| UC06 Monitor Attendance in Real Time | Lecturer | Lecturer Web Interface, Monitor Control, Session Rules, AttendanceSession, ClassSectionStudent, AttendanceRecord | Figure II-13, Figure II-14 | NF-01 |
 | UC07 Adjust Attendance Manually | Lecturer | Lecturer Web Interface, Adjustment Control, Session Rules, AttendanceRecord, CheckInAttempt | Figure II-15, Figure II-16, Figure II-25 | BR-10 |
-| UC08 Export Attendance Report | Lecturer | Lecturer Web Interface, Report Control, Report Eligibility Rules, ClassEnrollment, StudySession, AttendanceRecord, CheckInAttempt | Figure II-17, Figure II-18, Figure II-25 | BR-08 |
-| UC09 Manage System Catalog | Admin | Admin Web Interface, Catalog Control, Catalog Uniqueness Rules, UserAccount, StudentProfile, LecturerProfile, Subject, ClassSection | Figure II-19, Figure II-20 | BR-11 |
-| UC10 Configure Classroom Location | Admin | Admin Web Interface, Mobile Device Sensor Interface, Room Configuration Control, Classroom Location Setting Rules, CampusBoundary, AttendanceConfiguration, Classroom | Figure II-21, Figure II-22 | BR-03, NF-06 |
+| UC08 Export Attendance Report | Lecturer | Lecturer Web Interface, Report Control, Report Eligibility Rules, ClassSectionStudent, Session, AttendanceRecord, CheckInAttempt | Figure II-17, Figure II-18, Figure II-25 | BR-08 |
+| UC09 Manage System Catalog | Admin | Admin Web Interface, Catalog Control, Catalog Uniqueness Rules, Account, Student, Lecturer, Subject, ClassSection | Figure II-19, Figure II-20 | BR-11 |
+| UC10 Configure Classroom Location | Admin | Admin Web Interface, Mobile Device Sensor Interface, Room Configuration Control, Room Location Setting Rules, CampusBoundary, AttendanceConfiguration, Room | Figure II-21, Figure II-22 | BR-03, NF-06 |
 | NF-06 Configurable attendance parameters | Student, Lecturer, Admin | AttendanceConfiguration, Attendance Code Rules, Attendance Status Calculation, Room Configuration Control | Figure II-1, Figure II-5, Figure II-9, Figure II-11, Figure II-21 | NF-06 |
-| BR-14 Enrollment authorization | Student, Lecturer | ClassEnrollment, StudySession, Check-in Control | Figure II-5, Figure II-9, Figure II-11 | BR-14 |
+| BR-14 Enrollment authorization | Student, Lecturer | ClassSectionStudent, Session, Check-in Control | Figure II-5, Figure II-9, Figure II-11 | BR-14 |
 
 ---
 

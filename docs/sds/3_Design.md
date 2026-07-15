@@ -86,17 +86,17 @@ object "Session Rules\n«business logic»" as SessionRules
 object "Attendance Status Calculation\n«business logic»" as StatusRules
 object "Report Eligibility Rules\n«business logic»" as ReportRules
 object "Catalog Uniqueness Rules\n«business logic»" as CatalogRules
-object "Classroom Location Setting Rules\n«business logic»" as RoomRules
+object "Room Location Setting Rules\n«business logic»" as RoomRules
 object "Location Distance Calculation\n«algorithm»" as DistanceCalc
 
-object "UserAccount\n«entity»" as UserAccount
-object "StudentProfile\n«entity»" as StudentProfile
-object "LecturerProfile\n«entity»" as LecturerProfile
+object "Account\n«entity»" as Account
+object "Student\n«entity»" as StudentEntity
+object "Lecturer\n«entity»" as LecturerEntity
 object "Subject\n«entity»" as Subject
 object "ClassSection\n«entity»" as ClassSection
-object "ClassEnrollment\n«entity»" as ClassEnrollment
-object "StudySession\n«entity»" as StudySession
-object "Classroom\n«entity»" as Classroom
+object "ClassSectionStudent\n«entity»" as ClassSectionStudent
+object "Session\n«entity»" as Session
+object "Room\n«entity»" as Room
 object "CampusBoundary\n«entity»" as CampusBoundary
 object "AttendanceConfiguration\n«entity»" as AttendanceConfig
 object "AttendanceSession\n«entity»" as AttendanceSession
@@ -113,7 +113,7 @@ LecturerUI --> AuthControl : UC01 request authentication
 AdminUI --> AuthControl : UC01 request authentication
 AuthControl --> UISInterface : UC01 confirm university identity
 UISInterface --> UIS : UC01 request identity confirmation
-AuthControl --> UserAccount : UC01 read AFAS role profile
+AuthControl --> Account : UC01 read AFAS role profile
 AuthControl --> AuthRules : UC01 validate role access
 
 StudentUI --> CheckInControl : UC02/UC04 submit QR or PIN check-in
@@ -122,9 +122,9 @@ CheckInControl --> IdentityRules : UC02/UC04 validate local biometric result or 
 CheckInControl --> AttendanceSession : UC02/UC04 read active attendance session
 CheckInControl --> CodeRules : UC02/UC04 verify active code
 CodeRules --> AttendanceConfig : UC02/UC04 read validity parameters
-CheckInControl --> StudySession : UC02/UC04 read class section and scheduled start time
-CheckInControl --> ClassEnrollment : UC02/UC04 verify enrollment
-CheckInControl --> Classroom : UC02/UC04 read coordinates and allowed range
+CheckInControl --> Session : UC02/UC04 read class section and scheduled start time
+CheckInControl --> ClassSectionStudent : UC02/UC04 verify enrollment
+CheckInControl --> Room : UC02/UC04 read coordinates and allowed range
 CheckInControl --> DistanceCalc : UC02/UC04 compare submitted coordinates
 CheckInControl --> StatusRules : UC02/UC04 classify Present or Late from official time
 CheckInControl --> CheckInAttempt : UC02/UC04 record accepted or rejected attempt
@@ -133,20 +133,20 @@ CheckInControl --> MonitorControl : UC02/UC04 attendanceResultChanged
 
 StudentUI --> HistoryControl : UC03 request attendance history
 HistoryControl --> AuthRules : UC03 check access
-HistoryControl --> ClassEnrollment : UC03 read enrolled classes
+HistoryControl --> ClassSectionStudent : UC03 read enrolled classes
 HistoryControl --> AttendanceRecord : UC03 read official results
 
 LecturerUI --> SessionControl : UC05 start, stop, reopen, finalize session
 SessionControl --> SessionRules : UC05 validate lifecycle
-SessionControl --> StudySession : UC05 read scheduled session
-SessionControl --> ClassEnrollment : UC05 read roster
+SessionControl --> Session : UC05 read scheduled session
+SessionControl --> ClassSectionStudent : UC05 read roster
 SessionControl --> AttendanceSession : UC05 update session status and active code
 SessionControl --> AttendanceConfiguration : UC05 read refresh intervals
 SessionControl --> AttendanceRecord : UC05 assign Absent and finalize
 
 LecturerUI --> MonitorControl : UC06 view live progress
 MonitorControl --> AttendanceSession : UC06 read session state
-MonitorControl --> ClassEnrollment : UC06 read roster
+MonitorControl --> ClassSectionStudent : UC06 read roster
 MonitorControl --> AttendanceRecord : UC06 read current official results
 
 LecturerUI --> AdjustmentControl : UC07 adjust attendance status
@@ -156,16 +156,16 @@ AdjustmentControl --> AttendanceRecord : UC07 update or create official result
 
 LecturerUI --> ReportControl : UC08 export finalized report
 ReportControl --> ReportRules : UC08 verify finalized results
-ReportControl --> ClassEnrollment : UC08 read roster
-ReportControl --> StudySession : UC08 read sessions
+ReportControl --> ClassSectionStudent : UC08 read roster
+ReportControl --> Session : UC08 read sessions
 ReportControl --> AttendanceRecord : UC08 read official result matrix
 ReportControl --> CheckInAttempt : UC08 read modes and rejected-attempt summary
 
 AdminUI --> CatalogControl : UC09 manage catalog
 CatalogControl --> CatalogRules : UC09 validate uniqueness
-CatalogControl --> UserAccount : UC09 maintain accounts
-CatalogControl --> StudentProfile : UC09 maintain students
-CatalogControl --> LecturerProfile : UC09 maintain lecturers
+CatalogControl --> Account : UC09 maintain accounts
+CatalogControl --> StudentEntity : UC09 maintain students
+CatalogControl --> LecturerEntity : UC09 maintain lecturers
 CatalogControl --> Subject : UC09 maintain subjects
 CatalogControl --> ClassSection : UC09 maintain class sections
 
@@ -173,7 +173,7 @@ AdminUI --> RoomControl : UC10 configure classroom location
 RoomControl --> MobileSensor : UC10 capture current location when calibrated on site
 RoomControl --> RoomRules : UC10 validate coordinate, campus boundary, and radius
 RoomRules --> CampusBoundary : UC10 check university boundary
-RoomControl --> Classroom : UC10 update classroom settings
+RoomControl --> Room : UC10 update room location settings
 RoomControl --> AttendanceConfiguration : UC10 read default radius
 @enduml
 ```
@@ -404,7 +404,7 @@ else identity evidence accepted
     CheckInService --> CheckInEndpoint : rejected result
     CheckInEndpoint --> StudentApp : show expired or invalid code
   else code valid
-    CheckInService -> Repository : read Classroom, AttendanceConfiguration, existing AttendanceRecord
+    CheckInService -> Repository : read Room, AttendanceConfiguration, existing AttendanceRecord
     Repository --> CheckInService : classroom range, config, existing result
     CheckInService -> DistanceStrategy : calculate distance from classroom
 
@@ -590,13 +590,13 @@ ReportFile - IReportFileWriter
 
 **Payload:**
 
-- `studySessionCode: Text` - scheduled session receiving the update.
-- `studentRollNumber: Text` - student whose official result changed.
+- `sessionId: Text` - scheduled session receiving the update.
+- `studentId: Text` - student whose official result changed.
 - `attendanceStatus: Text` - `Present` or `Late`.
 - `checkedInAt: DateTime` - official check-in timestamp.
 - `checkInMethod: Text` - `QR` or `PIN`.
 
-**Ordering:** Required per `studySessionCode` and `studentRollNumber`.
+**Ordering:** Required per `sessionId` and `studentId`.
 
 **Failure Handling:** If delivery fails, the official attendance result remains saved; lecturer UI recovers by fetching the latest roster snapshot.
 
@@ -631,7 +631,7 @@ ReportFile - IReportFileWriter
 
 **Required Interface:** `IAttendanceCodeStore`, `IRepositoryOperations`, `IAttendanceNotifications`
 
-**Input Messages/Data:** `CheckInCommand` with student roll number, study session code, submitted code or PIN, check-in method, identity evidence result, submitted location, device identifier, device display name, and submission time.
+**Input Messages/Data:** `CheckInCommand` with student ID, session ID, submitted code or PIN, check-in method, identity evidence result, submitted location, device identifier, device display name, and submission time.
 
 **Output Messages/Data:** `CheckInResult` with accepted/rejected/blocked status, official attendance status when accepted, and user-visible reason when rejected.
 
@@ -663,7 +663,7 @@ ReportFile - IReportFileWriter
 
 **Termination:** Ends after result is returned.
 
-**Concurrency Notes:** Official attendance creation is guarded by a uniqueness constraint on `(StudentRollNumber, StudySessionCode)` to satisfy BR-06.
+**Concurrency Notes:** Official attendance creation is guarded by a uniqueness constraint on `(StudentId, SessionId)` to satisfy BR-06.
 
 ### **Task Interface Specification: QR/PIN Refresh Task**
 
@@ -673,11 +673,11 @@ ReportFile - IReportFileWriter
 
 **Trigger:** Active attendance session started by lecturer.
 
-**Provided Interface:** `startRefresh(studySessionCode)`, `stopRefresh(studySessionCode)`
+**Provided Interface:** `startRefresh(sessionId)`, `stopRefresh(sessionId)`
 
 **Required Interface:** `IAttendanceCodeStore`, `IRepositoryOperations`, `IAttendanceNotifications`
 
-**Input Messages/Data:** Study session code, QR refresh seconds, QR validity seconds, PIN refresh seconds.
+**Input Messages/Data:** Session ID, QR refresh seconds, QR validity seconds, PIN refresh seconds.
 
 **Output Messages/Data:** Active QR token, backup PIN, refreshed timestamps, countdown update.
 
@@ -724,7 +724,7 @@ ReportFile - IReportFileWriter
 | Operation | Parameters | Return | Precondition | Postcondition | Invariant |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `authenticate` | `identityConfirmationRequest: IdentityConfirmationRequest`, `requestedRole: Role` | `AuthenticationResult` | User starts login and requested role is present. | University identity is confirmed, AFAS role profile is loaded, and role access is granted or denied. | A user can access only actions allowed by their AFAS role. |
-| `authorizeAction` | `accountCode: Text`, `action: Text`, `targetResource: Text` | `AuthorizationResult` | Account is authenticated. | Access is granted only if role and ownership rules permit it. | Authorization checks do not modify domain data. |
+| `authorizeAction` | `accountId: Text`, `action: Text`, `targetResource: Text` | `AuthorizationResult` | Account is authenticated. | Access is granted only if role and ownership rules permit it. | Authorization checks do not modify domain data. |
 
 ### **CheckInService**
 
@@ -735,7 +735,7 @@ ReportFile - IReportFileWriter
 | Operation | Parameters | Return | Precondition | Postcondition | Invariant |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `processCheckIn` | `command: CheckInCommand` | `CheckInResult` | Student is authenticated; active attendance session is expected; identity, location, device, and submitted code evidence are present. | Records a blocked/rejected/accepted attempt; creates at most one official result for the student and study session. | Official result status is only `Present`, `Late`, or `Absent`; rejected state belongs to `CheckInAttempt`. |
-| `getExistingOfficialResult` | `studentRollNumber: Text`, `studySessionCode: Text` | `AttendanceRecord?` | Student and study session identifiers are present. | Returns existing official result if one exists. | Does not create or modify attendance data. |
+| `getExistingOfficialResult` | `studentId: Text`, `sessionId: Text` | `AttendanceRecord?` | Student and study session identifiers are present. | Returns existing official result if one exists. | Does not create or modify attendance data. |
 
 ### **SessionService**
 
@@ -745,9 +745,9 @@ ReportFile - IReportFileWriter
 
 | Operation | Parameters | Return | Precondition | Postcondition | Invariant |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `startAttendance` | `lecturerCode: Text`, `studySessionCode: Text` | `SessionCommandResult` | Lecturer is assigned to the class section; session is within allowed time window; no active attendance session exists for the study session. | Attendance session is active and QR/PIN refresh task starts. | One study session has at most one active attendance session. |
-| `stopReceivingCheckIns` | `lecturerCode: Text`, `studySessionCode: Text` | `SessionCommandResult` | Attendance session is active and lecturer is assigned. | New QR/PIN check-ins are no longer accepted. | Stopped sessions retain attempts and official results. |
-| `finalizeAttendance` | `lecturerCode: Text`, `studySessionCode: Text` | `SessionCommandResult` | Session is stopped or under review; lecturer is assigned. | Students without Present/Late official result are assigned Absent; session becomes finalized. | Finalized results are the source for reports. |
+| `startAttendance` | `lecturerId: Text`, `sessionId: Text` | `SessionCommandResult` | Lecturer is assigned to the class section; session is within allowed time window; no active attendance session exists for the study session. | Attendance session is active and QR/PIN refresh task starts. | One study session has at most one active attendance session. |
+| `stopReceivingCheckIns` | `lecturerId: Text`, `sessionId: Text` | `SessionCommandResult` | Attendance session is active and lecturer is assigned. | New QR/PIN check-ins are no longer accepted. | Stopped sessions retain attempts and official results. |
+| `finalizeAttendance` | `lecturerId: Text`, `sessionId: Text` | `SessionCommandResult` | Session is stopped or under review; lecturer is assigned. | Students without Present/Late official result are assigned Absent; session becomes finalized. | Finalized results are the source for reports. |
 
 ### **AdjustmentService**
 
@@ -757,8 +757,8 @@ ReportFile - IReportFileWriter
 
 | Operation | Parameters | Return | Precondition | Postcondition | Invariant |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `adjustAttendance` | `lecturerCode: Text`, `attendanceRecordCode: Text`, `newStatus: AttendanceStatus`, `reason: Text` | `AdjustmentResult` | Lecturer is assigned; reason is not empty; session is not finalized. | Attendance status changes to the selected official status. | Manual adjustment changes only the current official result. |
-| `acceptRejectedAttempt` | `lecturerCode: Text`, `checkInAttemptCode: Text`, `newStatus: AttendanceStatus`, `reason: Text` | `AdjustmentResult` | Rejected attempt exists, lecturer is assigned, session is not finalized, and reason is provided. | Official result is created or updated from the reviewed attempt. | Accepted reviewed attempt still preserves original rejected attempt evidence. |
+| `adjustAttendance` | `lecturerId: Text`, `attendanceRecordId: Text`, `newStatus: AttendanceStatus`, `reason: Text` | `AdjustmentResult` | Lecturer is assigned; reason is not empty; session is not finalized. | Attendance status changes to the selected official status. | Manual adjustment changes only the current official result. |
+| `acceptRejectedAttempt` | `lecturerId: Text`, `checkInAttemptId: Text`, `newStatus: AttendanceStatus`, `reason: Text` | `AdjustmentResult` | Rejected attempt exists, lecturer is assigned, session is not finalized, and reason is provided. | Official result is created or updated from the reviewed attempt. | Accepted reviewed attempt still preserves original rejected attempt evidence. |
 
 ### **ReportService**
 
@@ -768,7 +768,7 @@ ReportFile - IReportFileWriter
 
 | Operation | Parameters | Return | Precondition | Postcondition | Invariant |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `exportAttendanceReport` | `lecturerCode: Text`, `classSectionCode: Text`, `semesterName: Text` | `ReportFileResult` | Lecturer is assigned; finalized attendance results exist. | Returns generated report file or empty-state failure. | Reports use finalized official results only. |
+| `exportAttendanceReport` | `lecturerId: Text`, `classSectionId: Text`, `semester: Text` | `ReportFileResult` | Lecturer is assigned; finalized attendance results exist. | Returns generated report file or empty-state failure. | Reports use finalized official results only. |
 
 ### **RoomConfigurationService**
 
@@ -778,8 +778,8 @@ ReportFile - IReportFileWriter
 
 | Operation | Parameters | Return | Precondition | Postcondition | Invariant |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `saveClassroomCoordinates` | `adminAccountCode: Text`, `command: ClassroomCoordinateCommand` | `ConfigurationResult` | Admin is authenticated; classroom exists; location and radius are provided. | Classroom coordinate settings are saved. | Allowed radius must be greater than zero and location must be inside configured campus boundary. |
-| `getClassroomConfiguration` | `classroomCode: Text` | `ClassroomConfigurationView` | Classroom code is present. | Returns current location, radius, and default values. | Read operation does not modify configuration. |
+| `saveRoomCoordinates` | `adminAccountId: Text`, `command: RoomCoordinateCommand` | `ConfigurationResult` | Admin is authenticated; room exists; location and radius are provided. | Room coordinate settings are saved. | Allowed radius must be greater than zero and location must be inside configured campus boundary. |
+| `getRoomConfiguration` | `roomId: Text` | `RoomConfigurationView` | Room ID is present. | Returns current location, radius, and default values. | Read operation does not modify configuration. |
 
 ### **III.7.2 Repository and Wrapper Contracts**
 
@@ -791,8 +791,8 @@ ReportFile - IReportFileWriter
 
 | Operation | Parameters | Return | Precondition | Postcondition | Invariant |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `getActiveCode` | `studySessionCode: Text`, `method: CheckInMethod` | `ActiveCode?` | Study session code and method are present. | Returns current active code with refresh timestamp, or no value. | Store keeps only short-lived active values. |
-| `saveActiveCode` | `studySessionCode: Text`, `method: CheckInMethod`, `code: Text`, `refreshedAt: DateTime`, `validitySeconds: Number` | `SaveResult` | Attendance session is active; validity is positive. | Latest active code is available until expiry. | Older active values must expire and must not be accepted after the validity window. |
+| `getActiveCode` | `sessionId: Text`, `method: CheckInMethod` | `ActiveCode?` | Session ID and method are present. | Returns current active code with refresh timestamp, or no value. | Store keeps only short-lived active values. |
+| `saveActiveCode` | `sessionId: Text`, `method: CheckInMethod`, `code: Text`, `refreshedAt: DateTime`, `validitySeconds: Number` | `SaveResult` | Attendance session is active; validity is positive. | Latest active code is available until expiry. | Older active values must expire and must not be accepted after the validity window. |
 
 ### **IRepositoryOperations**
 
@@ -802,9 +802,9 @@ ReportFile - IReportFileWriter
 
 | Operation | Parameters | Return | Precondition | Postcondition | Invariant |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `findUserAccount` | `identity: Text` | `UserAccount?` | Identity is present. | Returns account or not found. | Repository hides physical database details from domain and application layers. |
+| `findAccount` | `identity: Text` | `Account?` | Identity is present. | Returns account or not found. | Repository hides physical database details from domain and application layers. |
 | `saveCheckInAttempt` | `attempt: CheckInAttempt` | `SaveResult` | Attempt has student, study session, submitted time, method, and status. | Attempt is persisted for lecturer review. | Accepted and rejected attempts are retained. |
-| `createOfficialAttendanceResult` | `record: AttendanceRecord` | `SaveResult` | Record has student, study session, official status, and result source. | Official result is persisted if uniqueness constraint is satisfied. | `(StudentRollNumber, StudySessionCode)` is unique for official results. |
+| `createOfficialAttendanceResult` | `record: AttendanceRecord` | `SaveResult` | Record has student, study session, official status, and result source. | Official result is persisted if uniqueness constraint is satisfied. | `(StudentId, SessionId)` is unique for official results. |
 | `updateAttendanceRecord` | `record: AttendanceRecord` | `SaveResult` | Existing attendance record is loaded and change is authorized. | Updated official result is persisted. | Manual changes update only the current official result. |
 
 ---
@@ -877,19 +877,19 @@ The persistence model maps the analysis entity class diagram in Figure II-1 to a
 
 | **Table** | **Primary Key** | **Important Columns** | **Key Constraints / Traceability** |
 | :--- | :--- | :--- | :--- |
-| `user_accounts` | `account_code` | `university_identity_code`, `school_email`, `full_name`, `user_role`, `registration_date` | Unique `university_identity_code`; UC01, UC09, BR-01, BR-11 |
-| `student_profiles` | `student_roll_number` | `account_code` | FK to `user_accounts`; UC01, UC03, UC09 |
-| `lecturer_profiles` | `lecturer_code` | `account_code`, `department_name` | FK to `user_accounts`; UC01, UC05-UC09 |
+| `accounts` | `id` | `university_identity_code`, `email`, `full_name`, `role`, `registration_date` | Unique `university_identity_code`; UC01, UC09, BR-01, BR-11 |
+| `students` | `student_id` | `account_id` | FK to `accounts`; UC01, UC03, UC09 |
+| `lecturers` | `lecturer_id` | `account_id`, `department_name` | FK to `accounts`; UC01, UC05-UC09 |
 | `campus_boundaries` | `campus_boundary_code` | `boundary_coordinates` | Source for classroom location validation; UC10 |
-| `classrooms` | `classroom_code` | `campus_boundary_code`, `classroom_name`, `classroom_latitude`, `classroom_longitude`, `allowed_attendance_radius` | Radius > 0; UC02, UC04, UC10, BR-03 |
-| `subjects` | `subject_code` | `subject_name`, `credit_value` | `credit_value > 0`; UC09, BR-11 |
-| `class_sections` | `class_section_code` | `class_section_name`, `subject_code`, `lecturer_code`, `semester_name` | FK to subject and lecturer; UC05-UC09 |
-| `class_enrollments` | `(class_section_code, student_roll_number)` | none beyond keys | Composite PK prevents duplicate enrollment; UC03, UC05, UC06, UC08 |
-| `study_sessions` | `study_session_code` | `class_section_code`, `classroom_code`, `session_date`, `start_time`, `end_time` | FK to class section and classroom; UC05 |
-| `attendance_configurations` | `configuration_code` | `qr_refresh_seconds`, `qr_validity_seconds`, `pin_refresh_seconds`, `late_threshold_minutes`, `default_classroom_radius_meters` | Timing and radius values are configurable; NF-06 |
-| `attendance_sessions` | `study_session_code` | `current_attendance_code`, `qr_code_last_changed_at`, `backup_pin_code`, `pin_last_changed_at`, `session_status` | One attendance session per study session; UC05, BR-02, BR-10 |
-| `check_in_attempts` | `check_in_attempt_code` | `student_roll_number`, `study_session_code`, `submitted_at`, `submitted_latitude`, `submitted_longitude`, `location_accuracy_meters`, `distance_from_classroom`, `location_check_result`, `device_identifier`, `device_display_name`, `face_evidence_reference`, `check_in_method`, `attempt_status`, `rejection_reason` | Attempts may be `Accepted` or `Rejected`; UC02, UC04, UC07 |
-| `attendance_records` | `attendance_record_code` | `student_roll_number`, `study_session_code`, `attendance_status`, `result_source`, `source_attempt_code`, `finalized_at` | Unique `(student_roll_number, study_session_code)`; status limited to `Present`, `Late`, `Absent`; UC02, UC04, UC05, UC07, UC08, BR-06 |
+| `rooms` | `room_id` | `campus_boundary_code`, `room_name`, `latitude`, `longitude`, `allowed_radius` | Radius > 0; UC02, UC04, UC10, BR-03 |
+| `subjects` | `subject_code` | `subject_name`, `credits` | `credits > 0`; UC09, BR-11 |
+| `class_sections` | `class_section_id` | `class_section_name`, `subject_code`, `lecturer_id`, `semester` | FK to subject and lecturer; UC05-UC09 |
+| `class_section_students` | `(class_section_id, student_id)` | none beyond keys | Composite PK prevents duplicate enrollment; UC03, UC05, UC06, UC08 |
+| `sessions` | `session_id` | `class_section_id`, `room_id`, `session_date`, `start_time`, `end_time` | FK to class section and room; UC05 |
+| `attendance_configurations` | `configuration_code` | `qr_refresh_seconds`, `qr_validity_seconds`, `pin_refresh_seconds`, `late_threshold_minutes`, `default_allowed_radius` | Timing and radius values are configurable; NF-06 |
+| `attendance_sessions` | `session_id` | `dynamic_token`, `qr_refreshed_at`, `pin_code`, `pin_refreshed_at`, `session_status` | One attendance session per scheduled session; UC05, BR-02, BR-10 |
+| `check_in_attempts` | `check_in_attempt_id` | `student_id`, `session_id`, `submitted_at`, `submitted_latitude`, `submitted_longitude`, `location_accuracy_meters`, `distance_from_room`, `location_check_result`, `device_identifier`, `device_display_name`, `face_evidence_reference`, `check_in_method`, `attempt_status`, `rejection_reason` | Attempts may be `Accepted` or `Rejected`; UC02, UC04, UC07 |
+| `attendance_records` | `attendance_record_id` | `student_id`, `session_id`, `attendance_status`, `result_source`, `source_check_in_attempt_id`, `finalized_at` | Unique `(student_id, session_id)`; status limited to `Present`, `Late`, `Absent`; UC02, UC04, UC05, UC07, UC08, BR-06 |
 
 ### **III.9.2 Database Wrapper Classes**
 
@@ -905,31 +905,31 @@ class "AdjustmentService\n«coordinator»" as AdjustmentService
 class "AttendanceRecord\n«data abstraction»" as AttendanceRecord
 class "CheckInAttempt\n«data abstraction»" as CheckInAttempt
 class "AttendanceSession\n«data abstraction»" as AttendanceSession
-class "Classroom\n«data abstraction»" as Classroom
+class "Room\n«data abstraction»" as Room
 class "AttendanceRecordRepository\n«database wrapper»" as AttendanceRecordRepo {
-  +findByStudentAndSession(studentRollNumber: Text, studySessionCode: Text): AttendanceRecord
+  +findByStudentAndSession(studentId: Text, sessionId: Text): AttendanceRecord
   +save(record: AttendanceRecord): SaveResult
   +update(record: AttendanceRecord): SaveResult
 }
 
 class "CheckInAttemptRepository\n«database wrapper»" as AttemptRepo {
   +save(attempt: CheckInAttempt): SaveResult
-  +findRejectedBySession(studySessionCode: Text): List<CheckInAttempt>
+  +findRejectedBySession(sessionId: Text): List<CheckInAttempt>
 }
 
 class "AttendanceSessionRepository\n«database wrapper»" as SessionRepo {
-  +findByStudySession(studySessionCode: Text): AttendanceSession
+  +findBySession(sessionId: Text): AttendanceSession
   +save(session: AttendanceSession): SaveResult
 }
 
-class "ClassroomRepository\n«database wrapper»" as ClassroomRepo {
-  +findByStudySession(studySessionCode: Text): Classroom
-  +updateLocation(classroom: Classroom): SaveResult
+class "RoomRepository\n«database wrapper»" as RoomRepo {
+  +findBySession(sessionId: Text): Room
+  +updateLocation(room: Room): SaveResult
 }
 
 CheckInService --> AttendanceRecordRepo
 CheckInService --> AttemptRepo
-CheckInService --> ClassroomRepo
+CheckInService --> RoomRepo
 SessionService --> SessionRepo
 ReportService --> AttendanceRecordRepo
 ReportService --> AttemptRepo
@@ -938,7 +938,7 @@ AdjustmentService --> AttemptRepo
 AttendanceRecordRepo --> AttendanceRecord
 AttemptRepo --> CheckInAttempt
 SessionRepo --> AttendanceSession
-ClassroomRepo --> Classroom
+RoomRepo --> Room
 @enduml
 ```
 
@@ -950,7 +950,7 @@ ClassroomRepo --> Classroom
 | :--- | :--- | :--- | :--- | :--- |
 | Performance | Cache active QR/PIN values and keep backend application services stateless. | `AttendanceCodeCacheAdapter`, `IAttendanceCodeStore`, QR/PIN Refresh Task. | Cache consistency and fallback handling must be designed. | UC02, UC04, UC05; NF-01 |
 | Scalability | Modular monolith can scale by adding application server instances while keeping one persistence boundary. | Deployment view and stateless check-in service. | Does not provide independent module deployment. | NF-07 |
-| Accuracy | Dedicated location distance strategy and configurable classroom radius. | `LocationDistanceStrategy`, `RoomConfigurationService`, `classrooms.allowed_attendance_radius`. | GPS error still requires business tolerance. | UC02, UC04, UC10; NF-02, BR-03 |
+| Accuracy | Dedicated location distance strategy and configurable classroom radius. | `LocationDistanceStrategy`, `RoomConfigurationService`, `rooms.allowed_radius`. | GPS error still requires business tolerance. | UC02, UC04, UC10; NF-02, BR-03 |
 | Security and privacy | Role authorization and protected evidence reference. | `AuthenticationService`, `AdjustmentService`, face evidence reference. | More validation and storage policy rules are required. | UC01, UC02, UC04, UC07; NF-04 |
 | Modifiability | Layered modules, adapter pattern, strategy pattern, configurable parameters. | Component diagram, interface contracts, `attendance_configurations`. | More interfaces than a direct CRUD design. | NF-06 |
 | Testability | Domain rules and wrappers are behind interfaces. | `IRepositoryOperations`, `IAttendanceCodeStore`, policies and strategies. | Requires mocks or fakes in tests. | UC02-UC10 |
@@ -962,16 +962,16 @@ ClassroomRepo --> Classroom
 
 | **Requirement / UC** | **Actor** | **Analysis Objects** | **Design Elements** | **Design Diagrams / Contracts** |
 | :--- | :--- | :--- | :--- | :--- |
-| UC01 Authenticate User | Student, Lecturer, Admin, University Identity System | Role-specific Access Interface, University Identity System Interface, Authentication Control, Authentication Rules, UserAccount | Access and Profile Management, AuthenticationService, UniversityIdentityAdapter, AuthEndpoint, UserAccount repository | Figures III-1, III-3, III-6; AuthenticationService contract |
-| UC02 Check In via Dynamic QR Code | Student | Student Mobile Interface, Mobile Device Sensor Interface, Check-in Control, Identity Evidence Rules, Attendance Code Rules, Location Distance Calculation, Attendance Status Calculation, AttendanceSession, StudySession, ClassEnrollment, Classroom, CheckInAttempt, AttendanceRecord, Monitor Control | Student Client, Device Evidence Adapter, Attendance Component, Validation policies, Code Cache, Repository Adapters, Realtime Notification Adapter | Figures III-1, III-4, III-6; CheckInService, IAttendanceCodeStore |
-| UC03 View Personal Attendance History | Student | Student Mobile Interface, Attendance History Control, Authentication Rules, ClassEnrollment, AttendanceRecord | Student Client, Presentation Boundary, repository read operations | Figures III-1, III-3, III-6 |
-| UC04 Check In via PIN Fallback | Student | Student Mobile Interface, Mobile Device Sensor Interface, Check-in Control, Identity Evidence Rules, Attendance Code Rules, Location Distance Calculation, Attendance Status Calculation, AttendanceSession, StudySession, ClassEnrollment, Classroom, CheckInAttempt, AttendanceRecord, Monitor Control | Same as UC02 with `checkInMethod = PIN` and PIN refresh values | Figures III-1, III-4, III-6; CheckInService, QR/PIN Refresh Task |
-| UC05 Manage Attendance Session | Lecturer | Lecturer Web Interface, Session Control, Session Rules, Attendance Code Rules, AttendanceConfiguration, StudySession, ClassEnrollment, AttendanceSession, AttendanceRecord | Staff Web Client, Session Lifecycle, SessionService, QR/PIN Refresh Task, Code Cache | Figures III-1, III-2, III-6; SessionService contract |
-| UC06 Monitor Attendance in Real Time | Lecturer | Lecturer Web Interface, Monitor Control, AttendanceSession, ClassEnrollment, AttendanceRecord | Monitoring and Notification subsystem, Realtime Notification Adapter, AttendanceAcceptedNotification | Figures III-1, III-6; message specification |
+| UC01 Authenticate User | Student, Lecturer, Admin, University Identity System | Role-specific Access Interface, University Identity System Interface, Authentication Control, Authentication Rules, Account | Access and Profile Management, AuthenticationService, UniversityIdentityAdapter, AuthEndpoint, Account repository | Figures III-1, III-3, III-6; AuthenticationService contract |
+| UC02 Check In via Dynamic QR Code | Student | Student Mobile Interface, Mobile Device Sensor Interface, Check-in Control, Identity Evidence Rules, Attendance Code Rules, Location Distance Calculation, Attendance Status Calculation, AttendanceSession, Session, ClassSectionStudent, Room, CheckInAttempt, AttendanceRecord, Monitor Control | Student Client, Device Evidence Adapter, Attendance Component, Validation policies, Code Cache, Repository Adapters, Realtime Notification Adapter | Figures III-1, III-4, III-6; CheckInService, IAttendanceCodeStore |
+| UC03 View Personal Attendance History | Student | Student Mobile Interface, Attendance History Control, Authentication Rules, ClassSectionStudent, AttendanceRecord | Student Client, Presentation Boundary, repository read operations | Figures III-1, III-3, III-6 |
+| UC04 Check In via PIN Fallback | Student | Student Mobile Interface, Mobile Device Sensor Interface, Check-in Control, Identity Evidence Rules, Attendance Code Rules, Location Distance Calculation, Attendance Status Calculation, AttendanceSession, Session, ClassSectionStudent, Room, CheckInAttempt, AttendanceRecord, Monitor Control | Same as UC02 with `checkInMethod = PIN` and PIN refresh values | Figures III-1, III-4, III-6; CheckInService, QR/PIN Refresh Task |
+| UC05 Manage Attendance Session | Lecturer | Lecturer Web Interface, Session Control, Session Rules, Attendance Code Rules, AttendanceConfiguration, Session, ClassSectionStudent, AttendanceSession, AttendanceRecord | Staff Web Client, Session Lifecycle, SessionService, QR/PIN Refresh Task, Code Cache | Figures III-1, III-2, III-6; SessionService contract |
+| UC06 Monitor Attendance in Real Time | Lecturer | Lecturer Web Interface, Monitor Control, AttendanceSession, ClassSectionStudent, AttendanceRecord | Monitoring and Notification subsystem, Realtime Notification Adapter, AttendanceAcceptedNotification | Figures III-1, III-6; message specification |
 | UC07 Adjust Attendance Manually | Lecturer | Lecturer Web Interface, Adjustment Control, Session Rules, AttendanceRecord, CheckInAttempt | AdjustmentService, Repository Adapters | Figures III-1, III-6; AdjustmentService contract |
-| UC08 Export Attendance Report | Lecturer | Lecturer Web Interface, Report Control, Report Eligibility Rules, ClassEnrollment, StudySession, AttendanceRecord, CheckInAttempt | Reporting subsystem, ReportService, ReportFileAdapter | Figures III-1, III-6; ReportService contract |
-| UC09 Manage System Catalog | Admin | Admin Web Interface, Catalog Control, Catalog Uniqueness Rules, UserAccount, StudentProfile, LecturerProfile, Subject, ClassSection | Administrative Management, CatalogService, Repository Adapters | Figures III-1, III-6; persistence mapping |
-| UC10 Configure Classroom Location | Admin | Admin Web Interface, Mobile Device Sensor Interface, Room Configuration Control, Classroom Location Setting Rules, CampusBoundary, AttendanceConfiguration, Classroom | RoomConfigurationService, Device Evidence Adapter for on-site calibration, Classroom repository | Figures III-1, III-6; RoomConfigurationService contract |
+| UC08 Export Attendance Report | Lecturer | Lecturer Web Interface, Report Control, Report Eligibility Rules, ClassSectionStudent, Session, AttendanceRecord, CheckInAttempt | Reporting subsystem, ReportService, ReportFileAdapter | Figures III-1, III-6; ReportService contract |
+| UC09 Manage System Catalog | Admin | Admin Web Interface, Catalog Control, Catalog Uniqueness Rules, Account, Student, Lecturer, Subject, ClassSection | Administrative Management, CatalogService, Repository Adapters | Figures III-1, III-6; persistence mapping |
+| UC10 Configure Classroom Location | Admin | Admin Web Interface, Mobile Device Sensor Interface, Room Configuration Control, Room Location Setting Rules, CampusBoundary, AttendanceConfiguration, Room | RoomConfigurationService, Device Evidence Adapter for on-site calibration, Room repository | Figures III-1, III-6; RoomConfigurationService contract |
 | NF-01 Performance and concurrency | Student, Lecturer | Attendance Code Rules, Monitor Control, AttendanceSession | Attendance Code Cache, QR/PIN Refresh Task, Realtime Notification Adapter | Figures III-3, III-5, III-6; TIS/TBS |
 | NF-06 Configurability | Lecturer, Admin | AttendanceConfiguration, Attendance Code Rules, Attendance Status Calculation, Room Configuration Control | `attendance_configurations`, SessionService, RoomConfigurationService, policy classes | Figures III-1, III-3; persistence mapping |
 
