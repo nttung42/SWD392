@@ -151,62 +151,45 @@ Additional static constraints:
 - A check-in attempt is valid for official attendance only when the student belongs to `ClassSectionStudent` for the target `Session` class section, supporting BR-14.
 - `Account` is associated with either `Student` or `Lecturer` according to `Role`; administrative accounts have no student or lecturer mapping.
 
-### **II.1.2 Contextual interface-control class diagram**
+### **II.1.2 Contextual Boundary Diagram**
 
-This view is intentionally limited to system entry points and the control objects that coordinate actor requests. It does not expand business logic, algorithm, or entity objects; entity structure is shown in Figure II-1, and use-case behavior is shown in the separate interaction diagrams in Section II.2. Interface objects do not directly manipulate entity objects.
+This view defines the boundary between the Anti-Fraud Attendance System (AFAS) and its external environment. AFAS is treated as a black box: the diagram shows only the system, external users, external systems, and external devices that interact with it. Internal analysis objects are intentionally excluded and are modeled in the object structuring and interaction diagrams.
 
-#### **Figure II-2 Contextual interface-control class diagram for AFAS**
+#### **Figure II-2 Contextual Boundary Diagram for AFAS**
 
 ```plantuml
 @startuml
 skinparam style strictuml
 hide circle
 
-class "Student" as Student <<actor>>
-class "Lecturer" as Lecturer <<actor>>
-class "Admin" as Admin <<actor>>
-class "Mobile Device Hardware" as MobileHardware <<actor>>
+class "Anti-Fraud Attendance System" as AFAS <<software system>>
+
+class "Student" as Student <<external user>>
+class "Lecturer" as Lecturer <<external user>>
+class "Admin" as Admin <<external user>>
+class "Mobile Device Hardware" as MobileHardware <<external device>>
 class "University Identity System" as UIS <<external system>>
 
-class "Student Mobile Interface" as StudentUI <<user interaction>>
-class "Lecturer Web Interface" as LecturerUI <<user interaction>>
-class "Admin Web Interface" as AdminUI <<user interaction>>
-class "Mobile Device Sensor Interface" as MobileSensor <<device I/O>>
-class "University Identity System Interface" as UISInterface <<external system interface>>
-
-class "Authentication Control" as AuthControl <<coordinator>>
-class "Check-in Control" as CheckInControl <<coordinator>>
-class "Session Control" as SessionControl <<state dependent control>>
-class "Attendance History Control" as HistoryControl <<coordinator>>
-class "Monitor Control" as MonitorControl <<coordinator>>
-class "Adjustment Control" as AdjustmentControl <<coordinator>>
-class "Report Control" as ReportControl <<coordinator>>
-class "Catalog Control" as CatalogControl <<coordinator>>
-class "Room Configuration Control" as RoomControl <<coordinator>>
-
-Student --> StudentUI
-Lecturer --> LecturerUI
-Admin --> AdminUI
-MobileHardware --> MobileSensor
-UIS --> UISInterface
-
-StudentUI --> AuthControl
-StudentUI --> CheckInControl
-StudentUI --> HistoryControl
-LecturerUI --> AuthControl
-LecturerUI --> SessionControl
-LecturerUI --> MonitorControl
-LecturerUI --> AdjustmentControl
-LecturerUI --> ReportControl
-AdminUI --> AuthControl
-AdminUI --> CatalogControl
-AdminUI --> RoomControl
-
-AuthControl --> UISInterface
-CheckInControl --> MobileSensor
-RoomControl --> MobileSensor
+Student --> AFAS : authenticate, check in, view history
+Lecturer --> AFAS : manage session, monitor, adjust, export
+Admin --> AFAS : manage catalog and room location
+AFAS --> MobileHardware : request identity, location, device, and camera evidence
+AFAS --> UIS : request identity confirmation
 @enduml
 ```
+
+**Boundary Communication Description:**
+
+| **External participant** | **Direction** | **Boundary communication** | **Trace source** |
+| :--- | :--- | :--- | :--- |
+| Student `«external user»` | Student -> AFAS | Sends authentication requests, QR/PIN check-in evidence, and attendance history requests. | UC01, UC02, UC03, UC04 |
+| Student `«external user»` | AFAS -> Student | Returns access result, check-in acceptance or rejection, and personal attendance history. | UC01, UC02, UC03, UC04 |
+| Lecturer `«external user»` | Lecturer -> AFAS | Sends session management actions, live monitoring requests, manual adjustment decisions, and report export requests. | UC01, UC05, UC06, UC07, UC08 |
+| Lecturer `«external user»` | AFAS -> Lecturer | Returns assigned sessions, attendance session status, live attendance progress, adjustment result, and finalized report content. | UC05, UC06, UC07, UC08 |
+| Admin `«external user»` | Admin -> AFAS | Sends catalog management actions and classroom location configuration inputs. | UC01, UC09, UC10 |
+| Admin `«external user»` | AFAS -> Admin | Returns catalog validation results, saved room configuration results, and configuration warnings. | UC09, UC10 |
+| Mobile Device Hardware `«external device»` | AFAS <-> Mobile Device Hardware | Provides identity verification result, current location, device identifier, camera evidence, and room calibration location when requested by the user flow. | UC02, UC04, UC10, BR-04, BR-05 |
+| University Identity System `«external system»` | AFAS <-> University Identity System | Confirms whether the requesting user has a valid university identity for AFAS access. | UC01, BR-01 |
 
 ### **II.1.3 Object structuring criteria**
 
@@ -1412,9 +1395,9 @@ Finalized --> [*]
 | UC list matches Requirement Section I.5.2 | Pass | UC01-UC10 only; Figures II-3 through II-22 |
 | UC names match Requirement Section I.5.2 | Pass | Headings II.2.1-II.2.10 |
 | Analysis uses detailed COMET stereotypes | Pass | Figures II-1 through II-22 use `«user interaction»`, `«device I/O»`, `«coordinator»`, `«state dependent control»`, `«entity»`, `«business logic»`, and `«algorithm»` |
-| Interface objects delegate through coordinator/control objects | Pass | Figure II-2 and all interaction diagrams |
-| Static data structure is isolated from behavior views | Pass | Figure II-1 contains only entity classes and relationships; Figure II-2 contains only actors, interface objects, and control objects; Section II.2 provides use-case-specific behavior diagrams |
-| Mobile device hardware is represented through a device I/O object | Pass | Figure II-2, Figure II-5, Figure II-6, Figure II-9, Figure II-10, Figure II-21, and Figure II-22 use Mobile Device Sensor Interface |
+| Contextual boundary diagram contains only external participants and the AFAS black box | Pass | Figure II-2 contains AFAS, external users, Mobile Device Hardware, and University Identity System only |
+| Static data structure is isolated from behavior views | Pass | Figure II-1 contains only entity classes and relationships; Figure II-2 contains only the contextual boundary; Section II.2 provides use-case-specific behavior diagrams |
+| Mobile device hardware is represented consistently across context and interaction views | Pass | Figure II-2 represents Mobile Device Hardware as an external device; Figure II-5, Figure II-6, Figure II-9, Figure II-10, Figure II-21, and Figure II-22 use Mobile Device Sensor Interface as the internal device I/O boundary object |
 | Entity relationships distinguish lifecycle ownership where appropriate | Pass | Figure II-1 uses composition for study-session-owned attendance lifecycle data and association for campus-room location membership |
 | Interface wireframes are included for key actor workflows | Pass | Section II.1.4 covers Student, Lecturer, and Admin wireframes with UC trace notes |
 | NF-06 configurable attendance parameters are represented in Analysis | Pass | AttendanceConfiguration appears in Figure II-1 and is used by Attendance Code Rules, Attendance Status Calculation, and Room Configuration Control |

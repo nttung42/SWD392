@@ -17,6 +17,7 @@ If a use case flow is missing business logic needed for object collaboration, st
 ## Required Artifacts
 
 - Static analysis class diagram.
+- Contextual Boundary Diagram when the document requires context modeling.
 - Object structuring with COMET stereotypes.
 - Sequence or communication diagrams for each use case.
 - State machine diagrams for state-dependent control objects.
@@ -24,6 +25,37 @@ If a use case flow is missing business logic needed for object collaboration, st
 ## COMET Stereotypes
 
 Categorize analysis objects into one of these COMET object structuring groups. Prefer the specific stereotypes below over generic category labels.
+
+## Object Structuring Criteria
+
+Use object structuring to open the system black box and divide the internal software into Boundary, Control, Entity, and Application Logic objects. Each object must be justified by a use case step and must stay at analysis level.
+
+### Criteria By Object Group
+
+- Boundary objects represent interaction points between the system and its environment. Use `«user interaction»` for screens/forms used by human actors, `«device I/O»` for physical device interfaces, and `«proxy»` for external systems.
+- Entity objects represent long-lived domain information that the system must remember, such as accounts, cards, transactions, products, or categories.
+- Application Logic objects represent domain rules, validation policies, calculations, or business services needed to realize the use case.
+- Control objects coordinate the use case flow. Use `«coordinator»` for ordinary orchestration and `«state dependent control»` when behavior depends on a strict lifecycle or state machine.
+
+### Example: Withdraw Funds
+
+For the `Withdraw Funds` use case in a banking system, the ATM software can be structured as:
+
+- Boundary: `«device I/O» CardReaderInterface`, `«device I/O» CashDispenserInterface`, `«device I/O» ReceiptPrinterInterface`, and `«user interaction» CustomerInteraction`.
+- Entity: `«entity» Account`, `«entity» CheckingAccount`, `«entity» DebitCard`, and `«entity» ATMTransaction`.
+- Application Logic: `«business logic» WithdrawalTransactionManager` for balance validation and withdrawal rule handling.
+- Control: `«state dependent control» ATMControl` to coordinate card insertion, PIN validation, transaction selection, cash dispensing, and receipt handling.
+
+### Example: Manage Products
+
+For the `Manage Products` use case in FreshFood, keep the Phase 2 analysis structure technology-neutral:
+
+- Boundary: `«user interaction» ManageProductView`, `«user interaction» AddProductView`, and `«user interaction» EditProductView` for inventory staff interaction.
+- Control: `«coordinator» ProductController` to coordinate product viewing, addition, update, and removal flows.
+- Entity: `«entity» Product` and `«entity» Category` for long-lived product and category information.
+- Application Logic: `«service» ProductService` and `«service» CategoryService`, or more specific `«business logic»` objects when the use case contains product validation, pricing, inventory, or categorization rules.
+
+Do not model `«data abstraction»`, `«database wrapper»`, tables, queries, or database operations in Analysis. Those are Detailed Design concerns derived later from the analysis entities and services.
 
 ### Boundary Objects
 
@@ -54,6 +86,13 @@ Categorize analysis objects into one of these COMET object structuring groups. P
 - Use generalized superclasses only when they represent real domain concepts.
 - Avoid database-specific details in Analysis.
 - Keep persistent domain information as `«entity»` in Analysis. Split data responsibilities into `«data abstraction»` and `«database wrapper»` only in Design.
+
+## Contextual Boundary Diagram Rules
+
+- Use this artifact only to show the system as a black box and its external environment.
+- Include only the system boundary (`«system»` or `«software system»`) and external participants: `«external user»`, `«external system»`, `«external device»`, or `«external timer»`.
+- Do not include internal analysis objects such as `«user interaction»`, `«device I/O»`, `«proxy»`, `«coordinator»`, `«state dependent control»`, `«timer»`, `«business logic»`, `«algorithm»`, `«service»`, or `«entity»`.
+- Document internal analysis objects separately in object structuring and use-case interaction diagrams.
 
 ## Dynamic Modeling Rules
 
