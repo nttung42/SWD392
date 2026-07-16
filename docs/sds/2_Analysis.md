@@ -261,12 +261,12 @@ The collaboration criteria for these objects are:
 | AuthenticationService                                                  | `«business logic»`          | Encapsulates role-access rules by locating the AFAS role profile for a confirmed university identity and checking whether the requested role is allowed.                                                                                                                                                                                                                                                      | UC01, UC03, BR-01                                    |
 | CheckInService                                                         | `«business logic»`          | Encapsulates rules for a submitted student check-in attempt by reading the required session, configuration, roster, room, attempt, and official attendance facts, then checking QR/PIN validity, identity evidence, session match, enrollment, location eligibility, duplicate official result, and Present/Late status using official system time.                                                           | UC02, UC04, BR-02, BR-04, BR-12, BR-13, BR-14, NF-06 |
 | DistanceAlgorithm                                                      | `«algorithm»`               | Calculates distance from submitted coordinates to classroom coordinates and evaluates the configured radius with location accuracy tolerance.                                                                                                                                                                                                                                                                 | UC02, UC04, BR-03, NF-02                             |
-| AttendanceSessionService                                               | `«business logic»`          | Encapsulates attendance session lifecycle and lecturer-operation policies by reading the required schedule, lecturer, session, roster, check-in, configuration, and official attendance facts, then checking scheduled time window, assigned lecturer, active session uniqueness, QR/PIN refresh policy, absent assignment, finalization, report eligibility, and whether manual adjustment is still allowed. | UC05, UC07, UC08, BR-02, BR-08, BR-10, BR-12, NF-06  |
+| AttendanceSessionService                                               | `«business logic»`          | Encapsulates attendance history, attendance session lifecycle, and lecturer-operation policies by reading the required schedule, lecturer, session, roster, check-in, configuration, and official attendance facts, then checking scheduled time window, assigned lecturer, active session uniqueness, QR/PIN refresh policy, absent assignment, finalization, report eligibility, and whether manual adjustment is still allowed. | UC03, UC05, UC07, UC08, BR-02, BR-08, BR-10, BR-12, NF-06 |
 | CatalogManagementService                                               | `«business logic»`          | Encapsulates catalog and room-configuration rules by reading the required catalog and location facts, then checking catalog field validity, identifier uniqueness, classroom location coordinates, campus boundary membership, and allowed radius values.                                                                                                                                                     | UC09, UC10, BR-03, BR-11                             |
 | Account, Student, Lecturer                                             | `«entity»`                  | Store AFAS role profile information linked to university identity.                                                                                                                                                                                                                                                                                                                                            | UC01, UC09                                           |
-| CampusZone , Room, Subject, ClassSection, ClassSectionStudent, Session | `«entity»`                  | Store academic catalog, roster, campus boundary, classroom coordinates, and scheduled session information.                                                                                                                                                                                                                                                                                                    | UC02-UC06, UC08-UC10                                 |
+| CampusZone , Room, Subject, ClassSection, ClassSectionStudent, Session | `«entity»`                  | Store academic catalog, roster, campus boundary, classroom coordinates, and scheduled session information.                                                                                                                                                                                                                                                                                                    | UC02-UC10                                            |
 | AttendanceConfiguration                                                | `«entity»`                  | Stores configurable attendance timing and default allowed radius values required by maintainability requirements.                                                                                                                                                                                                                                                                                             | UC02, UC04, UC05, UC10, NF-06                        |
-| AttendanceSession, CheckInAttempt, AttendanceRecord                    | `«entity»`                  | Store attendance lifecycle, evidence, and official result information.                                                                                                                                                                                                                                                                                                                                        | UC02, UC04-UC08                                      |
+| AttendanceSession, CheckInAttempt, AttendanceRecord                    | `«entity»`                  | Store attendance lifecycle, evidence, and official result information.                                                                                                                                                                                                                                                                                                                                        | UC02-UC08                                            |
 
 ### **II.1.4 Interface wireframes**
 
@@ -346,15 +346,6 @@ Sequence diagrams are kept to validate detailed main and alternative flows. Comm
 ```plantuml
 @startuml
 skinparam style strictuml
-skinparam sequence {
-  LifeLineBorderColor #2563EB
-  LifeLineBackgroundColor #DBEAFE
-  ParticipantBorderColor #2563EB
-  ParticipantBackgroundColor #EFF6FF
-  ActorBorderColor #2563EB
-  ActorBackgroundColor #EFF6FF
-  ArrowColor #1D4ED8
-}
 autonumber
 actor "User\n«external user»" as User
 boundary "UserInteraction\n«user interaction»" as AccessUI
@@ -396,7 +387,7 @@ end
 
 ```plantuml
 @startuml
-class "User\n(Student/Lecturer/Admin)" as User <<actor>>
+class "User\n(Student/Lecturer/Admin)" as User <<external user>>
 class "UserInteraction" as AccessUI <<user interaction>>
 class "AuthenticationCoordinator" as AuthControl <<coordinator>>
 class "AuthenticationService" as AuthRules <<business logic>>
@@ -425,7 +416,8 @@ AccessUI --> User : 3 show matching role homepage or access denial
 @startuml
 skinparam style strictuml
 autonumber
-actor "Student" as Student
+actor "Student\n«external user»" as Student
+participant "Mobile Device Hardware\n«external device»" as MobileHardware
 participant "StudentInteraction\n«user interaction»" as StudentUI
 participant "AttendanceCoordinator\n«coordinator»" as CheckInControl
 participant "MobileDeviceInterface\n«device I/O»" as MobileSensor
@@ -442,8 +434,10 @@ participant "AttendanceRecord\n«entity»" as AttendanceRecord
 Student -> StudentUI : tap Scan QR Check-in
 StudentUI -> CheckInControl : request identity verification
 CheckInControl -> MobileSensor : perform biometric check
+MobileSensor -> MobileHardware : request biometric verification
 
 alt local biometric verification completed
+  MobileHardware --> MobileSensor : biometric verification result
   MobileSensor --> CheckInControl : local biometric verification result
   CheckInControl -> AttendanceRules : validate local verification result
   AttendanceRules --> CheckInControl : identity evidence accepted
@@ -452,6 +446,8 @@ else biometric unavailable
   Student -> StudentUI : capture face selfie as fallback proof
   StudentUI -> CheckInControl : submit fallback proof request
   CheckInControl -> MobileSensor : access camera and capture selfie
+  MobileSensor -> MobileHardware : request camera evidence
+  MobileHardware --> MobileSensor : face proof
   MobileSensor --> CheckInControl : face proof
   CheckInControl -> AttendanceRules : validate fallback proof
   AttendanceRules --> CheckInControl : fallback proof accepted
@@ -468,55 +464,59 @@ StudentUI --> Student : display camera view
 Student -> StudentUI : scan active QR code
 StudentUI -> CheckInControl : submit scanned code
 CheckInControl -> MobileSensor : read GPS coordinates and device identifier
+MobileSensor -> MobileHardware : request location and device evidence
 alt location unavailable
+  MobileHardware --> MobileSensor : location unavailable
   MobileSensor --> CheckInControl : location unavailable
   CheckInControl --> StudentUI : request location services
   StudentUI --> Student : prompt to enable location services
 else location and device evidence available
+  MobileHardware --> MobileSensor : location and device evidence
   MobileSensor --> CheckInControl : submitted location and device evidence
-  CheckInControl -> AttendanceSession : read active session code and target study session
-  AttendanceSession --> CheckInControl : active session information
-  CheckInControl -> AttendanceRules : verify code active and session match using official system time
+  CheckInControl -> AttendanceRules : submit QR check-in evidence(scanned code, identity, location, device)
+  AttendanceRules -> AttendanceSession : read active session code and target study session
+  AttendanceSession --> AttendanceRules : active session information
   AttendanceRules -> AttendanceConfig : read QR validity seconds
 
   alt attendance code expired
     AttendanceRules --> CheckInControl : invalid code
-    CheckInControl -> CheckInAttempt : record rejected attempt(status = Rejected, reason = ExpiredCode)
+    AttendanceRules -> CheckInAttempt : record rejected attempt(status = Rejected, reason = ExpiredCode)
     CheckInControl --> StudentUI : reject QR expired
     StudentUI --> Student : show QR expired message
   else code valid
-    AttendanceRules --> CheckInControl : code valid
-    CheckInControl -> Session : read class section and scheduled start time
-    Session --> CheckInControl : class section and session start time
-    CheckInControl -> ClassSectionStudent : verify student enrollment in class section
-    ClassSectionStudent --> CheckInControl : enrollment result
+    AttendanceRules -> Session : read class section and scheduled start time
+    Session --> AttendanceRules : class section and session start time
+    AttendanceRules -> ClassSectionStudent : verify student enrollment in class section
+    ClassSectionStudent --> AttendanceRules : enrollment result
 
     alt student not enrolled
-      CheckInControl -> CheckInAttempt : record rejected attempt(status = Rejected, reason = NotEnrolled)
+      AttendanceRules -> CheckInAttempt : record rejected attempt(status = Rejected, reason = NotEnrolled)
+      AttendanceRules --> CheckInControl : rejected because student is not enrolled
       CheckInControl --> StudentUI : reject not enrolled
       StudentUI --> Student : show check-in not allowed
     else student enrolled
-      CheckInControl -> Room : read classroom coordinates and allowed range
-      Room --> CheckInControl : classroom coordinates and range
-      CheckInControl -> DistanceCalc : compare submitted coordinates, accuracy, and classroom range
-      DistanceCalc --> CheckInControl : location check result
+      AttendanceRules -> Room : read classroom coordinates and allowed range
+      Room --> AttendanceRules : classroom coordinates and range
+      AttendanceRules -> DistanceCalc : compare submitted coordinates, accuracy, and classroom range
+      DistanceCalc --> AttendanceRules : location check result
 
       alt outside allowed range
-        CheckInControl -> CheckInAttempt : record rejected attempt(status = Rejected, reason = OutsideLocation)
+        AttendanceRules -> CheckInAttempt : record rejected attempt(status = Rejected, reason = OutsideLocation)
+        AttendanceRules --> CheckInControl : rejected because outside allowed range
         CheckInControl --> StudentUI : reject outside classroom range
         StudentUI --> Student : show check-in not accepted
       else within allowed range
-        CheckInControl -> CheckInAttempt : record accepted attempt(status = Accepted, method = QR, submittedAt = official system time)
-        CheckInControl -> AttendanceRecord : check existing official result
-        AttendanceRecord --> CheckInControl : existing result or none
+        AttendanceRules -> CheckInAttempt : record accepted attempt(status = Accepted, method = QR, submittedAt = official system time)
+        AttendanceRules -> AttendanceRecord : check existing official result
+        AttendanceRecord --> AttendanceRules : existing result or none
         alt official result already exists
+          AttendanceRules --> CheckInControl : existing official result
           CheckInControl --> StudentUI : return existing official result
           StudentUI --> Student : show existing result
         else no official result exists
-          CheckInControl -> AttendanceRules : determineStatus(submittedAt, sessionStartTime)
           AttendanceRules -> AttendanceConfig : read Late threshold minutes
-          AttendanceRules --> CheckInControl : official status
-          CheckInControl -> AttendanceRecord : register official result
+          AttendanceRules -> AttendanceRecord : register official result(Present or Late)
+          AttendanceRules --> CheckInControl : accepted official status
           CheckInControl --> StudentUI : check-in accepted
           StudentUI --> Student : show successful check-in time
         end
@@ -531,7 +531,8 @@ end
 
 ```plantuml
 @startuml
-class "Student" as Student <<actor>>
+class "Student" as Student <<external user>>
+class "Mobile Device Hardware" as MobileHardware <<external device>>
 class "StudentInteraction" as StudentUI <<user interaction>>
 class "AttendanceCoordinator" as CheckInControl <<coordinator>>
 class "MobileDeviceInterface" as MobileSensor <<device I/O>>
@@ -548,20 +549,21 @@ class "AttendanceRecord" as AttendanceRecord <<entity>>
 Student --> StudentUI : 1 tap Scan QR
 StudentUI --> CheckInControl : 1.1 request identity verification
 CheckInControl --> MobileSensor : 1.1.1 request local biometric result or camera proof
+MobileSensor --> MobileHardware : 1.1.1.1 obtain identity evidence
 CheckInControl --> AttendanceRules : 1.1.2 validate identity evidence
-Student --> StudentUI : 2 scan QR code
+Student --> StudentUI : 2 scan active QR code
 StudentUI --> CheckInControl : 2.1 submit scanned code
-CheckInControl --> MobileSensor : 2.1.1 read GPS coordinates and device identifier
-CheckInControl --> AttendanceSession : 2.1.2 read active session
-CheckInControl --> AttendanceRules : 2.1.3 verify active code using official system time
-AttendanceRules --> AttendanceConfig : 2.1.3.1 read QR validity and Late threshold
-CheckInControl --> Session : 2.1.4 read class section and scheduled start time
-CheckInControl --> ClassSectionStudent : 2.1.5 verify enrollment
-CheckInControl --> Room : 2.1.6 read classroom coordinates and range
-CheckInControl --> DistanceCalc : 2.1.7 compare submitted coordinates
-CheckInControl --> CheckInAttempt : 2.1.8 record attempt
-CheckInControl --> AttendanceRecord : 2.1.9 check/register official result
-CheckInControl --> AttendanceRules : 2.1.10 determine Present/Late from official time and start time
+CheckInControl --> MobileSensor : 2.1.1 read location and device evidence
+MobileSensor --> MobileHardware : 2.1.1.1 obtain GPS coordinates and device identifier
+CheckInControl --> AttendanceRules : 2.1.2 submit QR check-in evidence
+AttendanceRules --> AttendanceSession : 2.1.2.1 read active session and displayed QR code
+AttendanceRules --> AttendanceConfig : 2.1.2.2 read QR validity and Late threshold
+AttendanceRules --> Session : 2.1.2.3 read class section and scheduled start time
+AttendanceRules --> ClassSectionStudent : 2.1.2.4 verify enrollment
+AttendanceRules --> Room : 2.1.2.5 read classroom coordinates and range
+AttendanceRules --> DistanceCalc : 2.1.2.6 compare submitted coordinates
+AttendanceRules --> CheckInAttempt : 2.1.2.7 record accepted or rejected attempt
+AttendanceRules --> AttendanceRecord : 2.1.2.8 check/register official Present or Late result
 CheckInControl --> StudentUI : 3 return accepted/rejected result
 @enduml
 ```
@@ -574,10 +576,11 @@ CheckInControl --> StudentUI : 3 return accepted/rejected result
 @startuml
 skinparam style strictuml
 autonumber
-actor "Student" as Student
+actor "Student\n«external user»" as Student
 participant "StudentInteraction\n«user interaction»" as StudentUI
 participant "AttendanceCoordinator\n«coordinator»" as HistoryControl
 participant "AuthenticationService\n«business logic»" as AuthRules
+participant "AttendanceSessionService\n«business logic»" as HistoryRules
 participant "ClassSectionStudent\n«entity»" as ClassSectionStudent
 participant "ClassSection\n«entity»" as ClassSection
 participant "AttendanceRecord\n«entity»" as AttendanceRecord
@@ -588,12 +591,14 @@ HistoryControl -> AuthRules : check student access
 
 alt access allowed
   AuthRules --> HistoryControl : allowed
-  HistoryControl -> ClassSectionStudent : read enrolled class sections
-  ClassSectionStudent --> HistoryControl : class section references
-  HistoryControl -> ClassSection : read class section information
-  ClassSection --> HistoryControl : class section list
-  HistoryControl -> AttendanceRecord : read attendance records for student
-  AttendanceRecord --> HistoryControl : attendance statuses
+  HistoryControl -> HistoryRules : prepare personal attendance history(student)
+  HistoryRules -> ClassSectionStudent : read enrolled class sections
+  ClassSectionStudent --> HistoryRules : class section references
+  HistoryRules -> ClassSection : read class section information
+  ClassSection --> HistoryRules : class section list
+  HistoryRules -> AttendanceRecord : read attendance records for student
+  AttendanceRecord --> HistoryRules : attendance statuses
+  HistoryRules --> HistoryControl : history summary and detail
   HistoryControl --> StudentUI : history summary and detail
   StudentUI --> Student : show class list, stats, and calendar view
 else history cannot be loaded
@@ -607,10 +612,11 @@ end
 
 ```plantuml
 @startuml
-class "Student" as Student <<actor>>
+class "Student" as Student <<external user>>
 class "StudentInteraction" as StudentUI <<user interaction>>
 class "AttendanceCoordinator" as HistoryControl <<coordinator>>
 class "AuthenticationService" as AuthRules <<business logic>>
+class "AttendanceSessionService" as HistoryRules <<business logic>>
 class "ClassSectionStudent" as ClassSectionStudent <<entity>>
 class "ClassSection" as ClassSection <<entity>>
 class "AttendanceRecord" as AttendanceRecord <<entity>>
@@ -618,9 +624,10 @@ class "AttendanceRecord" as AttendanceRecord <<entity>>
 Student --> StudentUI : 1 select History tab
 StudentUI --> HistoryControl : 1.1 request history
 HistoryControl --> AuthRules : 1.1.1 check access
-HistoryControl --> ClassSectionStudent : 1.1.2 read enrolled sections
-HistoryControl --> ClassSection : 1.1.3 read class section details
-HistoryControl --> AttendanceRecord : 1.1.4 read statuses
+HistoryControl --> HistoryRules : 1.1.2 prepare personal attendance history
+HistoryRules --> ClassSectionStudent : 1.1.2.1 read enrolled sections
+HistoryRules --> ClassSection : 1.1.2.2 read class section details
+HistoryRules --> AttendanceRecord : 1.1.2.3 read statuses
 HistoryControl --> StudentUI : 2 return history or failure
 @enduml
 ```
@@ -633,7 +640,8 @@ HistoryControl --> StudentUI : 2 return history or failure
 @startuml
 skinparam style strictuml
 autonumber
-actor "Student" as Student
+actor "Student\n«external user»" as Student
+participant "Mobile Device Hardware\n«external device»" as MobileHardware
 participant "StudentInteraction\n«user interaction»" as StudentUI
 participant "AttendanceCoordinator\n«coordinator»" as CheckInControl
 participant "MobileDeviceInterface\n«device I/O»" as MobileSensor
@@ -650,8 +658,10 @@ participant "AttendanceRecord\n«entity»" as AttendanceRecord
 Student -> StudentUI : select PIN Check-in
 StudentUI -> CheckInControl : request identity verification
 CheckInControl -> MobileSensor : perform biometric check
+MobileSensor -> MobileHardware : request biometric verification
 
 alt local biometric verification completed
+  MobileHardware --> MobileSensor : biometric verification result
   MobileSensor --> CheckInControl : local biometric verification result
   CheckInControl -> AttendanceRules : validate local verification result
   AttendanceRules --> CheckInControl : identity evidence accepted
@@ -660,6 +670,8 @@ else biometric unavailable
   Student -> StudentUI : capture face selfie as fallback proof
   StudentUI -> CheckInControl : submit fallback proof request
   CheckInControl -> MobileSensor : access camera and capture selfie
+  MobileSensor -> MobileHardware : request camera evidence
+  MobileHardware --> MobileSensor : face proof
   MobileSensor --> CheckInControl : face proof
   CheckInControl -> AttendanceRules : validate fallback proof
   AttendanceRules --> CheckInControl : fallback proof accepted
@@ -676,55 +688,59 @@ StudentUI --> Student : display PIN input screen
 Student -> StudentUI : enter active 6-digit PIN
 StudentUI -> CheckInControl : submit PIN code
 CheckInControl -> MobileSensor : read GPS coordinates and device identifier
+MobileSensor -> MobileHardware : request location and device evidence
 alt location unavailable
+  MobileHardware --> MobileSensor : location unavailable
   MobileSensor --> CheckInControl : location unavailable
   CheckInControl --> StudentUI : request location services
   StudentUI --> Student : prompt to enable location services
 else location and device evidence available
+  MobileHardware --> MobileSensor : location and device evidence
   MobileSensor --> CheckInControl : submitted location and device evidence
-  CheckInControl -> AttendanceSession : read active PIN session and target study session
-  AttendanceSession --> CheckInControl : active session information
-  CheckInControl -> AttendanceRules : verify PIN is active using official system time
+  CheckInControl -> AttendanceRules : submit PIN check-in evidence(PIN, identity, location, device)
+  AttendanceRules -> AttendanceSession : read active PIN session and target study session
+  AttendanceSession --> AttendanceRules : active session information
   AttendanceRules -> AttendanceConfig : read PIN refresh seconds
 
   alt PIN expired
     AttendanceRules --> CheckInControl : invalid PIN
-    CheckInControl -> CheckInAttempt : record rejected attempt(status = Rejected, reason = ExpiredCode)
+    AttendanceRules -> CheckInAttempt : record rejected attempt(status = Rejected, reason = ExpiredCode)
     CheckInControl --> StudentUI : reject PIN expired
     StudentUI --> Student : show PIN expired message
   else PIN valid
-    AttendanceRules --> CheckInControl : PIN valid
-    CheckInControl -> Session : read class section and scheduled start time
-    Session --> CheckInControl : class section and session start time
-    CheckInControl -> ClassSectionStudent : verify student enrollment in class section
-    ClassSectionStudent --> CheckInControl : enrollment result
+    AttendanceRules -> Session : read class section and scheduled start time
+    Session --> AttendanceRules : class section and session start time
+    AttendanceRules -> ClassSectionStudent : verify student enrollment in class section
+    ClassSectionStudent --> AttendanceRules : enrollment result
 
     alt student not enrolled
-      CheckInControl -> CheckInAttempt : record rejected attempt(status = Rejected, reason = NotEnrolled)
+      AttendanceRules -> CheckInAttempt : record rejected attempt(status = Rejected, reason = NotEnrolled)
+      AttendanceRules --> CheckInControl : rejected because student is not enrolled
       CheckInControl --> StudentUI : reject not enrolled
       StudentUI --> Student : show check-in not allowed
     else student enrolled
-      CheckInControl -> Room : read classroom coordinates and allowed range
-      Room --> CheckInControl : classroom coordinates and range
-      CheckInControl -> DistanceCalc : compare submitted coordinates, accuracy, and classroom range
-      DistanceCalc --> CheckInControl : location check result
+      AttendanceRules -> Room : read classroom coordinates and allowed range
+      Room --> AttendanceRules : classroom coordinates and range
+      AttendanceRules -> DistanceCalc : compare submitted coordinates, accuracy, and classroom range
+      DistanceCalc --> AttendanceRules : location check result
 
       alt outside allowed range
-        CheckInControl -> CheckInAttempt : record rejected attempt(status = Rejected, reason = OutsideLocation)
+        AttendanceRules -> CheckInAttempt : record rejected attempt(status = Rejected, reason = OutsideLocation)
+        AttendanceRules --> CheckInControl : rejected because outside allowed range
         CheckInControl --> StudentUI : reject outside classroom range
         StudentUI --> Student : show check-in not accepted
       else within allowed range
-        CheckInControl -> CheckInAttempt : record accepted attempt(status = Accepted, method = PIN, submittedAt = official system time)
-        CheckInControl -> AttendanceRecord : check existing official result
-        AttendanceRecord --> CheckInControl : existing result or none
+        AttendanceRules -> CheckInAttempt : record accepted attempt(status = Accepted, method = PIN, submittedAt = official system time)
+        AttendanceRules -> AttendanceRecord : check existing official result
+        AttendanceRecord --> AttendanceRules : existing result or none
         alt official result already exists
+          AttendanceRules --> CheckInControl : existing official result
           CheckInControl --> StudentUI : return existing official result
           StudentUI --> Student : show existing result
         else no official result exists
-          CheckInControl -> AttendanceRules : determineStatus(submittedAt, sessionStartTime)
           AttendanceRules -> AttendanceConfig : read Late threshold minutes
-          AttendanceRules --> CheckInControl : official status
-          CheckInControl -> AttendanceRecord : register official result
+          AttendanceRules -> AttendanceRecord : register official result(Present or Late)
+          AttendanceRules --> CheckInControl : accepted official status
           CheckInControl --> StudentUI : check-in accepted
           StudentUI --> Student : show successful PIN check-in
         end
@@ -739,7 +755,8 @@ end
 
 ```plantuml
 @startuml
-class "Student" as Student <<actor>>
+class "Student" as Student <<external user>>
+class "Mobile Device Hardware" as MobileHardware <<external device>>
 class "StudentInteraction" as StudentUI <<user interaction>>
 class "AttendanceCoordinator" as CheckInControl <<coordinator>>
 class "MobileDeviceInterface" as MobileSensor <<device I/O>>
@@ -756,20 +773,21 @@ class "AttendanceRecord" as AttendanceRecord <<entity>>
 Student --> StudentUI : 1 select PIN Check-in
 StudentUI --> CheckInControl : 1.1 request identity verification
 CheckInControl --> MobileSensor : 1.1.1 request local biometric result or camera proof
+MobileSensor --> MobileHardware : 1.1.1.1 obtain identity evidence
 CheckInControl --> AttendanceRules : 1.1.2 validate identity evidence
 Student --> StudentUI : 2 enter PIN
 StudentUI --> CheckInControl : 2.1 submit PIN code
-CheckInControl --> MobileSensor : 2.1.1 read GPS coordinates and device identifier
-CheckInControl --> AttendanceSession : 2.1.2 read active PIN
-CheckInControl --> AttendanceRules : 2.1.3 verify PIN using official system time
-AttendanceRules --> AttendanceConfig : 2.1.3.1 read PIN refresh setting and Late threshold
-CheckInControl --> Session : 2.1.4 read class section and scheduled start time
-CheckInControl --> ClassSectionStudent : 2.1.5 verify enrollment
-CheckInControl --> Room : 2.1.6 read classroom coordinates and range
-CheckInControl --> DistanceCalc : 2.1.7 compare submitted coordinates
-CheckInControl --> CheckInAttempt : 2.1.8 record attempt
-CheckInControl --> AttendanceRecord : 2.1.9 check/register official result
-CheckInControl --> AttendanceRules : 2.1.10 determine Present/Late from official time and start time
+CheckInControl --> MobileSensor : 2.1.1 read location and device evidence
+MobileSensor --> MobileHardware : 2.1.1.1 obtain GPS coordinates and device identifier
+CheckInControl --> AttendanceRules : 2.1.2 submit PIN check-in evidence
+AttendanceRules --> AttendanceSession : 2.1.2.1 read active PIN and target session
+AttendanceRules --> AttendanceConfig : 2.1.2.2 read PIN refresh setting and Late threshold
+AttendanceRules --> Session : 2.1.2.3 read class section and scheduled start time
+AttendanceRules --> ClassSectionStudent : 2.1.2.4 verify enrollment
+AttendanceRules --> Room : 2.1.2.5 read classroom coordinates and range
+AttendanceRules --> DistanceCalc : 2.1.2.6 compare submitted coordinates
+AttendanceRules --> CheckInAttempt : 2.1.2.7 record accepted or rejected attempt
+AttendanceRules --> AttendanceRecord : 2.1.2.8 check/register official Present or Late result
 CheckInControl --> StudentUI : 3 return accepted/rejected result
 @enduml
 ```
@@ -782,7 +800,7 @@ CheckInControl --> StudentUI : 3 return accepted/rejected result
 @startuml
 skinparam style strictuml
 autonumber
-actor "Lecturer" as Lecturer
+actor "Lecturer\n«external user»" as Lecturer
 participant "LecturerInteraction\n«user interaction»" as LecturerUI
 participant "AttendanceSessionControl\n«state dependent control»" as SessionControl
 participant "AttendanceSessionService\n«business logic»" as SessionRules
@@ -795,12 +813,18 @@ participant "AttendanceRecord\n«entity»" as AttendanceRecord
 
 Lecturer -> LecturerUI : navigate to My Scheduled Classes
 LecturerUI -> SessionControl : request assigned scheduled sessions
-SessionControl -> Session : read sessions assigned to lecturer
-Session --> SessionControl : scheduled sessions
+SessionControl -> SessionRules : get assigned scheduled sessions
+SessionRules -> Session : read sessions assigned to lecturer
+Session --> SessionRules : scheduled sessions
+SessionRules --> SessionControl : assigned scheduled sessions
 SessionControl --> LecturerUI : assigned classes and sessions
 Lecturer -> LecturerUI : select current session and click Start Attendance
 LecturerUI -> SessionControl : request session activation
 SessionControl -> SessionRules : validate schedule window, assigned lecturer, and active-session uniqueness
+SessionRules -> Session : read scheduled time and assigned lecturer
+Session --> SessionRules : schedule and lecturer assignment
+SessionRules -> AttendanceSession : check existing active attendance session
+AttendanceSession --> SessionRules : active-session status
 
 alt outside scheduled hours
   SessionRules --> SessionControl : activation denied
@@ -810,73 +834,89 @@ else session already active
   SessionControl --> LecturerUI : show active session already exists error
 else activation allowed
   SessionRules --> SessionControl : activation allowed
-  SessionControl -> AttendanceSession : mark session active
+  SessionControl -> SessionRules : activate attendance session
+  SessionRules -> AttendanceSession : mark session active
   SessionControl -> SessionRules : prepare QR and PIN refresh policy
   SessionRules -> AttendanceConfig : read QR and PIN refresh seconds
+  SessionRules -> AttendanceSession : update current QR and PIN codes
   SessionRules --> SessionControl : current QR and PIN codes
-  SessionControl -> AttendanceSession : update current QR and PIN codes
   SessionControl --> LecturerUI : show projector view with QR, PIN, and progress
 
   loop while session is active
     SessionControl -> SessionRules : refresh QR and PIN using configured intervals
     SessionRules -> AttendanceConfig : read QR and PIN refresh seconds
+    SessionRules -> AttendanceSession : update displayed codes
     SessionRules --> SessionControl : refreshed codes
-    SessionControl -> AttendanceSession : update displayed codes
     SessionControl --> LecturerUI : update displayed QR and PIN
   end
 
   Lecturer -> LecturerUI : click Stop Receiving Check-ins
   LecturerUI -> SessionControl : request stop accepting check-ins
-  SessionControl -> AttendanceSession : mark session stopped for new check-ins
+  SessionControl -> SessionRules : stop accepting new check-ins
+  SessionRules -> AttendanceSession : mark session stopped for new check-ins
+  SessionRules --> SessionControl : session stopped
   SessionControl --> LecturerUI : show review view
 
   alt short reopen requested due to classroom interruption
     Lecturer -> LecturerUI : request short reopen
     LecturerUI -> SessionControl : request reopen window
     SessionControl -> SessionRules : validate reopen before finalization
+    SessionRules -> AttendanceSession : read lifecycle status
+    AttendanceSession --> SessionRules : stopped or finalized status
     SessionRules --> SessionControl : reopen allowed or denied
-    SessionControl -> AttendanceSession : reopen or keep stopped
+    SessionControl -> SessionRules : reopen short check-in window when allowed
+    SessionRules -> AttendanceSession : reopen or keep stopped
     SessionControl --> LecturerUI : show reopen result
 
     alt reopen allowed
       loop while reopened window is active
         SessionControl -> SessionRules : refresh QR and PIN using configured intervals
         SessionRules -> AttendanceConfig : read QR and PIN refresh seconds
+        SessionRules -> AttendanceSession : update displayed codes
         SessionRules --> SessionControl : refreshed codes
-        SessionControl -> AttendanceSession : update displayed codes
         SessionControl --> LecturerUI : update reopened QR and PIN
       end
 
       Lecturer -> LecturerUI : click Stop Receiving Check-ins again
       LecturerUI -> SessionControl : request stop accepting reopened check-ins
-      SessionControl -> AttendanceSession : mark reopened session stopped
+      SessionControl -> SessionRules : stop accepting reopened check-ins
+      SessionRules -> AttendanceSession : mark reopened session stopped
+      SessionRules --> SessionControl : reopened window stopped
       SessionControl --> LecturerUI : show review view
     end
   end
 
   LecturerUI -> SessionControl : request results and rejected attempts
-  SessionControl -> AttendanceRecord : read attendance results
-  AttendanceRecord --> SessionControl : official results
-  SessionControl -> CheckInAttempt : read rejected attempts
-  CheckInAttempt --> SessionControl : rejected attempts
+  SessionControl -> SessionRules : get review data
+  SessionRules -> AttendanceRecord : read attendance results
+  AttendanceRecord --> SessionRules : official results
+  SessionRules -> CheckInAttempt : read rejected attempts
+  CheckInAttempt --> SessionRules : rejected attempts
+  SessionRules --> SessionControl : review data
   SessionControl --> LecturerUI : show review data
 
   opt adjustment before finalization
     LecturerUI -> SessionControl : continue after UC07 adjustment
   end
 
-  SessionControl -> ClassSectionStudent : read enrolled students
-  ClassSectionStudent --> SessionControl : enrolled students
-  SessionControl -> AttendanceRecord : assign Absent to students without Present or Late
-  AttendanceRecord --> SessionControl : completed attendance list
+  SessionControl -> SessionRules : assign absent results for missing official records
+  SessionRules -> ClassSectionStudent : read enrolled students
+  ClassSectionStudent --> SessionRules : enrolled students
+  SessionRules -> AttendanceRecord : assign Absent to students without Present or Late
+  AttendanceRecord --> SessionRules : completed attendance list
+  SessionRules --> SessionControl : completed attendance list
   SessionControl --> LecturerUI : show completed attendance list
 
   Lecturer -> LecturerUI : click Finalize Attendance
   LecturerUI -> SessionControl : request finalization
   SessionControl -> SessionRules : validate finalization rules
+  SessionRules -> AttendanceRecord : verify completed results
+  AttendanceRecord --> SessionRules : completed result status
   SessionRules --> SessionControl : finalization allowed
-  SessionControl -> AttendanceRecord : mark results finalized
-  SessionControl -> AttendanceSession : mark session finalized
+  SessionControl -> SessionRules : finalize attendance result
+  SessionRules -> AttendanceRecord : mark results finalized
+  SessionRules -> AttendanceSession : mark session finalized
+  SessionRules --> SessionControl : attendance finalized
   SessionControl --> LecturerUI : attendance finalized
 end
 @enduml
@@ -886,7 +926,7 @@ end
 
 ```plantuml
 @startuml
-class "Lecturer" as Lecturer <<actor>>
+class "Lecturer" as Lecturer <<external user>>
 class "LecturerInteraction" as LecturerUI <<user interaction>>
 class "AttendanceSessionControl" as SessionControl <<state dependent control>>
 class "AttendanceSessionService" as SessionRules <<business logic>>
@@ -899,14 +939,13 @@ class "AttendanceRecord" as AttendanceRecord <<entity>>
 
 Lecturer --> LecturerUI : 1 manage scheduled session
 LecturerUI --> SessionControl : 1.1 request sessions/start/stop/reopen/finalize
-SessionControl --> Session : 1.1.1 read assigned sessions
-SessionControl --> SessionRules : 1.1.2 validate lifecycle action
-SessionControl --> AttendanceSession : 1.1.3 activate, stop, reopen, stop reopened window, or finalize
-SessionControl --> SessionRules : 1.1.4 prepare and refresh QR/PIN codes
-SessionRules --> AttendanceConfig : 1.1.4.1 read QR/PIN refresh settings
-SessionControl --> AttendanceRecord : 1.1.5 read results, assign Absent, finalize
-SessionControl --> CheckInAttempt : 1.1.6 read rejected attempts
-SessionControl --> ClassSectionStudent : 1.1.7 read enrolled students
+SessionControl --> SessionRules : 1.1.1 coordinate lifecycle business decision
+SessionRules --> Session : 1.1.1.1 read assigned sessions and schedule window
+SessionRules --> AttendanceSession : 1.1.1.2 activate, stop, reopen, refresh codes, or finalize
+SessionRules --> AttendanceConfig : 1.1.1.3 read QR/PIN refresh settings
+SessionRules --> AttendanceRecord : 1.1.1.4 read results, assign Absent, finalize
+SessionRules --> CheckInAttempt : 1.1.1.5 read rejected attempts
+SessionRules --> ClassSectionStudent : 1.1.1.6 read enrolled students
 SessionControl --> LecturerUI : 2 show lifecycle result
 @enduml
 ```
@@ -919,7 +958,7 @@ SessionControl --> LecturerUI : 2 show lifecycle result
 @startuml
 skinparam style strictuml
 autonumber
-actor "Lecturer" as Lecturer
+actor "Lecturer\n«external user»" as Lecturer
 participant "LecturerInteraction\n«user interaction»" as LecturerUI
 participant "AttendanceCoordinator\n«coordinator»" as MonitorControl
 participant "AttendanceSessionService\n«business logic»" as SessionRules
@@ -929,27 +968,29 @@ participant "AttendanceRecord\n«entity»" as AttendanceRecord
 
 Lecturer -> LecturerUI : open live attendance monitor
 LecturerUI -> MonitorControl : request active session monitor
-MonitorControl -> AttendanceSession : read attendance session status
-AttendanceSession --> MonitorControl : session status
-MonitorControl -> SessionRules : verify session is active
+MonitorControl -> SessionRules : open active session monitor
+SessionRules -> AttendanceSession : read attendance session status
+AttendanceSession --> SessionRules : session status
 
 alt session is not active
   SessionRules --> MonitorControl : monitor not allowed
   MonitorControl --> LecturerUI : monitor unavailable
   LecturerUI --> Lecturer : show monitor unavailable
 else session is active
-  SessionRules --> MonitorControl : monitor allowed
-  MonitorControl -> ClassSectionStudent : read class roster
-  ClassSectionStudent --> MonitorControl : enrolled students
-  MonitorControl -> AttendanceRecord : read current attendance statuses
-  AttendanceRecord --> MonitorControl : current statuses
+  SessionRules -> ClassSectionStudent : read class roster
+  ClassSectionStudent --> SessionRules : enrolled students
+  SessionRules -> AttendanceRecord : read current attendance statuses
+  AttendanceRecord --> SessionRules : current statuses
+  SessionRules --> MonitorControl : monitor grid and attendance count
   MonitorControl --> LecturerUI : student grid and attendance count
   LecturerUI --> Lecturer : show live grid
 
   alt live updates available
     loop attendanceResultChanged events from UC02 or UC04
-      MonitorControl -> AttendanceRecord : read changed official result
-      AttendanceRecord --> MonitorControl : latest Present or Late status
+      MonitorControl -> SessionRules : get changed official attendance result
+      SessionRules -> AttendanceRecord : read changed official result
+      AttendanceRecord --> SessionRules : latest Present or Late status
+      SessionRules --> MonitorControl : latest Present or Late status
       MonitorControl --> LecturerUI : update student tile and count
       LecturerUI --> Lecturer : show Present or Late status update
     end
@@ -967,7 +1008,7 @@ The monitor interaction is modeled at the business-event level only: accepted QR
 
 ```plantuml
 @startuml
-class "Lecturer" as Lecturer <<actor>>
+class "Lecturer" as Lecturer <<external user>>
 class "LecturerInteraction" as LecturerUI <<user interaction>>
 class "AttendanceCoordinator" as MonitorControl <<coordinator>>
 class "AttendanceSessionService" as SessionRules <<business logic>>
@@ -977,10 +1018,10 @@ class "AttendanceRecord" as AttendanceRecord <<entity>>
 
 Lecturer --> LecturerUI : 1 open monitor
 LecturerUI --> MonitorControl : 1.1 request active session monitor
-MonitorControl --> AttendanceSession : 1.1.1 read session status
-MonitorControl --> SessionRules : 1.1.2 verify active session
-MonitorControl --> ClassSectionStudent : 1.1.3 read roster
-MonitorControl --> AttendanceRecord : 1.1.4 read current statuses and changed official results
+MonitorControl --> SessionRules : 1.1.1 open monitor and request live status
+SessionRules --> AttendanceSession : 1.1.1.1 verify active attendance session
+SessionRules --> ClassSectionStudent : 1.1.1.2 read roster
+SessionRules --> AttendanceRecord : 1.1.1.3 read current statuses and changed official results
 MonitorControl --> LecturerUI : 2 show unavailable, update grid, or show interruption warning
 @enduml
 ```
@@ -993,27 +1034,30 @@ MonitorControl --> LecturerUI : 2 show unavailable, update grid, or show interru
 @startuml
 skinparam style strictuml
 autonumber
-actor "Lecturer" as Lecturer
+actor "Lecturer\n«external user»" as Lecturer
 participant "LecturerInteraction\n«user interaction»" as LecturerUI
 participant "AttendanceCoordinator\n«coordinator»" as AdjustmentControl
 participant "AttendanceSessionService\n«business logic»" as SessionRules
+participant "ClassSectionStudent\n«entity»" as ClassSectionStudent
 participant "AttendanceRecord\n«entity»" as AttendanceRecord
 participant "CheckInAttempt\n«entity»" as CheckInAttempt
 
 Lecturer -> LecturerUI : select student or rejected attempt and click Adjust Status
 LecturerUI -> AdjustmentControl : request adjustment context
 AdjustmentControl -> SessionRules : verify assigned lecturer and session not finalized
+SessionRules -> ClassSectionStudent : verify target student belongs to session roster
+ClassSectionStudent --> SessionRules : roster entry or none
 
 alt session finalized or lecturer not assigned
   SessionRules --> AdjustmentControl : adjustment not allowed
   AdjustmentControl --> LecturerUI : adjustment rejected
   LecturerUI --> Lecturer : show finalized or unauthorized adjustment message
 else adjustment context allowed
-  SessionRules --> AdjustmentControl : adjustment context allowed
-  AdjustmentControl -> AttendanceRecord : read current official status
-  AttendanceRecord --> AdjustmentControl : current status or none
-  AdjustmentControl -> CheckInAttempt : read evidence summary if available
-  CheckInAttempt --> AdjustmentControl : evidence summary
+  SessionRules -> AttendanceRecord : read current official status
+  AttendanceRecord --> SessionRules : current status or none
+  SessionRules -> CheckInAttempt : read evidence summary if available
+  CheckInAttempt --> SessionRules : evidence summary
+  SessionRules --> AdjustmentControl : adjustment context allowed with current status and evidence
   AdjustmentControl --> LecturerUI : show Present, Late, Absent options and evidence summary
   Lecturer -> LecturerUI : select official status, enter reason, and save
   LecturerUI -> AdjustmentControl : submit adjustment(new status, reason)
@@ -1022,11 +1066,15 @@ else adjustment context allowed
     AdjustmentControl --> LecturerUI : reason required
     LecturerUI --> Lecturer : prompt to write reason
   else official AttendanceRecord exists
-    AdjustmentControl -> AttendanceRecord : update official result to Present, Late, or Absent
+    AdjustmentControl -> SessionRules : save manual adjustment(new status, reason)
+    SessionRules -> AttendanceRecord : update official result to Present, Late, or Absent
+    SessionRules --> AdjustmentControl : adjustment saved
     AdjustmentControl --> LecturerUI : adjustment saved
     LecturerUI --> Lecturer : show updated student status
   else selected rejected attempt and no official record exists
-    AdjustmentControl -> AttendanceRecord : create official result(ResultSource = ManualAdjustment, SourceCheckInAttemptId = selected attempt)
+    AdjustmentControl -> SessionRules : accept rejected attempt as official result(new status, reason)
+    SessionRules -> AttendanceRecord : create official result(ResultSource = ManualAdjustment, SourceCheckInAttemptId = selected attempt)
+    SessionRules --> AdjustmentControl : adjustment saved
     AdjustmentControl --> LecturerUI : adjustment saved
     LecturerUI --> Lecturer : show created official status
   end
@@ -1038,18 +1086,20 @@ end
 
 ```plantuml
 @startuml
-class "Lecturer" as Lecturer <<actor>>
+class "Lecturer" as Lecturer <<external user>>
 class "LecturerInteraction" as LecturerUI <<user interaction>>
 class "AttendanceCoordinator" as AdjustmentControl <<coordinator>>
 class "AttendanceSessionService" as SessionRules <<business logic>>
+class "ClassSectionStudent" as ClassSectionStudent <<entity>>
 class "AttendanceRecord" as AttendanceRecord <<entity>>
 class "CheckInAttempt" as CheckInAttempt <<entity>>
 
 Lecturer --> LecturerUI : 1 select student/attempt and save adjustment
 LecturerUI --> AdjustmentControl : 1.1 request context / submit adjustment
 AdjustmentControl --> SessionRules : 1.1.1 verify lecturer permission and non-finalized session
-AdjustmentControl --> AttendanceRecord : 1.1.2 read, update, or create official status
-AdjustmentControl --> CheckInAttempt : 1.1.3 read evidence summary
+SessionRules --> ClassSectionStudent : 1.1.1.1 verify roster entry
+SessionRules --> AttendanceRecord : 1.1.1.2 read, update, or create official status
+SessionRules --> CheckInAttempt : 1.1.1.3 read evidence summary
 AdjustmentControl --> LecturerUI : 2 show success, missing reason, or rejected adjustment
 @enduml
 ```
@@ -1062,7 +1112,7 @@ AdjustmentControl --> LecturerUI : 2 show success, missing reason, or rejected a
 @startuml
 skinparam style strictuml
 autonumber
-actor "Lecturer" as Lecturer
+actor "Lecturer\n«external user»" as Lecturer
 participant "LecturerInteraction\n«user interaction»" as LecturerUI
 participant "AttendanceCoordinator\n«coordinator»" as ReportControl
 participant "AttendanceSessionService\n«business logic»" as ReportRules
@@ -1074,21 +1124,23 @@ participant "CheckInAttempt\n«entity»" as CheckInAttempt
 Lecturer -> LecturerUI : click Export Report
 LecturerUI -> ReportControl : request attendance report(class section, semester)
 ReportControl -> ReportRules : verify export uses finalized attendance results
+ReportRules -> Session : read class sessions
+Session --> ReportRules : session dates or none
+ReportRules -> AttendanceRecord : read finalized attendance result availability
+AttendanceRecord --> ReportRules : finalized records or none
 
 alt no finalized records or no sessions exist
   ReportRules --> ReportControl : export not available
   ReportControl --> LecturerUI : show empty-state message and disable export
   LecturerUI --> Lecturer : show no records available
 else finalized records exist
-  ReportRules --> ReportControl : export allowed
-  ReportControl -> ClassSectionStudent : read roster
-  ClassSectionStudent --> ReportControl : student roster
-  ReportControl -> Session : read class sessions
-  Session --> ReportControl : session dates
-  ReportControl -> AttendanceRecord : read finalized Present, Late, Absent statuses
-  AttendanceRecord --> ReportControl : official attendance matrix
-  ReportControl -> CheckInAttempt : read check-in modes, warnings, and rejected attempts
-  CheckInAttempt --> ReportControl : attempt evidence summary for report
+  ReportRules -> ClassSectionStudent : read roster
+  ClassSectionStudent --> ReportRules : student roster
+  ReportRules -> AttendanceRecord : read finalized Present, Late, Absent statuses
+  AttendanceRecord --> ReportRules : official attendance matrix
+  ReportRules -> CheckInAttempt : read check-in modes, warnings, and rejected attempts
+  CheckInAttempt --> ReportRules : attempt evidence summary for report
+  ReportRules --> ReportControl : prepared report content
   ReportControl --> LecturerUI : prepared report content
   LecturerUI --> Lecturer : save attendance report file locally
 end
@@ -1099,7 +1151,7 @@ end
 
 ```plantuml
 @startuml
-class "Lecturer" as Lecturer <<actor>>
+class "Lecturer" as Lecturer <<external user>>
 class "LecturerInteraction" as LecturerUI <<user interaction>>
 class "AttendanceCoordinator" as ReportControl <<coordinator>>
 class "AttendanceSessionService" as ReportRules <<business logic>>
@@ -1111,10 +1163,10 @@ class "CheckInAttempt" as CheckInAttempt <<entity>>
 Lecturer --> LecturerUI : 1 click Export Report
 LecturerUI --> ReportControl : 1.1 request report
 ReportControl --> ReportRules : 1.1.1 verify finalized results
-ReportControl --> ClassSectionStudent : 1.1.2 read roster
-ReportControl --> Session : 1.1.3 read sessions
-ReportControl --> AttendanceRecord : 1.1.4 read finalized Present/Late/Absent statuses
-ReportControl --> CheckInAttempt : 1.1.5 read modes, warnings, rejected attempts
+ReportRules --> ClassSectionStudent : 1.1.1.1 read roster
+ReportRules --> Session : 1.1.1.2 read sessions
+ReportRules --> AttendanceRecord : 1.1.1.3 read finalized Present/Late/Absent statuses
+ReportRules --> CheckInAttempt : 1.1.1.4 read modes, warnings, rejected attempts
 ReportControl --> LecturerUI : 2 return report content or empty state
 @enduml
 ```
@@ -1127,7 +1179,7 @@ ReportControl --> LecturerUI : 2 return report content or empty state
 @startuml
 skinparam style strictuml
 autonumber
-actor "Admin" as Admin
+actor "Admin\n«external user»" as Admin
 participant "AdminInteraction\n«user interaction»" as AdminUI
 participant "CatalogManagementCoordinator\n«coordinator»" as CatalogControl
 participant "CatalogManagementService\n«business logic»" as CatalogRules
@@ -1136,14 +1188,28 @@ participant "Student\n«entity»" as Student
 participant "Lecturer\n«entity»" as Lecturer
 participant "Subject\n«entity»" as Subject
 participant "ClassSection\n«entity»" as ClassSection
+participant "ClassSectionStudent\n«entity»" as ClassSectionStudent
+participant "Session\n«entity»" as Session
 
 Admin -> AdminUI : click catalog menu option
 AdminUI -> CatalogControl : request catalog view(catalog type)
+CatalogControl -> CatalogRules : get catalog records(catalog type)
+CatalogRules -> Account : read account records when applicable
+CatalogRules -> Student : read student records when applicable
+CatalogRules -> Lecturer : read lecturer records when applicable
+CatalogRules -> Subject : read subject records when applicable
+CatalogRules -> ClassSection : read class section records when applicable
+CatalogRules -> ClassSectionStudent : read roster records when applicable
+CatalogRules -> Session : read scheduled session records when applicable
+CatalogRules --> CatalogControl : searchable catalog grid
 CatalogControl --> AdminUI : searchable catalog grid
 AdminUI --> Admin : show add, edit, and delete actions
 Admin -> AdminUI : input catalog details and submit
 AdminUI -> CatalogControl : submit catalog change
 CatalogControl -> CatalogRules : validate fields and unique identifiers
+CatalogRules -> Account : check account identifier uniqueness when applicable
+CatalogRules -> Student : check student identifier uniqueness when applicable
+CatalogRules -> ClassSection : check class section identifier uniqueness when applicable
 
 alt duplicate identifier
   CatalogRules --> CatalogControl : duplicate detected
@@ -1153,19 +1219,24 @@ else batch import selected
   Admin -> AdminUI : upload structured catalog data
   AdminUI -> CatalogControl : submit batch catalog data
   CatalogControl -> CatalogRules : validate imported records
+  CatalogRules -> Account : record valid imported accounts
+  CatalogRules -> Student : record valid imported students
+  CatalogRules -> Subject : record valid imported subjects
+  CatalogRules -> ClassSection : record valid imported class sections
+  CatalogRules -> ClassSectionStudent : record valid roster entries when included
+  CatalogRules -> Session : record valid scheduled sessions when included
   CatalogRules --> CatalogControl : import validation result
-  CatalogControl -> Account : record valid imported accounts
-  CatalogControl -> Student : record valid imported students
-  CatalogControl -> Subject : record valid imported subjects
   CatalogControl --> AdminUI : import result
   AdminUI --> Admin : show imported records and validation feedback
 else valid single change
-  CatalogRules --> CatalogControl : valid change
-  CatalogControl -> Account : record user account change when applicable
-  CatalogControl -> Student : record student change when applicable
-  CatalogControl -> Lecturer : record lecturer change when applicable
-  CatalogControl -> Subject : record subject change when applicable
-  CatalogControl -> ClassSection : record class section change when applicable
+  CatalogRules -> Account : record user account change when applicable
+  CatalogRules -> Student : record student change when applicable
+  CatalogRules -> Lecturer : record lecturer change when applicable
+  CatalogRules -> Subject : record subject change when applicable
+  CatalogRules -> ClassSection : record class section change when applicable
+  CatalogRules -> ClassSectionStudent : record roster change when applicable
+  CatalogRules -> Session : record scheduled session change when applicable
+  CatalogRules --> CatalogControl : valid change recorded
   CatalogControl --> AdminUI : catalog updated
   AdminUI --> Admin : refresh catalog grid
 end
@@ -1176,7 +1247,7 @@ end
 
 ```plantuml
 @startuml
-class "Admin" as Admin <<actor>>
+class "Admin" as Admin <<external user>>
 class "AdminInteraction" as AdminUI <<user interaction>>
 class "CatalogManagementCoordinator" as CatalogControl <<coordinator>>
 class "CatalogManagementService" as CatalogRules <<business logic>>
@@ -1185,15 +1256,19 @@ class "Student" as Student <<entity>>
 class "Lecturer" as Lecturer <<entity>>
 class "Subject" as Subject <<entity>>
 class "ClassSection" as ClassSection <<entity>>
+class "ClassSectionStudent" as ClassSectionStudent <<entity>>
+class "Session" as Session <<entity>>
 
 Admin --> AdminUI : 1 manage catalog
 AdminUI --> CatalogControl : 1.1 view/add/edit/delete/import records
-CatalogControl --> CatalogRules : 1.1.1 validate fields and uniqueness
-CatalogControl --> Account : 1.1.2 record account change
-CatalogControl --> Student : 1.1.3 record student change
-CatalogControl --> Lecturer : 1.1.4 record lecturer change
-CatalogControl --> Subject : 1.1.5 record subject change
-CatalogControl --> ClassSection : 1.1.6 record class section change
+CatalogControl --> CatalogRules : 1.1.1 retrieve, validate, and record catalog changes
+CatalogRules --> Account : 1.1.1.1 read or record account change
+CatalogRules --> Student : 1.1.1.2 read or record student change
+CatalogRules --> Lecturer : 1.1.1.3 read or record lecturer change
+CatalogRules --> Subject : 1.1.1.4 read or record subject change
+CatalogRules --> ClassSection : 1.1.1.5 read or record class section change
+CatalogRules --> ClassSectionStudent : 1.1.1.6 read or record roster change
+CatalogRules --> Session : 1.1.1.7 read or record scheduled session change
 CatalogControl --> AdminUI : 2 return updated grid or validation error
 @enduml
 ```
@@ -1206,7 +1281,8 @@ CatalogControl --> AdminUI : 2 return updated grid or validation error
 @startuml
 skinparam style strictuml
 autonumber
-actor "Admin" as Admin
+actor "Admin\n«external user»" as Admin
+participant "Mobile Device Hardware\n«external device»" as MobileHardware
 participant "AdminInteraction\n«user interaction»" as AdminUI
 participant "CatalogManagementCoordinator\n«coordinator»" as RoomControl
 participant "MobileDeviceInterface\n«device I/O»" as MobileSensor
@@ -1217,10 +1293,12 @@ participant "AttendanceConfiguration\n«entity»" as AttendanceConfig
 
 Admin -> AdminUI : click Room Management
 AdminUI -> RoomControl : request classroom list
-RoomControl -> Room : read physical classrooms
-Room --> RoomControl : classroom list
-RoomControl -> AttendanceConfig : read default allowed radius
-AttendanceConfig --> RoomControl : default radius value
+RoomControl -> LocationSettingRules : get classroom configuration list
+LocationSettingRules -> Room : read physical classrooms
+Room --> LocationSettingRules : classroom list
+LocationSettingRules -> AttendanceConfig : read default allowed radius
+AttendanceConfig --> LocationSettingRules : default radius value
+LocationSettingRules --> RoomControl : classroom list with default radius
 RoomControl --> AdminUI : classroom list with configuration action
 Admin -> AdminUI : select classroom and configure location
 AdminUI --> Admin : show location and allowed radius form
@@ -1229,6 +1307,8 @@ alt on-site calibration
   Admin -> AdminUI : capture current location
   AdminUI -> RoomControl : request current calibration location
   RoomControl -> MobileSensor : read current GPS coordinates
+  MobileSensor -> MobileHardware : request current location
+  MobileHardware --> MobileSensor : captured classroom location
   MobileSensor --> RoomControl : captured classroom location
   RoomControl --> AdminUI : captured location values
   AdminUI --> Admin : populate captured location values
@@ -1239,6 +1319,10 @@ end
 Admin -> AdminUI : enter allowed radius and save configuration
 AdminUI -> RoomControl : submit location settings
 RoomControl -> LocationSettingRules : validate classroom location and allowed radius
+LocationSettingRules -> Room : read current room configuration
+Room --> LocationSettingRules : current room configuration
+LocationSettingRules -> AttendanceConfig : read default radius rule when needed
+AttendanceConfig --> LocationSettingRules : default radius rule
 LocationSettingRules -> CampusZone  : check location inside university boundary
 CampusZone  --> LocationSettingRules : boundary check result
 
@@ -1251,8 +1335,8 @@ else location outside university boundary
   RoomControl --> AdminUI : out-of-bounds location warning
   AdminUI --> Admin : show campus boundary warning
 else location accepted
+  LocationSettingRules -> Room : update room location settings
   LocationSettingRules --> RoomControl : location settings accepted
-  RoomControl -> Room : update room location settings
   RoomControl --> AdminUI : configuration saved
   AdminUI --> Admin : show saved configuration
 end
@@ -1263,7 +1347,8 @@ end
 
 ```plantuml
 @startuml
-class "Admin" as Admin <<actor>>
+class "Admin" as Admin <<external user>>
+class "Mobile Device Hardware" as MobileHardware <<external device>>
 class "AdminInteraction" as AdminUI <<user interaction>>
 class "CatalogManagementCoordinator" as RoomControl <<coordinator>>
 class "MobileDeviceInterface" as MobileSensor <<device I/O>>
@@ -1274,11 +1359,12 @@ class "AttendanceConfiguration" as AttendanceConfig <<entity>>
 
 Admin --> AdminUI : 1 configure classroom location
 AdminUI --> RoomControl : 1.1 request rooms / submit settings
-RoomControl --> Room : 1.1.1 read or update room location settings
-RoomControl --> AttendanceConfig : 1.1.2 read default allowed radius
-RoomControl --> MobileSensor : 1.1.3 read current location for calibration
-RoomControl --> LocationSettingRules : 1.1.4 validate coordinate, campus boundary, and radius values
-LocationSettingRules --> CampusZone  : 1.1.4.1 check university boundary
+RoomControl --> LocationSettingRules : 1.1.1 retrieve, validate, and save room location settings
+LocationSettingRules --> Room : 1.1.1.1 read or update room location settings
+LocationSettingRules --> AttendanceConfig : 1.1.1.2 read default allowed radius
+RoomControl --> MobileSensor : 1.1.2 read current location for calibration
+MobileSensor --> MobileHardware : 1.1.2.1 obtain current location
+LocationSettingRules --> CampusZone  : 1.1.1.3 check university boundary
 RoomControl --> AdminUI : 2 return saved result or warning
 @enduml
 ```
@@ -1353,15 +1439,15 @@ Finalized --> [*]
 | **Requirement / UC**                     | **Actor**                                            | **Analysis objects**                                                                                                                                                                                                  | **Dynamic diagrams**                                              | **Business rules covered**                                                  |
 | :--------------------------------------- | :--------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------- | :-------------------------------------------------------------------------- |
 | UC01 Authenticate User                   | Student, Lecturer, Admin, University Identity System | UserInteraction, IdentitySystemProxy, AuthenticationCoordinator, AuthenticationService, Account                                                                                                                       | Figure II-3, Figure II-4                                          | BR-01                                                                       |
-| UC02 Check In via Dynamic QR Code        | Student                                              | StudentInteraction, MobileDeviceInterface, AttendanceCoordinator, CheckInService, AttendanceConfiguration, DistanceAlgorithm, AttendanceSession, Session, ClassSectionStudent, Room, CheckInAttempt, AttendanceRecord | Figure II-5, Figure II-6, Figure II-24, Figure II-25              | BR-02, BR-03, BR-04, BR-05, BR-06, BR-12, BR-13, BR-14, NF-02, NF-06        |
-| UC03 View Personal Attendance History    | Student                                              | StudentInteraction, AttendanceCoordinator, AuthenticationService, ClassSectionStudent, ClassSection, AttendanceRecord                                                                                                 | Figure II-7, Figure II-8                                          | BR-01                                                                       |
-| UC04 Check In via PIN Fallback           | Student                                              | StudentInteraction, MobileDeviceInterface, AttendanceCoordinator, CheckInService, AttendanceConfiguration, DistanceAlgorithm, AttendanceSession, Session, ClassSectionStudent, Room, CheckInAttempt, AttendanceRecord | Figure II-9, Figure II-10, Figure II-24, Figure II-25             | BR-02, BR-03, BR-04, BR-05, BR-06, BR-07, BR-12, BR-13, BR-14, NF-02, NF-06 |
+| UC02 Check In via Dynamic QR Code        | Student, Mobile Device Hardware                      | StudentInteraction, MobileDeviceInterface, AttendanceCoordinator, CheckInService, AttendanceConfiguration, DistanceAlgorithm, AttendanceSession, Session, ClassSectionStudent, Room, CheckInAttempt, AttendanceRecord | Figure II-5, Figure II-6, Figure II-24, Figure II-25              | BR-02, BR-03, BR-04, BR-05, BR-06, BR-12, BR-13, BR-14, NF-02, NF-06        |
+| UC03 View Personal Attendance History    | Student                                              | StudentInteraction, AttendanceCoordinator, AuthenticationService, AttendanceSessionService, ClassSectionStudent, ClassSection, AttendanceRecord                                                                        | Figure II-7, Figure II-8                                          | BR-01                                                                       |
+| UC04 Check In via PIN Fallback           | Student, Mobile Device Hardware                      | StudentInteraction, MobileDeviceInterface, AttendanceCoordinator, CheckInService, AttendanceConfiguration, DistanceAlgorithm, AttendanceSession, Session, ClassSectionStudent, Room, CheckInAttempt, AttendanceRecord | Figure II-9, Figure II-10, Figure II-24, Figure II-25             | BR-02, BR-03, BR-04, BR-05, BR-06, BR-07, BR-12, BR-13, BR-14, NF-02, NF-06 |
 | UC05 Manage Attendance Session           | Lecturer                                             | LecturerInteraction, AttendanceSessionControl, AttendanceSessionService, AttendanceConfiguration, Session, ClassSectionStudent, AttendanceSession, CheckInAttempt, AttendanceRecord                                   | Figure II-11, Figure II-12, Figure II-23                          | BR-02, BR-06, BR-08, BR-10, BR-12, NF-06                                    |
 | UC06 Monitor Attendance in Real Time     | Lecturer                                             | LecturerInteraction, AttendanceCoordinator, AttendanceSessionService, AttendanceSession, ClassSectionStudent, AttendanceRecord                                                                                        | Figure II-13, Figure II-14                                        | NF-01                                                                       |
-| UC07 Adjust Attendance Manually          | Lecturer                                             | LecturerInteraction, AttendanceCoordinator, AttendanceSessionService, AttendanceRecord, CheckInAttempt                                                                                                                | Figure II-15, Figure II-16, Figure II-25                          | BR-10                                                                       |
+| UC07 Adjust Attendance Manually          | Lecturer                                             | LecturerInteraction, AttendanceCoordinator, AttendanceSessionService, ClassSectionStudent, AttendanceRecord, CheckInAttempt                                                                                           | Figure II-15, Figure II-16, Figure II-25                          | BR-10                                                                       |
 | UC08 Export Attendance Report            | Lecturer                                             | LecturerInteraction, AttendanceCoordinator, AttendanceSessionService, ClassSectionStudent, Session, AttendanceRecord, CheckInAttempt                                                                                  | Figure II-17, Figure II-18, Figure II-25                          | BR-08                                                                       |
-| UC09 Manage System Catalog               | Admin                                                | AdminInteraction, CatalogManagementCoordinator, CatalogManagementService, Account, Student, Lecturer, Subject, ClassSection                                                                                           | Figure II-19, Figure II-20                                        | BR-11                                                                       |
-| UC10 Configure Classroom Location        | Admin                                                | AdminInteraction, MobileDeviceInterface, CatalogManagementCoordinator, CatalogManagementService, CampusZone , AttendanceConfiguration, Room                                                                           | Figure II-21, Figure II-22                                        | BR-03, NF-06                                                                |
+| UC09 Manage System Catalog               | Admin                                                | AdminInteraction, CatalogManagementCoordinator, CatalogManagementService, Account, Student, Lecturer, Subject, ClassSection, ClassSectionStudent, Session                                                             | Figure II-19, Figure II-20                                        | BR-11                                                                       |
+| UC10 Configure Classroom Location        | Admin, Mobile Device Hardware                        | AdminInteraction, MobileDeviceInterface, CatalogManagementCoordinator, CatalogManagementService, CampusZone , AttendanceConfiguration, Room                                                                           | Figure II-21, Figure II-22                                        | BR-03, NF-06                                                                |
 | NF-06 Configurable attendance parameters | Student, Lecturer, Admin                             | AttendanceConfiguration, CheckInService, AttendanceSessionService, CatalogManagementService, CatalogManagementCoordinator                                                                                             | Figure II-1, Figure II-5, Figure II-9, Figure II-11, Figure II-21 | NF-06                                                                       |
 | BR-14 Enrollment authorization           | Student, Lecturer                                    | ClassSectionStudent, Session, CheckInService, AttendanceCoordinator                                                                                                                                                   | Figure II-5, Figure II-9, Figure II-11                            | BR-14                                                                       |
 

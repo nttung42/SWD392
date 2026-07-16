@@ -19,7 +19,7 @@ If a use case flow is missing business logic needed for object collaboration, st
 - Static analysis class diagram.
 - Contextual Boundary Diagram when the document requires context modeling.
 - Object structuring with COMET stereotypes.
-- Sequence or communication diagrams for each use case.
+- One interaction diagram per use case: either a communication diagram or a sequence diagram, selected by the use case's interaction complexity.
 - State machine diagrams for state-dependent control objects.
 
 ## COMET Stereotypes
@@ -188,8 +188,11 @@ Do not model `«data abstraction»`, `«database wrapper»`, tables, queries, or
 
 ## Interaction Diagram Selection
 
-- Default to a communication diagram for ordinary use cases. COMET favors communication diagrams because they show object links and collaboration structure, and they can be merged directly into the Integrated Communication Diagram during Design.
-- Use a sequence diagram only when the interaction is very long, deeply conditional, loop-heavy, or otherwise difficult to read with numbered communication messages.
+- A use case does not normally need both a sequence diagram and a communication diagram. In COMET, both diagram types communicate the same analysis information: participating objects and the ordered messages exchanged between them.
+- Choose exactly one interaction diagram type per use case unless the user explicitly asks for both for comparison or teaching purposes.
+- Default to a communication diagram for ordinary use cases. COMET favors communication diagrams because they show object links and collaboration structure clearly, and they can be merged directly into the Integrated Communication Diagram during Design.
+- Prefer communication diagrams when the use case has a manageable message flow, because subsystem structuring later depends on combining per-use-case communication diagrams.
+- Use a sequence diagram only for special cases with very complex and lengthy interactions, especially when the use case contains many conditional branches, loops, or nested alternative flows that would make numbered communication messages hard to follow.
 - If a use case is modeled with a sequence diagram because of complexity, note that Design must convert or summarize that interaction into communication-diagram form before subsystem structuring.
 - Avoid redundant interaction artifacts: choose the diagram type that best communicates the same object participants and message ordering for the use case.
 
