@@ -852,7 +852,7 @@ Nếu đề bài không yêu cầu UI mockup, chuyển wireframe sang appendix. 
 
 # 7. Traceability có một lỗi cụ thể
 
-UC04 – PIN fallback đang không liệt kê BR-02, trong khi BR-02 quy định:
+UC04 – PIN đang không liệt kê BR-02, trong khi BR-02 quy định:
 
 * QR thay đổi mỗi 10 giây;
 * backup PIN thay đổi mỗi 30 giây.

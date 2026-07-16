@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AFAS Web Portal</title>
+    <link rel="icon" type="image/png" href="./static/favicon.png" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  </head>
+  <body>
+    <main id="loginPage" class="login-body">
+      <section class="login-card">
+        <div class="login-brand">
+          <img src="./static/favicon.png" alt="" />
+          <strong>AFAS</strong>
+        </div>
+        <h1 class="login-title">Web Portal</h1>
+        <p class="login-subtitle">Sign in with your university identity to continue.</p>
+        <button id="feidLoginBtn" class="btn btn-primary btn-full" type="button">
+          <i data-lucide="key-round"></i>
+          Login with FEID
+        </button>
+      </section>
+    </main>
+
+    <main id="portalPage" class="portal hidden">
+      <aside class="sidebar">
+        <div class="brand-mark">
+          <img src="./static/favicon.png" alt="" />
+          <span>AFAS Portal</span>
+        </div>
+        <nav id="sidebarNav" class="nav-section" aria-label="Main navigation"></nav>
+      </aside>
+
+      <section class="portal-main">
+        <header class="topbar">
+          <div>
+            <p id="breadcrumb" class="breadcrumb">Timetable</p>
+            <h1 id="pageTitle" class="page-title">Timetable</h1>
+          </div>
+          <select id="workspaceSelect" class="workspace-select" aria-label="Active workspace">
+            <option value="lecturer">Lecturer workspace</option>
+            <option value="admin">Admin workspace</option>
+          </select>
+        </header>
+        <div id="app" class="content"></div>
+      </section>
+    </main>
+
+    <div id="modalRoot" class="modal-root"></div>
+    <div id="toast" class="toast"></div>
+    <script src="./web-portal.js"></script>
+  </body>
+</html>
