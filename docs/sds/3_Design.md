@@ -97,7 +97,7 @@ object "ClassSection\n«entity»" as ClassSection
 object "ClassSectionStudent\n«entity»" as ClassSectionStudent
 object "Session\n«entity»" as Session
 object "Room\n«entity»" as Room
-object "CampusBoundary\n«entity»" as CampusBoundary
+object "CampusZone \n«entity»" as CampusZone 
 object "AttendanceConfiguration\n«entity»" as AttendanceConfig
 object "AttendanceSession\n«entity»" as AttendanceSession
 object "CheckInAttempt\n«entity»" as CheckInAttempt
@@ -172,7 +172,7 @@ CatalogControl --> ClassSection : UC09 maintain class sections
 AdminUI --> RoomControl : UC10 configure classroom location
 RoomControl --> MobileSensor : UC10 capture current location when calibrated on site
 RoomControl --> RoomRules : UC10 validate coordinate, campus boundary, and radius
-RoomRules --> CampusBoundary : UC10 check university boundary
+RoomRules --> CampusZone  : UC10 check university boundary
 RoomControl --> Room : UC10 update room location settings
 RoomControl --> AttendanceConfiguration : UC10 read default radius
 @enduml
@@ -971,7 +971,7 @@ RoomRepo --> Room
 | UC07 Adjust Attendance Manually       | Lecturer                                             | Lecturer Web Interface, Adjustment Control, Session Rules, AttendanceRecord, CheckInAttempt                                                                                                                                                                                                        | AdjustmentService, Repository Adapters                                                                                                             | Figures III-1, III-6; AdjustmentService contract                  |
 | UC08 Export Attendance Report         | Lecturer                                             | Lecturer Web Interface, Report Control, Report Eligibility Rules, ClassSectionStudent, Session, AttendanceRecord, CheckInAttempt                                                                                                                                                                   | Reporting subsystem, ReportService, ReportFileAdapter                                                                                              | Figures III-1, III-6; ReportService contract                      |
 | UC09 Manage System Catalog            | Admin                                                | Admin Web Interface, Catalog Control, Catalog Uniqueness Rules, Account, Student, Lecturer, Subject, ClassSection                                                                                                                                                                                  | Administrative Management, CatalogService, Repository Adapters                                                                                     | Figures III-1, III-6; persistence mapping                         |
-| UC10 Configure Classroom Location     | Admin                                                | Admin Web Interface, Mobile Device Sensor Interface, Room Configuration Control, Room Location Setting Rules, CampusBoundary, AttendanceConfiguration, Room                                                                                                                                        | RoomConfigurationService, Device Evidence Adapter for on-site calibration, Room repository                                                         | Figures III-1, III-6; RoomConfigurationService contract           |
+| UC10 Configure Classroom Location     | Admin                                                | Admin Web Interface, Mobile Device Sensor Interface, Room Configuration Control, Room Location Setting Rules, CampusZone , AttendanceConfiguration, Room                                                                                                                                           | RoomConfigurationService, Device Evidence Adapter for on-site calibration, Room repository                                                         | Figures III-1, III-6; RoomConfigurationService contract           |
 | NF-01 Performance and concurrency     | Student, Lecturer                                    | Attendance Code Rules, Monitor Control, AttendanceSession                                                                                                                                                                                                                                          | Attendance Code Cache, QR/PIN Refresh Task, Realtime Notification Adapter                                                                          | Figures III-3, III-5, III-6; TIS/TBS                              |
 | NF-06 Configurability                 | Lecturer, Admin                                      | AttendanceConfiguration, Attendance Code Rules, Attendance Status Calculation, Room Configuration Control                                                                                                                                                                                          | `attendance_configurations`, SessionService, RoomConfigurationService, policy classes                                                              | Figures III-1, III-3; persistence mapping                         |
 

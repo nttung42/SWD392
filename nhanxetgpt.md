@@ -143,7 +143,7 @@ Hiện tại:
 ```text
 ClassroomLocation: Text
 SubmittedLocation: Text
-CampusBoundary:
+CampusZone :
     BoundaryDescription
 ```
 
@@ -180,10 +180,10 @@ CheckInAttempt
 - LocationAccuracyMeters
 ```
 
-Nếu vẫn giữ `CampusBoundary`, cần có tối thiểu:
+Nếu vẫn giữ `CampusZone `, cần có tối thiểu:
 
 ```text
-CampusBoundary
+CampusZone 
 - BoundaryCoordinates
 ```
 
@@ -703,12 +703,12 @@ Thêm:
 
 giữa hai association, hoặc dùng generalization phù hợp.
 
-## 4.3. Composition `CampusBoundary *-- Classroom` chưa hợp lý
+## 4.3. Composition `CampusZone  *-- Classroom` chưa hợp lý
 
 Classroom không bị hủy chỉ vì campus boundary bị thay đổi hoặc xóa. Đây nên là association thông thường:
 
 ```text
-CampusBoundary "1" -- "0..*" Classroom
+CampusZone  "1" -- "0..*" Classroom
 ```
 
 Composition hợp lý hơn ở:
