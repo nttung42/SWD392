@@ -28,14 +28,90 @@ Categorize analysis objects into one of these COMET object structuring groups. P
 
 ## Object Structuring Criteria
 
-Use object structuring to open the system black box and divide the internal software into Boundary, Control, Entity, and Application Logic objects. Each object must be justified by a use case step and must stay at analysis level.
+Use object structuring to open the system black box and identify the internal software objects that realize the use cases. The goal is to classify application classes by similar roles and responsibilities using UML stereotypes, while modeling objects from the problem domain as much as possible. Each object must be justified by a use case step and must stay at analysis level.
+
+Group analysis classes into four COMET object groups:
+
+- Entity Objects.
+- Boundary Objects.
+- Control Objects.
+- Application Logic Objects.
+
+Use group names such as Boundary, Control, and Application Logic for structuring the hierarchy. For actual UML objects, prefer the specific stereotypes listed below over generic category labels.
 
 ### Criteria By Object Group
 
-- Boundary objects represent interaction points between the system and its environment. Use `«user interaction»` for screens/forms used by human actors, `«device I/O»` for physical device interfaces, and `«proxy»` for external systems.
-- Entity objects represent long-lived domain information that the system must remember, such as accounts, cards, transactions, products, or categories.
-- Application Logic objects represent domain rules, validation policies, calculations, or business services needed to realize the use case.
-- Control objects coordinate the use case flow. Use `«coordinator»` for ordinary orchestration and `«state dependent control»` when behavior depends on a strict lifecycle or state machine.
+#### Entity Objects
+
+- Use `«entity»` for long-lived, persistent problem-domain information that the system must remember, such as accounts, cards, transactions, products, categories, sessions, or records.
+- Entity objects encapsulate stored information and provide analysis-level operations that allow other objects to access or update that information.
+- Entity objects may be accessed through a `«service»` object when the interaction is better represented as a business service, but do not introduce repositories, tables, database wrappers, or persistence mechanisms in Analysis.
+
+#### Boundary Objects
+
+- Boundary objects connect the software system to the outside world.
+- Use `«user interaction»` for direct interaction with human users, including receiving user input and displaying output through user-facing devices such as screens, keyboards, pointing devices, forms, or pages.
+- Use `«device I/O»` for direct input from or output to a physical device. Use `«input»`, `«output»`, or `«input/output»` when separating one-way or two-way device interaction improves clarity.
+- Use `«proxy»` for communication with an external system or external subsystem.
+- Boundary objects receive external events and delegate into control or application logic objects. They must not directly manipulate `«entity»` objects.
+
+#### Control Objects
+
+- Control objects act as conductors for use case realization. They coordinate the other objects and decide when each collaborator should perform its responsibility.
+- Use `«coordinator»` for ordinary use case orchestration that does not need a strict state machine.
+- Use `«state dependent control»` when coordination decisions depend on the current system or object state and input events may trigger state transitions.
+- Use `«timer»` for an object triggered by an external clock or scheduled time, which then performs an action or calls other objects to perform periodic work.
+
+#### Application Logic Objects
+
+- Application Logic objects contain core processing logic separated from persistent data when rules, policies, calculations, or services may change independently from entity structure.
+- Use `«business logic»` to encapsulate domain/business rules, validation policies, and decision logic, especially in information systems.
+- Use `«algorithm»` to encapsulate complex computational, real-time, scientific, engineering, routing, optimization, or calculation logic.
+- Use `«service»` for an object that provides business services to client objects, especially when a use case needs a business-service abstraction. A service object responds to client requests; it should not initiate the use case by itself.
+
+### Object Naming Rules
+
+Apply these rules when naming analysis objects in object structuring, object diagrams, sequence diagrams, and communication diagrams. Static analysis class diagrams may keep ordinary class names without object-instance prefixes.
+
+#### General Object Naming
+
+- Use nouns or noun phrases that represent domain entities, interaction surfaces, coordinators, policies, services, or algorithms.
+- Underline object instance names in UML object notation to distinguish objects from classes, for example `<u>anObject</u>`, `<u>:Class</u>`, or `<u>aCustomer : Customer</u>`.
+- For named object instances, usually add a lowercase `a` or `an` prefix before the class/concept name, such as `aCustomer` or `anAccount`.
+- Keep names analysis-level. Do not use implementation names such as repositories, database tables, API clients, controllers, queues, or framework components in Analysis.
+
+#### Entity Object Names
+
+- Use direct nouns that describe stored domain information.
+- Pattern: `[Domain Noun]`.
+- Examples: `Account`, `Customer`, `DeliveryOrder`, `ATMCard`.
+
+#### Boundary Object Names
+
+- For `«user interaction»`, use `[Actor / Screen] + Interaction / Presentation / View`.
+- Examples: `CustomerInteraction`, `OperatorPresentation`, `ManageProductView`.
+- For `«device I/O»`, use `[Device Name] + Interface / Component`.
+- Examples: `CardReaderInterface`, `MonitoringSensorComponent`.
+- For `«proxy»`, use `[External System Name] + Proxy`.
+- Examples: `RemoteSystemProxy`, `DisplayProxy`.
+
+#### Control Object Names
+
+- For `«coordinator»`, use `[Actor / Business Area] + Coordinator`.
+- Examples: `CustomerCoordinator`, `BillingCoordinator`.
+- For `«state dependent control»`, use `[System / State-Dependent Object] + Control`.
+- Examples: `ATMControl`, `VehicleControl`.
+- For `«timer»`, use `[System / Object] + Timer`.
+- Example: `VehicleTimer`.
+
+#### Application Logic Object Names
+
+- For `«business logic»`, use `[Transaction / Business Process] + Manager`.
+- Examples: `WithdrawalTransactionManager`, `QueryTransactionManager`.
+- For `«service»`, use `[Entity / Subsystem] + Service`.
+- Examples: `CatalogService`, `AlarmService`.
+- For `«algorithm»`, use `[Calculation Function] + Algorithm`.
+- Example: `ShortestPathAlgorithm`.
 
 ### Example: Withdraw Funds
 
@@ -59,8 +135,9 @@ Do not model `«data abstraction»`, `«database wrapper»`, tables, queries, or
 
 ### Boundary Objects
 
+- `«boundary»`: Generic boundary category label. Prefer the specific stereotypes below for actual analysis objects.
 - `«user interaction»`: Interface interacting directly with a human user.
-- `«device I/O»`: Interface to hardware sensors or actuators. Use `«input»` or `«output»` when separating one-way device interaction improves clarity.
+- `«device I/O»`: Interface to hardware sensors or actuators. Use `«input»`, `«output»`, or `«input/output»` when separating device interaction direction improves clarity.
 - `«proxy»`: Interface wrapping communication with an external system.
 
 ### Entity Objects
@@ -69,15 +146,17 @@ Do not model `«data abstraction»`, `«database wrapper»`, tables, queries, or
 
 ### Control Objects
 
+- `«control»`: Generic control category label. Prefer a specific control stereotype below for actual analysis objects.
 - `«coordinator»`: Coordinates a use case or multiple objects without depending on a statechart.
 - `«state dependent control»`: Coordinates behavior that depends strongly on a state machine.
 - `«timer»`: Triggers actions at regular intervals or at scheduled times.
 
 ### Application Logic Objects
 
+- `«application logic»`: Generic application logic category label. Prefer `«business logic»`, `«algorithm»`, or `«service»` for actual analysis objects.
 - `«business logic»`: Encapsulates domain rules, validation policies, calculations, and decision logic.
 - `«algorithm»`: Encapsulates complex computational algorithms, optimization, simulation, routing, GIS, scientific, engineering, or real-time calculations.
-- `«service»`: Encapsulates data and operations to provide business services to client objects.
+- `«service»`: Provides business services to client objects and responds to their requests; it should not initiate a use case by itself.
 
 ## Static Modeling Rules
 
@@ -97,13 +176,13 @@ Do not model `«data abstraction»`, `«database wrapper»`, tables, queries, or
 ## Dynamic Modeling Rules
 
 - Every object in a sequence or communication diagram must show its stereotype.
-- A boundary object such as `«user interaction»`, `«device I/O»`, `«input»`, `«output»`, or `«proxy»` receives external input and delegates to a `«coordinator»`, `«state dependent control»`, `«service»`, `«business logic»`, or `«algorithm»` object.
+- A boundary object such as `«user interaction»`, `«device I/O»`, `«input»`, `«output»`, `«input/output»`, or `«proxy»` receives external input and delegates to a `«coordinator»`, `«state dependent control»`, `«service»`, `«business logic»`, or `«algorithm»` object.
 - A boundary object must not directly manipulate a `«entity»`.
 - A typical COMET flow is boundary object -> `«coordinator»` / `«state dependent control»` / `«service»` -> `«entity»`.
 - Interactions must match the use case main and alternative sequences.
 - Use `«business logic»` for rules that change with policy or domain behavior.
 - Use `«algorithm»` for computationally heavy or independently scalable calculations.
-- Use `«service»` for business services that encapsulate data and operations for client objects.
+- Use `«service»` for business services that respond to requests from client objects.
 - Model alternatives and exceptions from use cases.
 - Do not create both a sequence diagram and a communication diagram for the same use case unless the user explicitly asks for both for comparison.
 
