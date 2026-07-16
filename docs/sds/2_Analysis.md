@@ -250,7 +250,7 @@ The collaboration criteria for these objects are:
 | **Object**                                                             | **Stereotype**              | **Responsibility**                                                                                                                                                                                                                                                                                                                                                                                            | **Trace source**                                     |
 | :--------------------------------------------------------------------- | :-------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :--------------------------------------------------- |
 | StudentInteraction                                                     | `«user interaction»`        | Receives student QR, PIN, and history actions after access is granted.                                                                                                                                                                                                                                                                                                                                        | Student; UC02-UC04                                   |
-| LecturerInteraction                                                    | `«user interaction»`        | Receives lecturer session, monitor, adjustment, and export actions after access is granted.                                                                                                                                                                                                                                                                                                                   | Lecturer; UC05-UC08                                  |
+| LecturerInteraction                                                    | `«user interaction»`        | Receives lecturer session, monitor, adjustment, and export actions after access is granted, and receives live accepted check-in result changes for classroom monitoring.                                                                                                                                                                                                                                       | Lecturer; UC02, UC04-UC08                            |
 | AdminInteraction                                                       | `«user interaction»`        | Receives administrator catalog and classroom configuration actions after access is granted.                                                                                                                                                                                                                                                                                                                   | Admin; UC09-UC10                                     |
 | MobileDeviceInterface                                                  | `«device I/O»`              | Interfaces with mobile device hardware to request biometric verification, read GPS coordinates, read device identifier, access camera/selfie evidence, and capture calibration location when an administrator performs on-site classroom setup.                                                                                                                                                               | Mobile Device Hardware; UC02, UC04, UC10             |
 | IdentitySystemProxy                                                    | `«proxy»`                   | Represents the AFAS boundary used to ask the existing University Identity System to confirm user identity.                                                                                                                                                                                                                                                                                                    | University Identity System; UC01, BR-01              |
@@ -378,6 +378,9 @@ alt identity confirmed
 else identity not confirmed
   AuthControl --> AccessUI : deny access with error
   AccessUI --> User : show identity not confirmed
+else identity support needed
+  AuthControl --> AccessUI : return identity support instruction
+  AccessUI --> User : show University Identity System support instruction
 end
 @enduml
 ```
@@ -399,12 +402,12 @@ User --> AccessUI : 1 select login
 AccessUI --> AuthControl : 1.1 request authentication(requested role)
 AuthControl --> UISInterface : 1.2 request identity confirmation
 UISInterface --> UIS : 1.2.1 confirm identity
-UISInterface --> AuthControl : 1.2.2 return confirmation result
+UISInterface --> AuthControl : 1.2.2 return confirmation or support result
 AuthControl --> AuthRules : 1.3 validate role access
 AuthRules --> Account : 1.3.1 find role profile
 AuthRules --> AuthControl : 1.4 return role access result
 AuthControl --> AccessUI : 2 return access result
-AccessUI --> User : 3 show matching role homepage or access denial
+AccessUI --> User : 3 show matching role homepage, support instruction, or access denial
 @enduml
 ```
 
@@ -419,6 +422,7 @@ autonumber
 actor "Student\n«external user»" as Student
 participant "Mobile Device Hardware\n«external device»" as MobileHardware
 participant "StudentInteraction\n«user interaction»" as StudentUI
+participant "LecturerInteraction\n«user interaction»" as LecturerUI
 participant "AttendanceCoordinator\n«coordinator»" as CheckInControl
 participant "MobileDeviceInterface\n«device I/O»" as MobileSensor
 participant "CheckInService\n«business logic»" as AttendanceRules
@@ -518,6 +522,7 @@ else location and device evidence available
           AttendanceRules -> AttendanceRecord : register official result(Present or Late)
           AttendanceRules --> CheckInControl : accepted official status
           CheckInControl --> StudentUI : check-in accepted
+          CheckInControl --> LecturerUI : attendance result changed for live monitor
           StudentUI --> Student : show successful check-in time
         end
       end
@@ -534,6 +539,7 @@ end
 class "Student" as Student <<external user>>
 class "Mobile Device Hardware" as MobileHardware <<external device>>
 class "StudentInteraction" as StudentUI <<user interaction>>
+class "LecturerInteraction" as LecturerUI <<user interaction>>
 class "AttendanceCoordinator" as CheckInControl <<coordinator>>
 class "MobileDeviceInterface" as MobileSensor <<device I/O>>
 class "CheckInService" as AttendanceRules <<business logic>>
@@ -563,8 +569,9 @@ AttendanceRules --> ClassSectionStudent : 2.1.2.4 verify enrollment
 AttendanceRules --> Room : 2.1.2.5 read classroom coordinates and range
 AttendanceRules --> DistanceCalc : 2.1.2.6 compare submitted coordinates
 AttendanceRules --> CheckInAttempt : 2.1.2.7 record accepted or rejected attempt
-AttendanceRules --> AttendanceRecord : 2.1.2.8 check/register official Present or Late result
+AttendanceRules --> AttendanceRecord : 2.1.2.8 [accepted] check/register official Present or Late result
 CheckInControl --> StudentUI : 3 return accepted/rejected result
+CheckInControl --> LecturerUI : 3.1 [new official result] update live monitor
 @enduml
 ```
 
@@ -591,16 +598,22 @@ HistoryControl -> AuthRules : check student access
 
 alt access allowed
   AuthRules --> HistoryControl : allowed
-  HistoryControl -> HistoryRules : prepare personal attendance history(student)
+  HistoryControl -> HistoryRules : prepare enrolled class section list(student)
   HistoryRules -> ClassSectionStudent : read enrolled class sections
   ClassSectionStudent --> HistoryRules : class section references
   HistoryRules -> ClassSection : read class section information
   ClassSection --> HistoryRules : class section list
-  HistoryRules -> AttendanceRecord : read attendance records for student
+  HistoryRules --> HistoryControl : enrolled class section list
+  HistoryControl --> StudentUI : enrolled class section list
+  StudentUI --> Student : show enrolled class sections
+  Student -> StudentUI : select class section
+  StudentUI -> HistoryControl : request class section attendance detail
+  HistoryControl -> HistoryRules : prepare attendance detail(student, class section)
+  HistoryRules -> AttendanceRecord : read attendance records for selected class section
   AttendanceRecord --> HistoryRules : attendance statuses
-  HistoryRules --> HistoryControl : history summary and detail
-  HistoryControl --> StudentUI : history summary and detail
-  StudentUI --> Student : show class list, stats, and calendar view
+  HistoryRules --> HistoryControl : detailed calendar attendance data
+  HistoryControl --> StudentUI : detailed calendar attendance data
+  StudentUI --> Student : show Present, Late, and Absent calendar view
 else history cannot be loaded
   HistoryControl --> StudentUI : loading failure
   StudentUI --> Student : ask student to try again later
@@ -624,11 +637,15 @@ class "AttendanceRecord" as AttendanceRecord <<entity>>
 Student --> StudentUI : 1 select History tab
 StudentUI --> HistoryControl : 1.1 request history
 HistoryControl --> AuthRules : 1.1.1 check access
-HistoryControl --> HistoryRules : 1.1.2 prepare personal attendance history
+HistoryControl --> HistoryRules : 1.1.2 prepare enrolled class section list
 HistoryRules --> ClassSectionStudent : 1.1.2.1 read enrolled sections
 HistoryRules --> ClassSection : 1.1.2.2 read class section details
-HistoryRules --> AttendanceRecord : 1.1.2.3 read statuses
-HistoryControl --> StudentUI : 2 return history or failure
+HistoryControl --> StudentUI : 2 return class section list or failure
+Student --> StudentUI : 3 select class section
+StudentUI --> HistoryControl : 3.1 request selected class section detail
+HistoryControl --> HistoryRules : 3.1.1 prepare attendance detail
+HistoryRules --> AttendanceRecord : 3.1.1.1 read statuses for selected class section
+HistoryControl --> StudentUI : 4 return calendar detail or failure
 @enduml
 ```
 
@@ -643,6 +660,7 @@ autonumber
 actor "Student\n«external user»" as Student
 participant "Mobile Device Hardware\n«external device»" as MobileHardware
 participant "StudentInteraction\n«user interaction»" as StudentUI
+participant "LecturerInteraction\n«user interaction»" as LecturerUI
 participant "AttendanceCoordinator\n«coordinator»" as CheckInControl
 participant "MobileDeviceInterface\n«device I/O»" as MobileSensor
 participant "CheckInService\n«business logic»" as AttendanceRules
@@ -742,6 +760,7 @@ else location and device evidence available
           AttendanceRules -> AttendanceRecord : register official result(Present or Late)
           AttendanceRules --> CheckInControl : accepted official status
           CheckInControl --> StudentUI : check-in accepted
+          CheckInControl --> LecturerUI : attendance result changed for live monitor
           StudentUI --> Student : show successful PIN check-in
         end
       end
@@ -758,6 +777,7 @@ end
 class "Student" as Student <<external user>>
 class "Mobile Device Hardware" as MobileHardware <<external device>>
 class "StudentInteraction" as StudentUI <<user interaction>>
+class "LecturerInteraction" as LecturerUI <<user interaction>>
 class "AttendanceCoordinator" as CheckInControl <<coordinator>>
 class "MobileDeviceInterface" as MobileSensor <<device I/O>>
 class "CheckInService" as AttendanceRules <<business logic>>
@@ -787,8 +807,9 @@ AttendanceRules --> ClassSectionStudent : 2.1.2.4 verify enrollment
 AttendanceRules --> Room : 2.1.2.5 read classroom coordinates and range
 AttendanceRules --> DistanceCalc : 2.1.2.6 compare submitted coordinates
 AttendanceRules --> CheckInAttempt : 2.1.2.7 record accepted or rejected attempt
-AttendanceRules --> AttendanceRecord : 2.1.2.8 check/register official Present or Late result
+AttendanceRules --> AttendanceRecord : 2.1.2.8 [accepted] check/register official Present or Late result
 CheckInControl --> StudentUI : 3 return accepted/rejected result
+CheckInControl --> LecturerUI : 3.1 [new official result] update live monitor
 @enduml
 ```
 
@@ -850,6 +871,10 @@ else activation allowed
     SessionControl --> LecturerUI : update displayed QR and PIN
   end
 
+  ref over SessionControl, SessionRules
+    UC02 and UC04: students submit check-ins while the attendance session is active
+  end
+
   Lecturer -> LecturerUI : click Stop Receiving Check-ins
   LecturerUI -> SessionControl : request stop accepting check-ins
   SessionControl -> SessionRules : stop accepting new check-ins
@@ -896,6 +921,9 @@ else activation allowed
   SessionControl --> LecturerUI : show review data
 
   opt adjustment before finalization
+    ref over LecturerUI, SessionControl, SessionRules
+      UC07: lecturer manually adjusts an attendance result before finalization
+    end
     LecturerUI -> SessionControl : continue after UC07 adjustment
   end
 
@@ -938,7 +966,7 @@ class "CheckInAttempt" as CheckInAttempt <<entity>>
 class "AttendanceRecord" as AttendanceRecord <<entity>>
 
 Lecturer --> LecturerUI : 1 manage scheduled session
-LecturerUI --> SessionControl : 1.1 request sessions/start/stop/reopen/finalize
+LecturerUI --> SessionControl : 1.1 request sessions/start/stop/reopen/adjust/finalize
 SessionControl --> SessionRules : 1.1.1 coordinate lifecycle business decision
 SessionRules --> Session : 1.1.1.1 read assigned sessions and schedule window
 SessionRules --> AttendanceSession : 1.1.1.2 activate, stop, reopen, refresh codes, or finalize
@@ -946,6 +974,7 @@ SessionRules --> AttendanceConfig : 1.1.1.3 read QR/PIN refresh settings
 SessionRules --> AttendanceRecord : 1.1.1.4 read results, assign Absent, finalize
 SessionRules --> CheckInAttempt : 1.1.1.5 read rejected attempts
 SessionRules --> ClassSectionStudent : 1.1.1.6 read enrolled students
+SessionControl --> SessionRules : 1.1.2 reference UC02/UC04 active check-ins and UC07 adjustment handoff
 SessionControl --> LecturerUI : 2 show lifecycle result
 @enduml
 ```
@@ -1439,9 +1468,9 @@ Finalized --> [*]
 | **Requirement / UC**                     | **Actor**                                            | **Analysis objects**                                                                                                                                                                                                  | **Dynamic diagrams**                                              | **Business rules covered**                                                  |
 | :--------------------------------------- | :--------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------- | :-------------------------------------------------------------------------- |
 | UC01 Authenticate User                   | Student, Lecturer, Admin, University Identity System | UserInteraction, IdentitySystemProxy, AuthenticationCoordinator, AuthenticationService, Account                                                                                                                       | Figure II-3, Figure II-4                                          | BR-01                                                                       |
-| UC02 Check In via Dynamic QR Code        | Student, Mobile Device Hardware                      | StudentInteraction, MobileDeviceInterface, AttendanceCoordinator, CheckInService, AttendanceConfiguration, DistanceAlgorithm, AttendanceSession, Session, ClassSectionStudent, Room, CheckInAttempt, AttendanceRecord | Figure II-5, Figure II-6, Figure II-24, Figure II-25              | BR-02, BR-03, BR-04, BR-05, BR-06, BR-12, BR-13, BR-14, NF-02, NF-06        |
+| UC02 Check In via Dynamic QR Code        | Student, Mobile Device Hardware                      | StudentInteraction, LecturerInteraction, MobileDeviceInterface, AttendanceCoordinator, CheckInService, AttendanceConfiguration, DistanceAlgorithm, AttendanceSession, Session, ClassSectionStudent, Room, CheckInAttempt, AttendanceRecord | Figure II-5, Figure II-6, Figure II-24, Figure II-25              | BR-02, BR-03, BR-04, BR-05, BR-06, BR-12, BR-13, BR-14, NF-02, NF-06        |
 | UC03 View Personal Attendance History    | Student                                              | StudentInteraction, AttendanceCoordinator, AuthenticationService, AttendanceSessionService, ClassSectionStudent, ClassSection, AttendanceRecord                                                                        | Figure II-7, Figure II-8                                          | BR-01                                                                       |
-| UC04 Check In via PIN Fallback           | Student, Mobile Device Hardware                      | StudentInteraction, MobileDeviceInterface, AttendanceCoordinator, CheckInService, AttendanceConfiguration, DistanceAlgorithm, AttendanceSession, Session, ClassSectionStudent, Room, CheckInAttempt, AttendanceRecord | Figure II-9, Figure II-10, Figure II-24, Figure II-25             | BR-02, BR-03, BR-04, BR-05, BR-06, BR-07, BR-12, BR-13, BR-14, NF-02, NF-06 |
+| UC04 Check In via PIN Fallback           | Student, Mobile Device Hardware                      | StudentInteraction, LecturerInteraction, MobileDeviceInterface, AttendanceCoordinator, CheckInService, AttendanceConfiguration, DistanceAlgorithm, AttendanceSession, Session, ClassSectionStudent, Room, CheckInAttempt, AttendanceRecord | Figure II-9, Figure II-10, Figure II-24, Figure II-25             | BR-02, BR-03, BR-04, BR-05, BR-06, BR-07, BR-12, BR-13, BR-14, NF-02, NF-06 |
 | UC05 Manage Attendance Session           | Lecturer                                             | LecturerInteraction, AttendanceSessionControl, AttendanceSessionService, AttendanceConfiguration, Session, ClassSectionStudent, AttendanceSession, CheckInAttempt, AttendanceRecord                                   | Figure II-11, Figure II-12, Figure II-23                          | BR-02, BR-06, BR-08, BR-10, BR-12, NF-06                                    |
 | UC06 Monitor Attendance in Real Time     | Lecturer                                             | LecturerInteraction, AttendanceCoordinator, AttendanceSessionService, AttendanceSession, ClassSectionStudent, AttendanceRecord                                                                                        | Figure II-13, Figure II-14                                        | NF-01                                                                       |
 | UC07 Adjust Attendance Manually          | Lecturer                                             | LecturerInteraction, AttendanceCoordinator, AttendanceSessionService, ClassSectionStudent, AttendanceRecord, CheckInAttempt                                                                                           | Figure II-15, Figure II-16, Figure II-25                          | BR-10                                                                       |
