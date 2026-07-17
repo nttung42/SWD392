@@ -94,7 +94,7 @@ object "ClassSection\n«entity»" as ClassSection
 object "ClassSectionStudent\n«entity»" as ClassSectionStudent
 object "Session\n«entity»" as Session
 object "Room\n«entity»" as Room
-object "AttendanceConfiguration\n«entity»" as AttendanceConfig
+object "Configuration\n«entity»" as Configuration
 object "AttendanceSession\n«entity»" as AttendanceSession
 object "AttendanceRecord\n«entity»" as AttendanceRecord
 Student --> StudentUI : UC01, UC02, UC03, UC04
@@ -116,7 +116,7 @@ CheckInControl --> MobileSensor : UC02/UC04 collect identity, location, and devi
 CheckInControl --> IdentityRules : UC02/UC04 validate local biometric result or selfie proof
 CheckInControl --> AttendanceSession : UC02/UC04 read active attendance session
 CheckInControl --> CodeRules : UC02/UC04 verify active code
-CodeRules --> AttendanceConfig : UC02/UC04 read refresh parameters
+CodeRules --> Configuration : UC02/UC04 read refresh parameters
 CheckInControl --> Session : UC02/UC04 read class section and scheduled start time
 CheckInControl --> StatusRules : UC02/UC04 classify Present or Late from official time
 CheckInControl --> AttendanceRecord : UC02/UC04 save check-in evidence and set official result, or record rejection reason
@@ -132,7 +132,7 @@ SessionControl --> SessionRules : UC05 validate lifecycle
 SessionControl --> Session : UC05 read scheduled session
 SessionControl --> ClassSectionStudent : UC05 read roster
 SessionControl --> AttendanceSession : UC05 update session status and active code
-SessionControl --> AttendanceConfiguration : UC05 read refresh intervals
+SessionControl --> Configuration : UC05 read refresh intervals
 SessionControl --> AttendanceRecord : UC05 assign Absent and finalize
 
 LecturerUI --> MonitorControl : UC06 view live progress
@@ -377,7 +377,7 @@ alt code expired or mismatched
   CheckInService --> CheckInEndpoint : rejected result
   CheckInEndpoint --> StudentApp : show expired or invalid code
 else code valid
-  CheckInService -> Repository : read AttendanceConfiguration
+  CheckInService -> Repository : read Configuration
   Repository --> CheckInService : config
   CheckInService -> StatusPolicy : classify Present or Late
   StatusPolicy --> CheckInService : official status
@@ -653,7 +653,7 @@ ReportFile - IReportFileWriter
 **Behavior:**
 
 1. Start when `SessionService.startAttendance` marks an attendance session active.
-2. Read timing values from `AttendanceConfiguration`.
+2. Read timing values from `Configuration`.
 3. Generate a new QR token every configured QR refresh interval.
 4. Generate a new backup PIN every configured PIN refresh interval.
 5. Save latest values to cache and attendance-session state.
@@ -758,7 +758,7 @@ ReportFile - IReportFileWriter
 
 **Problem Solved:** Status threshold rules may change when Late threshold policies change.
 
-**Design Elements:** `AttendanceStatusPolicy`, `AttendanceConfiguration`.
+**Design Elements:** `AttendanceStatusPolicy`, `Configuration`.
 
 **Quality Attribute Impact:** Improves modifiability and testability for NF-06.
 
@@ -826,7 +826,7 @@ The persistence model maps the analysis entity class diagram in Figure II-1 to a
 | `class_sections`            | `class_section_id`               | `class_section_name`, `subject_code`, `lecturer_id`, `semester`                                                                                                                                                                                                                                    | FK to subject and lecturer; UC05-UC09                                                                                 |
 | `class_section_students`    | `(class_section_id, student_id)` | none beyond keys                                                                                                                                                                                                                                                                                   | Composite PK prevents duplicate enrollment; UC03, UC05, UC06, UC08                                                    |
 | `sessions`                  | `session_id`                     | `class_section_id`, `room_id`, `session_date`, `start_time`, `end_time`                                                                                                                                                                                                                            | FK to class section and room; UC05                                                                                    |
-| `attendance_configurations` | `configuration_code`             | `qr_refresh_seconds`, `pin_refresh_seconds`, `late_threshold_minutes`                                                                                                                                                                                                                              | Timing values are configurable; NF-06                                                                                 |
+| `configurations` | `configuration_code`             | `qr_refresh_seconds`, `pin_refresh_seconds`, `late_threshold_minutes`, `campus_boundary`                                                                                                                                                                                                           | Attendance parameters are configurable; campus boundary is reference information for location evidence; NF-06          |
 | `attendance_sessions`       | `session_id`                     | `dynamic_token`, `qr_refreshed_at`, `pin_code`, `pin_refreshed_at`, `session_status`                                                                                                                                                                                                               | One attendance session per scheduled session; UC05, BR-02, BR-10                                                      |
 | `attendance_records`        | `attendance_record_id`           | `student_id`, `session_id`, `check_in_method` (nullable), `submitted_at` (nullable), `submitted_latitude` (nullable), `submitted_longitude` (nullable), `location_accuracy_meters` (nullable), `device_identifier` (nullable), `device_display_name` (nullable), `face_evidence_reference` (nullable), `attendance_status` (nullable until set), `result_source`, `rejection_reason` (nullable), `finalized_at` (nullable) | Location columns are nullable and informational only (no distance computed) and never drive the result; `attendance_status` limited to `Present`, `Late`, `Absent`; UC02, UC04, UC05, UC07, UC08 |
 
@@ -881,7 +881,7 @@ RoomRepo --> Room
 | Scalability           | Modular monolith can scale by adding application server instances while keeping one persistence boundary. | Deployment view and stateless check-in service.                                 | Does not provide independent module deployment.            | NF-07                          |
 | Accuracy              | Captured location coordinates are stored as reference only.             | `attendance_records.submitted_latitude/longitude`.                            | Location is informational only, so GPS error never affects the check-in result. | UC02, UC04; NF-02, BR-03       |
 | Security and privacy  | Role authorization and protected evidence reference.                                                      | `AuthenticationService`, `AdjustmentService`, face evidence reference.          | More validation and storage policy rules are required.     | UC01, UC02, UC04, UC07; NF-04  |
-| Modifiability         | Layered modules, adapter pattern, strategy pattern, configurable parameters.                              | Component diagram, interface contracts, `attendance_configurations`.            | More interfaces than a direct CRUD design.                 | NF-06                          |
+| Modifiability         | Layered modules, adapter pattern, strategy pattern, configurable parameters.                              | Component diagram, interface contracts, `configurations`.            | More interfaces than a direct CRUD design.                 | NF-06                          |
 | Testability           | Domain rules and wrappers are behind interfaces.                                                          | `IRepositoryOperations`, `IAttendanceCodeStore`, policies and strategies.       | Requires mocks or fakes in tests.                          | UC02-UC09                      |
 | Traceability          | UC labels in integrated communication and tables.                                                         | Figure III-1 and traceability matrix.                                           | Documentation must be maintained when requirements change. | UC01-UC09                      |
 
@@ -895,13 +895,13 @@ RoomRepo --> Room
 | UC02 Check In via Dynamic QR Code     | Student                                              | Student Mobile Interface, Mobile Device Sensor Interface, Check-in Control, Identity Evidence Rules, Attendance Code Rules, Attendance Status Calculation, AttendanceSession, Session, ClassSectionStudent, AttendanceRecord, Monitor Control | Student Client, Device Evidence Adapter, Attendance Component, Validation policies, Code Cache, Repository Adapters, Realtime Notification Adapter | Figures III-1, III-4, III-6; CheckInService, IAttendanceCodeStore |
 | UC03 View Personal Attendance History | Student                                              | Student Mobile Interface, Attendance History Control, Authentication Rules, ClassSectionStudent, AttendanceRecord                                                                                                                                                                                  | Student Client, Presentation Boundary, repository read operations                                                                                  | Figures III-1, III-3, III-6                                       |
 | UC04 Check In via PIN                 | Student                                              | Student Mobile Interface, Mobile Device Sensor Interface, Check-in Control, Identity Evidence Rules, Attendance Code Rules, Attendance Status Calculation, AttendanceSession, Session, ClassSectionStudent, AttendanceRecord, Monitor Control | Same as UC02 with `checkInMethod = PIN` and PIN refresh values                                                                                     | Figures III-1, III-4, III-6; CheckInService, QR/PIN Refresh Task  |
-| UC05 Manage Attendance Session        | Lecturer                                             | Lecturer Web Interface, Session Control, Session Rules, Attendance Code Rules, AttendanceConfiguration, Session, ClassSectionStudent, AttendanceSession, AttendanceRecord                                                                                                                          | Staff Web Client, Session Lifecycle, SessionService, QR/PIN Refresh Task, Code Cache                                                               | Figures III-1, III-2, III-6; SessionService contract              |
+| UC05 Manage Attendance Session        | Lecturer                                             | Lecturer Web Interface, Session Control, Session Rules, Attendance Code Rules, Configuration, Session, ClassSectionStudent, AttendanceSession, AttendanceRecord                                                                                                                          | Staff Web Client, Session Lifecycle, SessionService, QR/PIN Refresh Task, Code Cache                                                               | Figures III-1, III-2, III-6; SessionService contract              |
 | UC06 Monitor Attendance in Real Time  | Lecturer                                             | Lecturer Web Interface, Monitor Control, AttendanceSession, ClassSectionStudent, AttendanceRecord                                                                                                                                                                                                  | Monitoring and Notification subsystem, Realtime Notification Adapter, AttendanceAcceptedNotification                                               | Figures III-1, III-6; message specification                       |
 | UC07 Adjust Attendance Manually       | Lecturer                                             | Lecturer Web Interface, Adjustment Control, Session Rules, AttendanceRecord                                                                                                                                                                                                        | AdjustmentService, Repository Adapters                                                                                                             | Figures III-1, III-6; AdjustmentService contract                  |
 | UC08 Export Attendance Report         | Lecturer                                             | Lecturer Web Interface, Report Control, Report Eligibility Rules, ClassSectionStudent, Session, AttendanceRecord                                                                                                                                                                   | Reporting subsystem, ReportService, ReportFileAdapter                                                                                              | Figures III-1, III-6; ReportService contract                      |
 | UC09 Manage System Catalog            | Admin                                                | Admin Web Interface, Catalog Control, Catalog Uniqueness Rules, Account, Student, Lecturer, Subject, ClassSection                                                                                                                                                                                  | Administrative Management, CatalogService, Repository Adapters                                                                                     | Figures III-1, III-6; persistence mapping                         |
 | NF-01 Performance and concurrency     | Student, Lecturer                                    | Attendance Code Rules, Monitor Control, AttendanceSession                                                                                                                                                                                                                                          | Attendance Code Cache, QR/PIN Refresh Task, Realtime Notification Adapter                                                                          | Figures III-3, III-5, III-6; TIS/TBS                              |
-| NF-06 Configurability                 | Student, Lecturer                                    | AttendanceConfiguration, Attendance Code Rules, Attendance Status Calculation                                                                                                                                                         | `attendance_configurations`, SessionService, policy classes                                                                                         | Figures III-1, III-3; persistence mapping                         |
+| NF-06 Configurability                 | Student, Lecturer                                    | Configuration, Attendance Code Rules, Attendance Status Calculation                                                                                                                                                         | `configurations`, SessionService, policy classes                                                                                         | Figures III-1, III-3; persistence mapping                         |
 
 ---
 

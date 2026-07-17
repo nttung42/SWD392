@@ -81,9 +81,10 @@ class "AttendanceSession" as AttendanceSession <<entity>> {
   SessionStatus
 }
 
-class "AttendanceConfiguration" as AttendanceConfig <<entity>> {
+class "Configuration" as Configuration <<entity>> {
   QRRefreshSeconds
   PINRefreshSeconds
+  CampusBoundary
 }
 
 class "AttendanceRecord" as AttendanceRecord <<entity>> {
@@ -115,7 +116,7 @@ Room "1" -- "0..*" Session
 Session "1" *-- "0..1" AttendanceSession
 Session "1" *-- "0..*" AttendanceRecord
 Student "1" -- "0..*" AttendanceRecord
-AttendanceConfig "1" -- "0..*" AttendanceSession : configures timing
+Configuration "1" -- "0..*" AttendanceSession : configures timing
 @enduml
 ```
 
@@ -210,7 +211,7 @@ The collaboration criteria for these objects are:
 *** ClassSection
 *** ClassSectionStudent
 *** Session
-*** AttendanceConfiguration
+*** Configuration
 *** AttendanceSession
 *** AttendanceRecord
 @endwbs
@@ -233,7 +234,7 @@ The collaboration criteria for these objects are:
 | CatalogManagementService                                               | `«business logic»`          | Encapsulates catalog rules by reading the required catalog facts, then checking catalog field validity and identifier uniqueness.                                                                                                                                                                                                                                      | UC09, BR-11                                               |
 | Account, Student, Lecturer                                             | `«entity»`                  | Store AFAS role profile information linked to university identity.                                                                                                                                                                                                                                                                                                                                                                 | UC01, UC09                                                |
 | Room, Subject, ClassSection, ClassSectionStudent, Session | `«entity»`                  | Store academic catalog, roster, classroom coordinates, and scheduled session information.                                                                                                                                                                                                                                                                                                                         | UC02-UC09                                                 |
-| AttendanceConfiguration                                                | `«entity»`                  | Stores configurable attendance timing values required by maintainability requirements.                                                                                                                                                                                                                                                                                                                  | UC02, UC04, UC05, NF-06                                   |
+| Configuration                                                | `«entity»`                  | Stores configurable attendance parameters required by maintainability requirements, including refresh timing values and the campus boundary reference used for location evidence context.                                                                                                                                                                                                                                                                                                                  | UC02, UC04, UC05, NF-06                                   |
 | AttendanceSession, AttendanceRecord                                    | `«entity»`                  | Store attendance session lifecycle, check-in evidence, and official result information.                                                                                                                                                                                                                                                                                                                                                             | UC02-UC08                                                 |
 
 ### **II.1.4 Interface wireframes**
@@ -392,7 +393,7 @@ participant "AttendanceCoordinator\n«coordinator»" as CheckInControl
 participant "MobileDeviceInterface\n«device I/O»" as MobileSensor
 participant "CheckInService\n«business logic»" as AttendanceRules
 participant "AttendanceSession\n«entity»" as AttendanceSession
-participant "AttendanceConfiguration\n«entity»" as AttendanceConfig
+participant "Configuration\n«entity»" as Configuration
 participant "Session\n«entity»" as Session
 participant "AttendanceRecord\n«entity»" as AttendanceRecord
 
@@ -429,7 +430,7 @@ MobileSensor --> CheckInControl : submitted location and device evidence, or loc
 CheckInControl -> AttendanceRules : submit QR check-in evidence(scanned code, identity, location or unavailable, device)
 AttendanceRules -> AttendanceSession : read active session code and target study session
 AttendanceSession --> AttendanceRules : active session information
-AttendanceRules -> AttendanceConfig : read QR refresh seconds
+AttendanceRules -> Configuration : read QR refresh seconds
 
 alt attendance code expired
   AttendanceRules -> AttendanceRecord : record latest rejection reason(ExpiredCode)
@@ -462,7 +463,7 @@ class "AttendanceCoordinator" as CheckInControl <<coordinator>>
 class "MobileDeviceInterface" as MobileSensor <<device I/O>>
 class "CheckInService" as AttendanceRules <<business logic>>
 class "AttendanceSession" as AttendanceSession <<entity>>
-class "AttendanceConfiguration" as AttendanceConfig <<entity>>
+class "Configuration" as Configuration <<entity>>
 class "Session" as Session <<entity>>
 class "AttendanceRecord" as AttendanceRecord <<entity>>
 
@@ -477,7 +478,7 @@ CheckInControl --> MobileSensor : 2.1.1 read location and device evidence
 MobileSensor --> MobileHardware : 2.1.1.1 obtain GPS coordinates and device identifier
 CheckInControl --> AttendanceRules : 2.1.2 submit QR check-in evidence
 AttendanceRules --> AttendanceSession : 2.1.2.1 read active session and displayed QR code
-AttendanceRules --> AttendanceConfig : 2.1.2.2 read QR refresh setting
+AttendanceRules --> Configuration : 2.1.2.2 read QR refresh setting
 AttendanceRules --> Session : 2.1.2.3 read target class section
 AttendanceRules --> AttendanceRecord : 2.1.2.4 save evidence and change NotYet to Present or record rejection reason
 CheckInControl --> StudentUI : 3 return accepted/rejected result
@@ -575,7 +576,7 @@ participant "AttendanceCoordinator\n«coordinator»" as CheckInControl
 participant "MobileDeviceInterface\n«device I/O»" as MobileSensor
 participant "CheckInService\n«business logic»" as AttendanceRules
 participant "AttendanceSession\n«entity»" as AttendanceSession
-participant "AttendanceConfiguration\n«entity»" as AttendanceConfig
+participant "Configuration\n«entity»" as Configuration
 participant "Session\n«entity»" as Session
 participant "AttendanceRecord\n«entity»" as AttendanceRecord
 
@@ -612,7 +613,7 @@ MobileSensor --> CheckInControl : submitted location and device evidence, or loc
 CheckInControl -> AttendanceRules : submit PIN check-in evidence(PIN, identity, location or unavailable, device)
 AttendanceRules -> AttendanceSession : read active PIN session and target study session
 AttendanceSession --> AttendanceRules : active session information
-AttendanceRules -> AttendanceConfig : read PIN refresh seconds
+AttendanceRules -> Configuration : read PIN refresh seconds
 
 alt PIN expired
   AttendanceRules -> AttendanceRecord : record latest rejection reason(ExpiredCode)
@@ -645,7 +646,7 @@ class "AttendanceCoordinator" as CheckInControl <<coordinator>>
 class "MobileDeviceInterface" as MobileSensor <<device I/O>>
 class "CheckInService" as AttendanceRules <<business logic>>
 class "AttendanceSession" as AttendanceSession <<entity>>
-class "AttendanceConfiguration" as AttendanceConfig <<entity>>
+class "Configuration" as Configuration <<entity>>
 class "Session" as Session <<entity>>
 class "AttendanceRecord" as AttendanceRecord <<entity>>
 
@@ -660,7 +661,7 @@ CheckInControl --> MobileSensor : 2.1.1 read location and device evidence
 MobileSensor --> MobileHardware : 2.1.1.1 obtain GPS coordinates and device identifier
 CheckInControl --> AttendanceRules : 2.1.2 submit PIN check-in evidence
 AttendanceRules --> AttendanceSession : 2.1.2.1 read active PIN and target session
-AttendanceRules --> AttendanceConfig : 2.1.2.2 read PIN refresh setting
+AttendanceRules --> Configuration : 2.1.2.2 read PIN refresh setting
 AttendanceRules --> Session : 2.1.2.3 read target class section
 AttendanceRules --> AttendanceRecord : 2.1.2.4 save evidence and change NotYet to Present or record rejection reason
 CheckInControl --> StudentUI : 3 return accepted/rejected result
@@ -680,7 +681,7 @@ actor "Lecturer\n«external user»" as Lecturer
 participant "LecturerInteraction\n«user interaction»" as LecturerUI
 participant "AttendanceSessionControl\n«state dependent control»" as SessionControl
 participant "AttendanceSessionService\n«business logic»" as SessionRules
-participant "AttendanceConfiguration\n«entity»" as AttendanceConfig
+participant "Configuration\n«entity»" as Configuration
 participant "Session\n«entity»" as Session
 participant "ClassSectionStudent\n«entity»" as ClassSectionStudent
 participant "AttendanceSession\n«entity»" as AttendanceSession
@@ -704,7 +705,7 @@ AttendanceSession --> SessionRules : active-session status
 alt outside scheduled hours
   SessionRules --> SessionControl : activation denied
   SessionControl --> LecturerUI : show outside scheduled hours error
-else session already active
+else active session already exists
   SessionRules --> SessionControl : activation denied
   SessionControl --> LecturerUI : show active session already exists error
 else activation allowed
@@ -716,14 +717,14 @@ else activation allowed
   SessionRules -> AttendanceRecord : create attendance records with NotYet status for enrolled students
   AttendanceRecord --> SessionRules : initialized NotYet records
   SessionControl -> SessionRules : prepare QR and PIN refresh policy
-  SessionRules -> AttendanceConfig : read QR and PIN refresh seconds
+  SessionRules -> Configuration : read QR and PIN refresh seconds
   SessionRules -> AttendanceSession : update current QR and PIN codes
   SessionRules --> SessionControl : current QR and PIN codes
   SessionControl --> LecturerUI : show projector view with QR, PIN, and progress
 
   loop while session is active
     SessionControl -> SessionRules : refresh QR and PIN using configured intervals
-    SessionRules -> AttendanceConfig : read QR and PIN refresh seconds
+    SessionRules -> Configuration : read QR and PIN refresh seconds
     SessionRules -> AttendanceSession : update displayed codes
     SessionRules --> SessionControl : refreshed codes
     SessionControl --> LecturerUI : update displayed QR and PIN
@@ -777,7 +778,7 @@ class "Lecturer" as Lecturer <<external user>>
 class "LecturerInteraction" as LecturerUI <<user interaction>>
 class "AttendanceSessionControl" as SessionControl <<state dependent control>>
 class "AttendanceSessionService" as SessionRules <<business logic>>
-class "AttendanceConfiguration" as AttendanceConfig <<entity>>
+class "Configuration" as Configuration <<entity>>
 class "Session" as Session <<entity>>
 class "ClassSectionStudent" as ClassSectionStudent <<entity>>
 class "AttendanceSession" as AttendanceSession <<entity>>
@@ -788,7 +789,7 @@ LecturerUI --> SessionControl : 1.1 request sessions/start/adjust/finalize
 SessionControl --> SessionRules : 1.1.1 coordinate lifecycle business decision
 SessionRules --> Session : 1.1.1.1 read assigned sessions and schedule window
 SessionRules --> AttendanceSession : 1.1.1.2 activate, refresh codes, finalize, or reopen for late adjustment
-SessionRules --> AttendanceConfig : 1.1.1.3 read QR/PIN refresh settings
+SessionRules --> Configuration : 1.1.1.3 read QR/PIN refresh settings
 SessionRules --> AttendanceRecord : 1.1.1.4 initialize NotYet records, read results and rejection reasons, assign Absent, finalize
 SessionRules --> ClassSectionStudent : 1.1.1.5 read enrolled students
 SessionControl --> SessionRules : 1.1.2 reference UC02/UC04 active check-ins and UC07 adjustment handoff
@@ -1123,10 +1124,9 @@ CatalogControl --> AdminUI : 2 return updated grid or validation error
 skinparam style strictuml
 [*] --> NotStarted
 NotStarted --> Active : startAttendance [within scheduled window and no other active session]
-NotStarted --> NotStarted : startAttendance [outside scheduled window or another session already active]
+NotStarted --> NotStarted : startAttendance [outside scheduled window or active session already exists]
 
-Active --> Active : refreshQRCode [configured QR refresh interval]
-Active --> Active : refreshPIN [configured PIN refresh interval]
+Active --> Active : refreshQRCode / refreshPIN
 Active --> Finalized : finalizeAttendance
 Finalized --> Reopened : reopenAttendance [assigned lecturer and finalized session]
 Reopened --> Reopened : adjustLateAttendance [UC07, Absent record and reason provided]
@@ -1161,15 +1161,15 @@ Late --> [*]
 | **Requirement / UC**                     | **Actor**                                            | **Analysis objects**                                                                                                                                                                                                                       | **Dynamic diagrams**                                              | **Business rules covered**                                                  |
 | :--------------------------------------- | :--------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------- | :-------------------------------------------------------------------------- |
 | UC01 Authenticate User                   | Student, Lecturer, Admin, University Identity System | UserInteraction, IdentitySystemProxy, AuthenticationCoordinator, AuthenticationService, Account                                                                                                                                            | Figure II-3, Figure II-4                                          | BR-01                                                                       |
-| UC02 Check In via Dynamic QR Code        | Student, Mobile Device Hardware                      | StudentInteraction, LecturerInteraction, MobileDeviceInterface, AttendanceCoordinator, CheckInService, AttendanceConfiguration, AttendanceSession, Session, AttendanceRecord | Figure II-5, Figure II-6, Figure II-24              | BR-02, BR-03, BR-04, BR-05, BR-12, NF-02, NF-06        |
+| UC02 Check In via Dynamic QR Code        | Student, Mobile Device Hardware                      | StudentInteraction, LecturerInteraction, MobileDeviceInterface, AttendanceCoordinator, CheckInService, Configuration, AttendanceSession, Session, AttendanceRecord | Figure II-5, Figure II-6, Figure II-24              | BR-02, BR-03, BR-04, BR-05, BR-12, NF-02, NF-06        |
 | UC03 View Personal Attendance History    | Student                                              | StudentInteraction, AttendanceCoordinator, AuthenticationService, AttendanceSessionService, ClassSectionStudent, ClassSection, AttendanceRecord                                                                                            | Figure II-7, Figure II-8                                          | BR-01                                                                       |
-| UC04 Check In via PIN                    | Student, Mobile Device Hardware                      | StudentInteraction, LecturerInteraction, MobileDeviceInterface, AttendanceCoordinator, CheckInService, AttendanceConfiguration, AttendanceSession, Session, AttendanceRecord | Figure II-9, Figure II-10, Figure II-24             | BR-02, BR-03, BR-04, BR-05, BR-07, BR-12, NF-02, NF-06 |
-| UC05 Manage Attendance Session           | Lecturer                                             | LecturerInteraction, AttendanceSessionControl, AttendanceSessionService, AttendanceConfiguration, Session, ClassSectionStudent, AttendanceSession, AttendanceRecord                                                        | Figure II-11, Figure II-12, Figure II-23                          | BR-02, BR-08, BR-10, BR-12, BR-13, NF-06                             |
+| UC04 Check In via PIN                    | Student, Mobile Device Hardware                      | StudentInteraction, LecturerInteraction, MobileDeviceInterface, AttendanceCoordinator, CheckInService, Configuration, AttendanceSession, Session, AttendanceRecord | Figure II-9, Figure II-10, Figure II-24             | BR-02, BR-03, BR-04, BR-05, BR-07, BR-12, NF-02, NF-06 |
+| UC05 Manage Attendance Session           | Lecturer                                             | LecturerInteraction, AttendanceSessionControl, AttendanceSessionService, Configuration, Session, ClassSectionStudent, AttendanceSession, AttendanceRecord                                                        | Figure II-11, Figure II-12, Figure II-23                          | BR-02, BR-08, BR-10, BR-12, BR-13, NF-06                             |
 | UC06 Monitor Attendance in Real Time     | Lecturer                                             | LecturerInteraction, AttendanceCoordinator, AttendanceSessionService, AttendanceSession, ClassSectionStudent, AttendanceRecord                                                                                                             | Figure II-13, Figure II-14                                        | NF-01                                                                       |
 | UC07 Adjust Attendance Manually          | Lecturer                                             | LecturerInteraction, AttendanceCoordinator, AttendanceSessionService, ClassSectionStudent, AttendanceRecord                                                                                                                | Figure II-15, Figure II-16, Figure II-24                          | BR-10, BR-13                                                               |
 | UC08 Export Attendance Report            | Lecturer                                             | LecturerInteraction, AttendanceCoordinator, AttendanceSessionService, ClassSectionStudent, Session, AttendanceRecord                                                                                                       | Figure II-17, Figure II-18, Figure II-24                          | BR-08                                                                       |
 | UC09 Manage System Catalog               | Admin                                                | AdminInteraction, CatalogManagementCoordinator, CatalogManagementService, Account, Student, Lecturer, Subject, ClassSection, ClassSectionStudent, Session                                                                                  | Figure II-19, Figure II-20                                        | BR-11                                                                       |
-| NF-06 Configurable attendance parameters | Student, Lecturer                                    | AttendanceConfiguration, CheckInService, AttendanceSessionService                                                                                                                                                                           | Figure II-1, Figure II-5, Figure II-9, Figure II-11               | NF-06                                                                       |
+| NF-06 Configurable attendance parameters | Student, Lecturer                                    | Configuration, CheckInService, AttendanceSessionService                                                                                                                                                                           | Figure II-1, Figure II-5, Figure II-9, Figure II-11               | NF-06                                                                       |
 
 ---
 
@@ -1185,7 +1185,7 @@ Late --> [*]
 | Mobile device hardware is represented consistently across context and interaction views                                                                   | Pass       | Figure II-2 represents Mobile Device Hardware as an external device; Figure II-5, Figure II-6, Figure II-9, and Figure II-10 use MobileDeviceInterface as the internal device I/O boundary object |
 | Entity relationships distinguish lifecycle ownership where appropriate                                                                                    | Pass       | Figure II-1 uses composition for study-session-owned attendance lifecycle data and association for room location membership                                                                                            |
 | Interface wireframes are included for key actor workflows                                                                                                 | Pass       | Section II.1.4 covers Student, Lecturer, and Admin wireframes with UC trace notes                                                                                                                                             |
-| NF-06 configurable attendance parameters are represented in Analysis                                                                                      | Pass       | AttendanceConfiguration appears in Figure II-1 and is used by CheckInService and AttendanceSessionService                                                                                                                     |
+| NF-06 configurable attendance parameters are represented in Analysis                                                                                      | Pass       | Configuration appears in Figure II-1 and is used by CheckInService and AttendanceSessionService                                                                                                                     |
 | QR/PIN check-in changes an initialized `NotYet` record to `Present` after identity and code checks; location is informational and never blocks check-in   | Pass       | Figures II-5, II-9, and II-24                                                                                                                                                                                                  |
 | Attendance records are initialized as `NotYet` when the attendance session starts                                                                          | Pass       | Figure II-11 and Figure II-24                                                                                                                                                                                                  |
 | Latest rejection reason is retained on the attendance record for lecturer review                                                                          | Pass       | Figures II-5, II-9, II-11, II-24                                                                                                                                                                                              |
