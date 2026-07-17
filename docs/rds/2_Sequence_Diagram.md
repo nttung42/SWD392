@@ -90,9 +90,7 @@ note over AttendanceRules
   1) QR code still valid - BR-02      2) student enrolled - BR-14
   3) no existing official result - BR-06
   Reads AttendanceSession, Session, ClassSectionStudent, AttendanceConfiguration;
-  records CheckInAttempt. Location is stored for information only - when coordinates are
-  available, distance from Room is computed via DistanceAlgorithm and recorded - BR-03;
-  location never causes rejection and is not required.
+  updates AttendanceRecord (submitted coordinates stored as evidence).
   If all pass: classify Present or Late by Late threshold - BR-13.
 end note
 
@@ -112,7 +110,7 @@ end
 @enduml
 ```
 
-**Rejection reason catalog (UC02):** rules are checked in this order; the first failure sets the reason recorded on `CheckInAttempt`. Location is never a rejection reason.
+**Rejection reason catalog (UC02):** rules are checked in this order; the first failure sets `AttendanceRecord.RejectionReason`. Location is never a rejection reason.
 
 | **Order** | **Reason**        | **Rule check**                                                                  | **Trace** |
 | :-------- | :---------------- | :------------------------------------------------------------------------------ | :-------- |
@@ -155,9 +153,7 @@ note over AttendanceRules
   1) PIN still valid - BR-02          2) student enrolled - BR-14
   3) no existing official result - BR-06
   Reads AttendanceSession, Session, ClassSectionStudent, AttendanceConfiguration;
-  records CheckInAttempt. Location is stored for information only - when coordinates are
-  available, distance from Room is computed via DistanceAlgorithm and recorded - BR-03;
-  location never causes rejection and is not required.
+  updates AttendanceRecord (submitted coordinates stored as evidence).
   If all pass: classify Present or Late by Late threshold - BR-13.
 end note
 
@@ -259,9 +255,9 @@ else activation allowed
   end
 
   == Review, adjust, finalize ==
-  LecturerUI -> SessionControl : request results and rejected attempts
+  LecturerUI -> SessionControl : request review data
   SessionControl -> SessionRules : get review data
-  note right of SessionRules : reads AttendanceRecord (official results), CheckInAttempt (rejected attempts)
+  note right of SessionRules : reads AttendanceRecord (official results and latest rejection reasons)
   SessionRules --> SessionControl : review data
   SessionControl --> LecturerUI : show review data
 
