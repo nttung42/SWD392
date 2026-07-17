@@ -13,9 +13,9 @@ Design decisions are intentionally limited to what is required by the project st
 | **Priority** | **Quality Attribute**       | **Requirement Source** | **Design Consequence**                                                                                                       |
 | :----------- | :-------------------------- | :--------------------- | :--------------------------------------------------------------------------------------------------------------------------- |
 | 1            | Performance and concurrency | NF-01, NF-07           | Keep attendance-code validation fast by caching active QR/PIN values; keep check-in path stateless at the application layer. |
-| 2            | Accuracy                    | NF-02, BR-03           | Store captured location coordinates and classroom radius configuration behind an explicit service; location is informational only and does not gate check-in (no distance is computed). |
+| 2            | Accuracy                    | NF-02, BR-03           | Store captured location coordinates behind an explicit service; location is informational only and does not gate check-in (no distance is computed). |
 | 3            | Security and privacy        | NF-04, BR-01, BR-04    | Enforce role-based access and protected attendance evidence storage.                                                         |
-| 4            | Modifiability               | NF-06                  | Store QR validity, PIN refresh, Late threshold, and default radius as configurable values.                                   |
+| 4            | Modifiability               | NF-06                  | Store QR refresh, PIN refresh, and Late threshold as configurable values.                                   |
 | 5            | Usability                   | NF-03                  | Keep student check-in and lecturer session-monitoring flows short and event-driven.                                          |
 
 ### **III.1.2 Architecture Decision**
@@ -118,7 +118,7 @@ CheckInControl --> MobileSensor : UC02/UC04 collect identity, location, and devi
 CheckInControl --> IdentityRules : UC02/UC04 validate local biometric result or selfie proof
 CheckInControl --> AttendanceSession : UC02/UC04 read active attendance session
 CheckInControl --> CodeRules : UC02/UC04 verify active code
-CodeRules --> AttendanceConfig : UC02/UC04 read validity parameters
+CodeRules --> AttendanceConfig : UC02/UC04 read refresh parameters
 CheckInControl --> Session : UC02/UC04 read class section and scheduled start time
 CheckInControl --> StatusRules : UC02/UC04 classify Present or Late from official time
 CheckInControl --> AttendanceRecord : UC02/UC04 save check-in evidence and set official result, or record rejection reason
@@ -129,7 +129,7 @@ HistoryControl --> AuthRules : UC03 check access
 HistoryControl --> ClassSectionStudent : UC03 read enrolled classes
 HistoryControl --> AttendanceRecord : UC03 read official results
 
-LecturerUI --> SessionControl : UC05 start, stop, reopen, finalize session
+LecturerUI --> SessionControl : UC05 start, finalize session
 SessionControl --> SessionRules : UC05 validate lifecycle
 SessionControl --> Session : UC05 read scheduled session
 SessionControl --> ClassSectionStudent : UC05 read roster
@@ -162,9 +162,8 @@ CatalogControl --> ClassSection : UC09 maintain class sections
 
 AdminUI --> RoomControl : UC10 configure classroom location
 RoomControl --> MobileSensor : UC10 capture current location when calibrated on site
-RoomControl --> RoomRules : UC10 validate coordinate and radius
+RoomControl --> RoomRules : UC10 validate coordinate
 RoomControl --> Room : UC10 update room location settings
-RoomControl --> AttendanceConfiguration : UC10 read default radius
 @enduml
 ```
 
@@ -237,7 +236,7 @@ Access --> Adapters : synchronous with reply
 | Access and Profile Management      | `«service subsystem»`          | University identity confirmation, role checks, and AFAS profile lookup.                                                   | UC01, BR-01                              |
 | Attendance Coordination            | `«coordinator subsystem»`      | Orchestrates QR/PIN check-in, evidence validation, attendance record upsert, official result creation, and monitor notification. | UC02, UC04                               |
 | Attendance Validation              | `«service subsystem»`          | Validates identity evidence and active QR/PIN code, and classifies Present/Late; captured location is stored as evidence only and never gates the result. | UC02, UC04, BR-02, BR-04, BR-05, BR-07, BR-12, BR-13 |
-| Session Lifecycle                  | `«control subsystem»`          | Governs active, stopped, reopened, reviewed, and finalized attendance-session states.                                     | UC05, BR-08, BR-10                       |
+| Session Lifecycle                  | `«control subsystem»`          | Governs not-started, active, and finalized attendance-session states.                                     | UC05, BR-08, BR-10                       |
 | Monitoring and Notification        | `«service subsystem»`          | Pushes accepted check-in status and retrieves live roster state.                                                          | UC06, NF-01                              |
 | Administrative Management          | `«service subsystem»`          | Maintains catalog and classroom location configuration.                                                                   | UC09, UC10                               |
 | Reporting                          | `«service subsystem»`          | Generates finalized attendance reports.                                                                                   | UC08, BR-08                              |
@@ -645,7 +644,7 @@ ReportFile - IReportFileWriter
 
 **Required Interface:** `IAttendanceCodeStore`, `IRepositoryOperations`, `IAttendanceNotifications`
 
-**Input Messages/Data:** Session ID, QR refresh seconds, QR validity seconds, PIN refresh seconds.
+**Input Messages/Data:** Session ID, QR refresh seconds, PIN refresh seconds.
 
 **Output Messages/Data:** Active QR token, backup PIN, refreshed timestamps, countdown update.
 
@@ -669,11 +668,11 @@ ReportFile - IReportFileWriter
 4. Generate a new backup PIN every configured PIN refresh interval.
 5. Save latest values to cache and attendance-session state.
 6. Notify projector view subscribers of the latest display value and countdown.
-7. Stop when lecturer stops receiving check-ins or finalizes the session.
+7. Stop when lecturer finalizes the session.
 
 **Exception Behavior:** If cache write fails, persist latest active value in attendance-session state and allow check-in validation to read from persistent state until cache recovers.
 
-**Termination:** Stops when the attendance session is stopped or finalized.
+**Termination:** Stops when the attendance session is finalized.
 
 **Concurrency Notes:** At most one refresh task is active per study session, enforced by Session Rules and attendance-session state.
 
@@ -713,8 +712,7 @@ ReportFile - IReportFileWriter
 | Operation               | Parameters                            | Return                 | Precondition                                                                                                                                 | Postcondition                                                                                 | Invariant                                                    |
 | :---------------------- | :------------------------------------ | :--------------------- | :------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------- | :----------------------------------------------------------- |
 | `startAttendance`       | `lecturerId: Text`, `sessionId: Text` | `SessionCommandResult` | Lecturer is assigned to the class section; session is within allowed time window; no active attendance session exists for the study session. | Attendance session is active and QR/PIN refresh task starts.                                  | One study session has at most one active attendance session. |
-| `stopReceivingCheckIns` | `lecturerId: Text`, `sessionId: Text` | `SessionCommandResult` | Attendance session is active and lecturer is assigned.                                                                                       | New QR/PIN check-ins are no longer accepted.                                                  | Stopped sessions retain their attendance records.           |
-| `finalizeAttendance`    | `lecturerId: Text`, `sessionId: Text` | `SessionCommandResult` | Session is stopped or under review; lecturer is assigned.                                                                                    | Students without Present/Late official result are assigned Absent; session becomes finalized. | Finalized results are the source for reports.                |
+| `finalizeAttendance`    | `lecturerId: Text`, `sessionId: Text` | `SessionCommandResult` | Attendance session is active; lecturer is assigned.                                                                                    | New QR/PIN check-ins are no longer accepted; students without Present/Late official result are assigned Absent; session becomes finalized. | Finalized results are the source for reports.                |
 
 ### **AdjustmentService**
 
@@ -738,14 +736,14 @@ ReportFile - IReportFileWriter
 
 ### **RoomConfigurationService**
 
-**Responsibility:** Configure classroom location and reference radius used to compute an informational check-in distance.
+**Responsibility:** Configure classroom location coordinates, kept as informational reference only.
 
 **Traceability:** UC10; Room Configuration Control; BR-03, NF-06.
 
 | Operation              | Parameters                                               | Return                  | Precondition                                                           | Postcondition                                         | Invariant                                                                                        |
 | :--------------------- | :------------------------------------------------------- | :---------------------- | :--------------------------------------------------------------------- | :---------------------------------------------------- | :----------------------------------------------------------------------------------------------- |
-| `saveRoomCoordinates`  | `adminAccountId: Text`, `command: RoomCoordinateCommand` | `ConfigurationResult`   | Admin is authenticated; room exists; location and radius are provided. | Room coordinate settings are saved.                   | Allowed radius must be greater than zero.                                                        |
-| `getRoomConfiguration` | `roomId: Text`                                           | `RoomConfigurationView` | Room ID is present.                                                    | Returns current location, radius, and default values. | Read operation does not modify configuration.                                                    |
+| `saveRoomCoordinates`  | `adminAccountId: Text`, `command: RoomCoordinateCommand` | `ConfigurationResult`   | Admin is authenticated; room exists; location is provided.            | Room coordinate settings are saved.                   | Coordinates must be valid.                                                                       |
+| `getRoomConfiguration` | `roomId: Text`                                           | `RoomConfigurationView` | Room ID is present.                                                    | Returns current location coordinates.                 | Read operation does not modify configuration.                                                    |
 
 ### **III.7.2 Repository and Wrapper Contracts**
 
@@ -844,12 +842,12 @@ The persistence model maps the analysis entity class diagram in Figure II-1 to a
 | `accounts`                  | `id`                             | `university_identity_code`, `email`, `full_name`, `role`, `registration_date`                                                                                                                                                                                                                      | Unique `university_identity_code`; UC01, UC09, BR-01, BR-11                                                           |
 | `students`                  | `student_id`                     | `account_id`                                                                                                                                                                                                                                                                                       | FK to `accounts`; UC01, UC03, UC09                                                                                    |
 | `lecturers`                 | `lecturer_id`                    | `account_id`, `department_name`                                                                                                                                                                                                                                                                    | FK to `accounts`; UC01, UC05-UC09                                                                                     |
-| `rooms`                     | `room_id`                        | `room_name`, `latitude`, `longitude`, `allowed_radius`                                                                                                                                                                                                                                             | Radius > 0; UC02, UC04, UC10, BR-03                                                                                   |
+| `rooms`                     | `room_id`                        | `room_name`, `latitude`, `longitude`                                                                                                                                                                                                                                                               | UC02, UC04, UC10, BR-03                                                                                              |
 | `subjects`                  | `subject_code`                   | `subject_name`, `credits`                                                                                                                                                                                                                                                                          | `credits > 0`; UC09, BR-11                                                                                            |
 | `class_sections`            | `class_section_id`               | `class_section_name`, `subject_code`, `lecturer_id`, `semester`                                                                                                                                                                                                                                    | FK to subject and lecturer; UC05-UC09                                                                                 |
 | `class_section_students`    | `(class_section_id, student_id)` | none beyond keys                                                                                                                                                                                                                                                                                   | Composite PK prevents duplicate enrollment; UC03, UC05, UC06, UC08                                                    |
 | `sessions`                  | `session_id`                     | `class_section_id`, `room_id`, `session_date`, `start_time`, `end_time`                                                                                                                                                                                                                            | FK to class section and room; UC05                                                                                    |
-| `attendance_configurations` | `configuration_code`             | `qr_refresh_seconds`, `qr_validity_seconds`, `pin_refresh_seconds`, `late_threshold_minutes`, `default_allowed_radius`                                                                                                                                                                             | Timing and radius values are configurable; NF-06                                                                      |
+| `attendance_configurations` | `configuration_code`             | `qr_refresh_seconds`, `pin_refresh_seconds`, `late_threshold_minutes`                                                                                                                                                                                                                              | Timing values are configurable; NF-06                                                                                 |
 | `attendance_sessions`       | `session_id`                     | `dynamic_token`, `qr_refreshed_at`, `pin_code`, `pin_refreshed_at`, `session_status`                                                                                                                                                                                                               | One attendance session per scheduled session; UC05, BR-02, BR-10                                                      |
 | `attendance_records`        | `attendance_record_id`           | `student_id`, `session_id`, `check_in_method` (nullable), `submitted_at` (nullable), `submitted_latitude` (nullable), `submitted_longitude` (nullable), `location_accuracy_meters` (nullable), `device_identifier` (nullable), `device_display_name` (nullable), `face_evidence_reference` (nullable), `attendance_status` (nullable until set), `result_source`, `rejection_reason` (nullable), `finalized_at` (nullable) | Location columns are nullable and informational only (no distance computed) and never drive the result; `attendance_status` limited to `Present`, `Late`, `Absent`; UC02, UC04, UC05, UC07, UC08 |
 
@@ -902,7 +900,7 @@ RoomRepo --> Room
 | :-------------------- | :-------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------ | :--------------------------------------------------------- | :----------------------------- |
 | Performance           | Cache active QR/PIN values and keep backend application services stateless.                               | `AttendanceCodeCacheAdapter`, `IAttendanceCodeStore`, QR/PIN Refresh Task.      | Cache consistency and fallback handling must be designed.  | UC02, UC04, UC05; NF-01        |
 | Scalability           | Modular monolith can scale by adding application server instances while keeping one persistence boundary. | Deployment view and stateless check-in service.                                 | Does not provide independent module deployment.            | NF-07                          |
-| Accuracy              | Captured location coordinates and configurable classroom radius are stored as reference only.             | `RoomConfigurationService`, `rooms.allowed_radius`, `attendance_records.submitted_latitude/longitude`. | Location is informational only, so GPS error never affects the check-in result. | UC02, UC04, UC10; NF-02, BR-03 |
+| Accuracy              | Captured location coordinates are stored as reference only.             | `RoomConfigurationService`, `attendance_records.submitted_latitude/longitude`. | Location is informational only, so GPS error never affects the check-in result. | UC02, UC04, UC10; NF-02, BR-03 |
 | Security and privacy  | Role authorization and protected evidence reference.                                                      | `AuthenticationService`, `AdjustmentService`, face evidence reference.          | More validation and storage policy rules are required.     | UC01, UC02, UC04, UC07; NF-04  |
 | Modifiability         | Layered modules, adapter pattern, strategy pattern, configurable parameters.                              | Component diagram, interface contracts, `attendance_configurations`.            | More interfaces than a direct CRUD design.                 | NF-06                          |
 | Testability           | Domain rules and wrappers are behind interfaces.                                                          | `IRepositoryOperations`, `IAttendanceCodeStore`, policies and strategies.       | Requires mocks or fakes in tests.                          | UC02-UC10                      |

@@ -72,7 +72,7 @@ end
 
 | **Order** | **Reason**        | **Rule check**                                                                  | **Trace** |
 | :-------- | :---------------- | :------------------------------------------------------------------------------ | :-------- |
-| 1         | `ExpiredCode`     | Scanned QR is no longer within QR validity seconds.                             | BR-02     |
+| 1         | `ExpiredCode`     | Scanned QR is no longer valid (a newer QR has been generated at the refresh interval). | BR-02     |
 
 ---
 
@@ -143,7 +143,7 @@ end
 
 ### **UC05 - Manage Attendance Session**
 
-The session lifecycle (start, refresh, stop, optional short reopen, review, adjust handoff, Absent assignment, finalize) is coordinated by `AttendanceSessionControl`. Entity reads/writes are omitted from `AttendanceSessionService`; the repeated QR/PIN refresh and the reopen sub-window are shown compactly.
+The session lifecycle (start, refresh, optional adjust handoff, and a single finalize that stops check-ins, assigns Absent, and finalizes) is coordinated by `AttendanceSessionControl`. Entity reads/writes are omitted from `AttendanceSessionService`; the repeated QR/PIN refresh is shown compactly.
 
 ```plantuml
 @startuml
@@ -183,40 +183,17 @@ else activation allowed
     UC02 / UC04: students submit check-ins while the session is active
   end ref
 
-  == Stop and optional reopen ==
-  Lecturer -> LecturerUI : click Stop Receiving Check-ins
-  LecturerUI -> SessionControl : request stop accepting check-ins
-  SessionControl -> SessionRules : stop accepting new check-ins
-  SessionRules --> SessionControl : session stopped
-  SessionControl --> LecturerUI : show review view
-
-  opt short reopen due to classroom interruption (before finalization)
-    Lecturer -> LecturerUI : request short reopen, then Stop again when done
-    LecturerUI -> SessionControl : request reopen window
-    SessionControl -> SessionRules : validate and reopen when allowed
-    SessionRules --> SessionControl : reopen allowed | denied
-    SessionControl --> LecturerUI : show reopen result
-  end
-
-  == Review, adjust, finalize ==
-  LecturerUI -> SessionControl : request review data
-  SessionControl -> SessionRules : get review data
-  SessionRules --> SessionControl : review data
-  SessionControl --> LecturerUI : show review data
-
-  opt adjustment before finalization
+  == Optional adjust while active ==
+  opt adjustment while the session is active
     ref over LecturerUI, SessionControl, SessionRules
       UC07: lecturer manually adjusts an attendance result
     end ref
   end
 
-  SessionControl -> SessionRules : assign Absent results for missing official records
-  SessionRules --> SessionControl : completed attendance list
-  SessionControl --> LecturerUI : show completed attendance list
-
+  == Finalize ==
   Lecturer -> LecturerUI : click Finalize Attendance
   LecturerUI -> SessionControl : request finalization
-  SessionControl -> SessionRules : validate finalization and finalize
+  SessionControl -> SessionRules : stop accepting check-ins, assign Absent for missing official records, and finalize
   SessionRules --> SessionControl : attendance finalized
   SessionControl --> LecturerUI : attendance finalized
 end
