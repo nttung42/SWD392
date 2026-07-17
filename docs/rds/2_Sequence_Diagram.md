@@ -58,7 +58,7 @@ CheckInControl --> StudentUI : identity verification accepted
 
 ### **UC02 - Check In via Dynamic QR Code**
 
-The rule checks (code validity, enrollment, location, duplicate result, Present/Late classification) are evaluated inside `CheckInService`, which returns a single business result. The coordinator selects one flat outcome branch. Rejection reasons are listed in the catalog below.
+The rule checks (code validity, enrollment, duplicate result, Present/Late classification) are evaluated inside `CheckInService`, which returns a single business result. The coordinator selects one flat outcome branch. Location is captured and stored for information only; it never causes a rejection and is not required. Rejection reasons are listed in the catalog below.
 
 ```plantuml
 @startuml
@@ -81,48 +81,43 @@ end ref
 StudentUI --> Student : display camera view
 Student -> StudentUI : scan active QR code
 StudentUI -> CheckInControl : submit scanned code
-CheckInControl -> MobileSensor : read GPS coordinates and device identifier
+CheckInControl -> MobileSensor : read GPS coordinates and device identifier (best effort)
 MobileSensor --> CheckInControl : location and device evidence, or location unavailable
+CheckInControl -> AttendanceRules : submit QR check-in evidence(scanned code, identity, location or unavailable, device)
 
-alt location unavailable
-  CheckInControl --> StudentUI : request location services
-  StudentUI --> Student : prompt to enable location services
-else location and device evidence available
-  CheckInControl -> AttendanceRules : submit QR check-in evidence(scanned code, identity, location, device)
+note over AttendanceRules
+  Evaluate rules in priority order, stop at first failure (reason recorded):
+  1) QR code still valid - BR-02      2) student enrolled - BR-14
+  3) no existing official result - BR-06
+  Reads AttendanceSession, Session, ClassSectionStudent, AttendanceConfiguration;
+  records CheckInAttempt. Location is stored for information only - when coordinates are
+  available, distance from Room is computed via DistanceAlgorithm and recorded - BR-03;
+  location never causes rejection and is not required.
+  If all pass: classify Present or Late by Late threshold - BR-13.
+end note
 
-  note over AttendanceRules
-    Evaluate rules in priority order, stop at first failure (reason recorded):
-    1) QR code still valid - BR-02      2) student enrolled - BR-14
-    3) within allowed range - BR-03     4) no existing official result - BR-06
-    Reads AttendanceSession, Session, ClassSectionStudent, Room, AttendanceConfiguration;
-    calls DistanceAlgorithm; records CheckInAttempt.
-    If all pass: classify Present or Late by Late threshold - BR-13.
-  end note
+AttendanceRules --> CheckInControl : result(accepted | duplicate | rejected)
 
-  AttendanceRules --> CheckInControl : result(accepted | duplicate | rejected)
-
-  alt check-in accepted
-    CheckInControl --> StudentUI : check-in accepted(official status)
-    CheckInControl --> LecturerUI : attendance result changed for live monitor
-    StudentUI --> Student : show successful check-in time
-  else official result already exists
-    CheckInControl --> StudentUI : return existing official result
-    StudentUI --> Student : show existing result
-  else check-in rejected
-    CheckInControl --> StudentUI : reject check-in(reason)
-    StudentUI --> Student : show rejection reason
-  end
+alt check-in accepted
+  CheckInControl --> StudentUI : check-in accepted(official status)
+  CheckInControl --> LecturerUI : attendance result changed for live monitor
+  StudentUI --> Student : show successful check-in time
+else official result already exists
+  CheckInControl --> StudentUI : return existing official result
+  StudentUI --> Student : show existing result
+else check-in rejected
+  CheckInControl --> StudentUI : reject check-in(reason)
+  StudentUI --> Student : show rejection reason
 end
 @enduml
 ```
 
-**Rejection reason catalog (UC02):** rules are checked in this order; the first failure sets the reason recorded on `CheckInAttempt`.
+**Rejection reason catalog (UC02):** rules are checked in this order; the first failure sets the reason recorded on `CheckInAttempt`. Location is never a rejection reason.
 
 | **Order** | **Reason**        | **Rule check**                                                                  | **Trace** |
 | :-------- | :---------------- | :------------------------------------------------------------------------------ | :-------- |
 | 1         | `ExpiredCode`     | Scanned QR is no longer within QR validity seconds.                             | BR-02     |
 | 2         | `NotEnrolled`     | Student is not in the target class section roster.                              | BR-14     |
-| 3         | `OutsideLocation` | Submitted coordinates fall outside the allowed range (with accuracy tolerance). | BR-03     |
 
 ---
 
@@ -151,48 +146,43 @@ end ref
 StudentUI --> Student : display PIN input screen
 Student -> StudentUI : enter active 6-digit PIN
 StudentUI -> CheckInControl : submit PIN code
-CheckInControl -> MobileSensor : read GPS coordinates and device identifier
+CheckInControl -> MobileSensor : read GPS coordinates and device identifier (best effort)
 MobileSensor --> CheckInControl : location and device evidence, or location unavailable
+CheckInControl -> AttendanceRules : submit PIN check-in evidence(PIN, identity, location or unavailable, device)
 
-alt location unavailable
-  CheckInControl --> StudentUI : request location services
-  StudentUI --> Student : prompt to enable location services
-else location and device evidence available
-  CheckInControl -> AttendanceRules : submit PIN check-in evidence(PIN, identity, location, device)
+note over AttendanceRules
+  Evaluate rules in priority order, stop at first failure (reason recorded):
+  1) PIN still valid - BR-02          2) student enrolled - BR-14
+  3) no existing official result - BR-06
+  Reads AttendanceSession, Session, ClassSectionStudent, AttendanceConfiguration;
+  records CheckInAttempt. Location is stored for information only - when coordinates are
+  available, distance from Room is computed via DistanceAlgorithm and recorded - BR-03;
+  location never causes rejection and is not required.
+  If all pass: classify Present or Late by Late threshold - BR-13.
+end note
 
-  note over AttendanceRules
-    Evaluate rules in priority order, stop at first failure (reason recorded):
-    1) PIN still valid - BR-02          2) student enrolled - BR-14
-    3) within allowed range - BR-03     4) no existing official result - BR-06
-    Reads AttendanceSession, Session, ClassSectionStudent, Room, AttendanceConfiguration;
-    calls DistanceAlgorithm; records CheckInAttempt.
-    If all pass: classify Present or Late by Late threshold - BR-13.
-  end note
+AttendanceRules --> CheckInControl : result(accepted | duplicate | rejected)
 
-  AttendanceRules --> CheckInControl : result(accepted | duplicate | rejected)
-
-  alt check-in accepted
-    CheckInControl --> StudentUI : check-in accepted(official status)
-    CheckInControl --> LecturerUI : attendance result changed for live monitor
-    StudentUI --> Student : show successful PIN check-in
-  else official result already exists
-    CheckInControl --> StudentUI : return existing official result
-    StudentUI --> Student : show existing result
-  else check-in rejected
-    CheckInControl --> StudentUI : reject check-in(reason)
-    StudentUI --> Student : show rejection reason
-  end
+alt check-in accepted
+  CheckInControl --> StudentUI : check-in accepted(official status)
+  CheckInControl --> LecturerUI : attendance result changed for live monitor
+  StudentUI --> Student : show successful PIN check-in
+else official result already exists
+  CheckInControl --> StudentUI : return existing official result
+  StudentUI --> Student : show existing result
+else check-in rejected
+  CheckInControl --> StudentUI : reject check-in(reason)
+  StudentUI --> Student : show rejection reason
 end
 @enduml
 ```
 
-**Rejection reason catalog (UC04):** same order and reasons as UC02, with `ExpiredCode` meaning the entered PIN is no longer within PIN refresh seconds.
+**Rejection reason catalog (UC04):** same order and reasons as UC02, with `ExpiredCode` meaning the entered PIN is no longer within PIN refresh seconds. Location is never a rejection reason.
 
 | **Order** | **Reason**        | **Rule check**                                                                  | **Trace** |
 | :-------- | :---------------- | :------------------------------------------------------------------------------ | :-------- |
 | 1         | `ExpiredCode`     | Entered PIN is no longer within PIN refresh seconds.                            | BR-02     |
 | 2         | `NotEnrolled`     | Student is not in the target class section roster.                              | BR-14     |
-| 3         | `OutsideLocation` | Submitted coordinates fall outside the allowed range (with accuracy tolerance). | BR-03     |
 
 ---
 

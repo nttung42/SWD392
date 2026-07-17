@@ -1410,39 +1410,35 @@ RoomControl --> AdminUI : 2 return saved result or warning
 
 ```plantuml
 @startuml
+skinparam style strictuml
 [*] --> NotStarted
-NotStarted --> Active : startAttendance [within scheduled window and no active session]
-NotStarted --> NotStarted : startAttendance [outside scheduled window or already active]
+NotStarted --> Active : startAttendance [within scheduled window and no other active session]
+NotStarted --> NotStarted : startAttendance [outside scheduled window or another session already active]
 
 Active --> Active : refreshQRCode [configured QR refresh interval]
 Active --> Active : refreshPIN [configured PIN refresh interval]
 Active --> Stopped : stopReceivingCheckIns
 
 Stopped --> Active : shortReopen [interruption reason and before finalization]
-Stopped --> UnderReview : reviewResultsAndRejectedAttempts
-UnderReview --> UnderReview : adjustAttendance [UC07]
-UnderReview --> Finalized : finalizeAttendance
+Stopped --> Stopped : adjustAttendance [UC07, before finalization]
+Stopped --> Finalized : finalizeAttendance
 Finalized --> [*]
 @enduml
 ```
 
 ### **II.3.2 CheckInAttempt state**
 
-`CheckInAttempt` has a simple retained-result lifecycle. The detailed identity, code, enrollment, and location validations are modeled in the UC02 and UC04 interaction diagrams rather than as long-lived attempt states.
+`CheckInAttempt` has a simple retained-result lifecycle matching the `AttemptStatus` values `Accepted` and `Rejected`. The attempt is recorded only when `CheckInService` reaches its final decision in the UC02 and UC04 interaction diagrams, so it is created directly in its terminal status rather than passing through a long-lived intermediate state. Whether an accepted attempt becomes the source of an official result or is ignored as a duplicate is governed by the `AttendanceRecord` lifecycle (Figure II-25) under BR-06, not by the attempt itself.
 
 #### **Figure II-24 State diagram for CheckInAttempt**
 
 ```plantuml
 @startuml
-[*] --> Submitted : checkInEvidenceSubmitted
-Submitted --> Accepted : validationAccepted
-Submitted --> Rejected : validationRejected
-Accepted --> LinkedToOfficialResult : officialResultCreated
-Accepted --> DuplicateIgnored : officialResultAlreadyExists
-Rejected --> RetainedForReview : retainedForLecturerReview
-LinkedToOfficialResult --> [*]
-DuplicateIgnored --> [*]
-RetainedForReview --> [*]
+skinparam style strictuml
+[*] --> Accepted : recordAcceptedAttempt
+[*] --> Rejected : recordRejectedAttempt
+Accepted --> [*]
+Rejected --> [*]
 @enduml
 ```
 
