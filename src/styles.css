@@ -1095,6 +1095,76 @@ textarea:focus {
   box-shadow: 0 8px 22px rgba(183, 68, 3, 0.08);
 }
 
+.class-list-item {
+  display: grid;
+  width: 100%;
+  gap: 0;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.class-list-item:hover {
+  border-color: rgba(232, 93, 4, 0.42);
+  background: #fffaf5;
+}
+
+.mobile-page-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.mobile-page-head h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.class-detail-card {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.class-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.class-detail-stats div {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: var(--brand-soft);
+  padding: 10px;
+}
+
+.class-detail-stats span,
+.class-detail-stats strong {
+  display: block;
+}
+
+.class-detail-stats strong {
+  margin-top: 3px;
+}
+
+.history-list {
+  display: grid;
+  gap: 10px;
+}
+
+.session-history-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: white;
+  padding: 12px;
+}
+
 .quick-actions {
   display: grid;
   gap: 10px;

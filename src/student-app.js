@@ -4,6 +4,7 @@ const state = {
   checkMode: "QR",
   checkedIn: false,
   qrFlowToken: 0,
+  selectedClassCode: "SWD392",
 };
 
 const timetable = [
@@ -17,6 +18,28 @@ const classes = [
   { code: "PRN212", name: "Cross-Platform Application Programming", lecturer: "Pham Thu Linh", attendance: "10/12" },
   { code: "SWT301", name: "Software Testing", lecturer: "Pham Thu Linh", attendance: "12/12" },
 ];
+
+const classSessions = {
+  SWD392: [
+    { date: "2026-07-16", slot: "Slot 1", time: "08:00 - 10:15", room: "AL-L402", status: () => currentAttendanceStatus(), method: () => state.checkedIn ? state.checkMode : "-" },
+    { date: "2026-07-09", slot: "Slot 1", time: "08:00 - 10:15", room: "AL-L402", status: "Present", method: "QR" },
+    { date: "2026-07-02", slot: "Slot 1", time: "08:00 - 10:15", room: "AL-L402", status: "Present", method: "PIN" },
+    { date: "2026-06-25", slot: "Slot 1", time: "08:00 - 10:15", room: "AL-L402", status: "Late", method: "Manual" },
+    { date: "2026-06-18", slot: "Slot 1", time: "08:00 - 10:15", room: "AL-L402", status: "Absent", method: "-" },
+  ],
+  PRN212: [
+    { date: "2026-07-15", slot: "Slot 2", time: "10:30 - 12:45", room: "BE-305", status: "Present", method: "QR" },
+    { date: "2026-07-08", slot: "Slot 2", time: "10:30 - 12:45", room: "BE-305", status: "Present", method: "PIN" },
+    { date: "2026-07-01", slot: "Slot 2", time: "10:30 - 12:45", room: "BE-305", status: "Absent", method: "-" },
+    { date: "2026-06-24", slot: "Slot 2", time: "10:30 - 12:45", room: "BE-305", status: "Present", method: "QR" },
+  ],
+  SWT301: [
+    { date: "2026-07-14", slot: "Slot 4", time: "13:00 - 15:15", room: "DE-101", status: "Present", method: "QR" },
+    { date: "2026-07-07", slot: "Slot 4", time: "13:00 - 15:15", room: "DE-101", status: "Present", method: "QR" },
+    { date: "2026-06-30", slot: "Slot 4", time: "13:00 - 15:15", room: "DE-101", status: "Present", method: "PIN" },
+    { date: "2026-06-23", slot: "Slot 4", time: "13:00 - 15:15", room: "DE-101", status: "Present", method: "QR" },
+  ],
+};
 
 function $(selector) {
   return document.querySelector(selector);
@@ -33,6 +56,18 @@ function badge(value) {
 
 function currentAttendanceStatus() {
   return state.checkedIn ? "Present" : "Not Yet";
+}
+
+function resolveValue(value) {
+  return typeof value === "function" ? value() : value;
+}
+
+function selectedClass() {
+  return classes.find((item) => item.code === state.selectedClassCode) || classes[0];
+}
+
+function selectedClassSessions() {
+  return classSessions[state.selectedClassCode] || [];
 }
 
 function showScreen(key) {
@@ -125,16 +160,81 @@ function renderClasses() {
     <h2 style="margin:0 0 14px;">Classes</h2>
     <div class="grid">
       ${classes.map((item) => `
-        <article class="mobile-card">
-          <strong>${item.code}</strong>
-          <p style="margin:4px 0;color:var(--brand-ink);">${item.name}</p>
+        <button class="mobile-card class-list-item" type="button" onclick="openClassDetail('${item.code}')">
+          <div>
+            <strong>${item.code}</strong>
+            <p style="margin:4px 0;color:var(--brand-ink);">${item.name}</p>
+          </div>
           <p class="muted" style="margin:0 0 10px;">${item.lecturer}</p>
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <span class="muted">Attendance</span>
             <strong>${item.attendance}</strong>
           </div>
-        </article>
+        </button>
       `).join("")}
+    </div>
+  `;
+}
+
+function openClassDetail(code) {
+  state.selectedClassCode = code;
+  renderClassDetail();
+  showScreen("class-detail");
+}
+
+function renderClassDetail() {
+  const item = selectedClass();
+  const sessions = selectedClassSessions();
+  $("#screen-class-detail").innerHTML = `
+    <div class="mobile-page-head">
+      <button class="btn btn-icon btn-secondary" type="button" onclick="renderClasses(); showScreen('classes')" aria-label="Back to classes">
+        ${icon("chevron-left")}
+      </button>
+      <h2>${item.code}</h2>
+    </div>
+    <section class="mobile-card class-detail-card">
+      <strong>${item.name}</strong>
+      <p class="muted" style="margin:6px 0 14px;">${item.lecturer}</p>
+      <div class="class-detail-stats">
+        <div><span class="muted">Attendance</span><strong>${item.attendance}</strong></div>
+        <div><span class="muted">Sessions</span><strong>${sessions.length}</strong></div>
+      </div>
+    </section>
+    <button class="btn btn-primary btn-full" type="button" onclick="openClassHistory()">
+      ${icon("history")}
+      View history
+    </button>
+  `;
+}
+
+function openClassHistory() {
+  renderClassHistory();
+  showScreen("class-history");
+}
+
+function renderClassHistory() {
+  const item = selectedClass();
+  $("#screen-class-history").innerHTML = `
+    <div class="mobile-page-head">
+      <button class="btn btn-icon btn-secondary" type="button" onclick="renderClassDetail(); showScreen('class-detail')" aria-label="Back to class detail">
+        ${icon("chevron-left")}
+      </button>
+      <h2>${item.code} history</h2>
+    </div>
+    <div class="history-list">
+      ${selectedClassSessions().map((session) => {
+        const status = resolveValue(session.status);
+        return `
+          <article class="session-history-item">
+            <div>
+              <strong>${session.date} · ${session.slot}</strong>
+              <p class="muted" style="margin:5px 0 0;">${session.time} · ${session.room}</p>
+              <p class="muted" style="margin:5px 0 0;">Method: ${resolveValue(session.method)}</p>
+            </div>
+            ${badge(status)}
+          </article>
+        `;
+      }).join("")}
     </div>
   `;
 }
@@ -407,6 +507,8 @@ Object.assign(window, {
   openReport,
   submitReport,
   renderHome,
+  openClassDetail,
+  openClassHistory,
 });
 
 if (window.lucide) window.lucide.createIcons();
