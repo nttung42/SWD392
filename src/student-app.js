@@ -26,8 +26,12 @@ function icon(name, size = 18) {
 }
 
 function badge(value) {
-  const tone = value === "Open" || value === "Present" ? "green" : value === "Late" ? "amber" : "blue";
+  const tone = value === "Open" || value === "Present" ? "green" : value === "Late" ? "amber" : value === "Absent" ? "red" : "blue";
   return `<span class="badge ${tone}">${value}</span>`;
+}
+
+function currentAttendanceStatus() {
+  return state.checkedIn ? "Present" : "Not Yet";
 }
 
 function showScreen(key) {
@@ -61,8 +65,9 @@ function renderHome() {
         <div>
           <strong>SWD392</strong>
           <p class="muted" style="margin:4px 0 0;">08:00 - 10:15 · AL-L402</p>
+          <p class="muted" style="margin:6px 0 0;">Attendance: ${currentAttendanceStatus()}</p>
         </div>
-        ${badge(state.checkedIn ? "Present" : "Open")}
+        ${badge(currentAttendanceStatus())}
       </div>
     </section>
 
@@ -85,13 +90,13 @@ function renderHome() {
       <h3 style="margin:0 0 10px;font-size:15px;">Today</h3>
       <div class="timeline">
         ${timetable.slice(0, 2).map((item) => `
-          <article class="timeline-item">
-            <div class="timeline-time">${item.time}</div>
-            <strong>${item.subject}</strong>
-            <p class="muted" style="margin:4px 0 8px;">${item.name}</p>
-            ${badge(item.status)}
-          </article>
-        `).join("")}
+        <article class="timeline-item">
+          <div class="timeline-time">${item.time}</div>
+          <strong>${item.subject}</strong>
+          <p class="muted" style="margin:4px 0 8px;">${item.name}</p>
+            ${badge(item.subject === "SWD392" ? currentAttendanceStatus() : item.status)}
+        </article>
+      `).join("")}
       </div>
     </section>
   `;
@@ -107,7 +112,7 @@ function renderTimetable() {
           <strong>${item.subject}</strong>
           <p style="margin:5px 0;color:var(--brand-ink);">${item.name}</p>
           <p class="muted" style="margin:0 0 9px;">${item.time} - ${item.end} · ${item.room}</p>
-          ${badge(item.status)}
+          ${badge(item.subject === "SWD392" ? currentAttendanceStatus() : item.status)}
         </article>
       `).join("")}
     </div>

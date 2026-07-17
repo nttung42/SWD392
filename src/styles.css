@@ -422,6 +422,16 @@ a {
   color: #248746;
 }
 
+.metric.not-yet {
+  border-color: rgba(47, 103, 194, 0.3);
+  background: #edf4ff;
+}
+
+.metric.not-yet span,
+.metric.not-yet strong {
+  color: var(--blue);
+}
+
 .metric.late {
   border-color: rgba(181, 105, 0, 0.3);
   background: #fff7e8;
@@ -440,16 +450,6 @@ a {
 .metric.absent span,
 .metric.absent strong {
   color: #be3636;
-}
-
-.metric.rejected {
-  border-color: rgba(111, 45, 0, 0.32);
-  background: #fff1e8;
-}
-
-.metric.rejected span,
-.metric.rejected strong {
-  color: #6f2d00;
 }
 
 .session-actions {

@@ -43,36 +43,36 @@ const data = {
     { id: "SS-20260719-01", classId: "SWT301_SU26_SE1701", day: "Friday", date: "2026-07-19", slot: "Slot 4", start: "13:00", end: "15:15", room: "DE-101", status: "Closed", checkInState: "closed", closedAt: Date.now() - 16 * 60 * 1000, canReopen: true },
   ],
   attendance: [
-    { id: "AR-001", studentId: "SE170123", name: "Nguyen Minh An", time: "08:04", method: "QR", status: "Present", reason: "" },
-    { id: "AR-002", studentId: "SE170145", name: "Tran Bao Chau", time: "08:19", method: "QR", status: "Late", reason: "" },
-    { id: "AR-003", studentId: "SE170188", name: "Le Quang Huy", time: "-", method: "QR", status: "Absent", reason: "" },
-    { id: "AR-004", studentId: "SE170219", name: "Pham Hoai Linh", time: "08:07", method: "QR", status: "Rejected", reason: "Outside classroom range" },
-    { id: "AR-005", studentId: "SE170224", name: "Do Gia Bao", time: "08:02", method: "QR", status: "Present", reason: "" },
-    { id: "AR-006", studentId: "SE170231", name: "Mai Quoc Dat", time: "08:09", method: "QR", status: "Present", reason: "" },
-    { id: "AR-007", studentId: "SE170246", name: "Hoang Nhat Duong", time: "08:12", method: "QR", status: "Present", reason: "" },
-    { id: "AR-008", studentId: "SE170258", name: "Dang Bao Han", time: "08:16", method: "QR", status: "Late", reason: "" },
-    { id: "AR-009", studentId: "SE170267", name: "Bui Minh Khang", time: "08:03", method: "QR", status: "Present", reason: "" },
-    { id: "AR-010", studentId: "SE170274", name: "Vu Gia Khanh", time: "-", method: "QR", status: "Absent", reason: "" },
-    { id: "AR-011", studentId: "SE170281", name: "Pham Minh Khoi", time: "08:05", method: "QR", status: "Present", reason: "" },
-    { id: "AR-012", studentId: "SE170296", name: "Le Hoang Lam", time: "08:06", method: "QR", status: "Present", reason: "" },
-    { id: "AR-013", studentId: "SE170307", name: "Truong Bao Long", time: "08:01", method: "QR", status: "Present", reason: "" },
-    { id: "AR-014", studentId: "SE170318", name: "Nguyen Hai Minh", time: "08:21", method: "QR", status: "Late", reason: "" },
-    { id: "AR-015", studentId: "SE170329", name: "Tran Hoang Nam", time: "-", method: "QR", status: "Absent", reason: "" },
-    { id: "AR-016", studentId: "SE170334", name: "Vo Thanh Nhan", time: "08:10", method: "QR", status: "Present", reason: "" },
-    { id: "AR-017", studentId: "SE170349", name: "Phan Minh Phuc", time: "08:04", method: "QR", status: "Present", reason: "" },
-    { id: "AR-018", studentId: "SE170356", name: "Nguyen Anh Quan", time: "08:08", method: "QR", status: "Present", reason: "" },
-    { id: "AR-019", studentId: "SE170361", name: "Dang Minh Quang", time: "-", method: "QR", status: "Absent", reason: "" },
-    { id: "AR-020", studentId: "SE170372", name: "Le Duc Tai", time: "08:11", method: "QR", status: "Present", reason: "" },
-    { id: "AR-021", studentId: "SE170389", name: "Bui Anh Thu", time: "08:00", method: "QR", status: "Present", reason: "" },
-    { id: "AR-022", studentId: "SE170394", name: "Do Minh Thu", time: "08:18", method: "QR", status: "Late", reason: "" },
-    { id: "AR-023", studentId: "SE170405", name: "Vu Bao Tran", time: "-", method: "QR", status: "Absent", reason: "" },
-    { id: "AR-024", studentId: "SE170416", name: "Hoang Anh Tuan", time: "08:03", method: "QR", status: "Present", reason: "" },
-    { id: "AR-025", studentId: "SE170427", name: "Pham Quoc Viet", time: "08:07", method: "QR", status: "Present", reason: "" },
-    { id: "AR-026", studentId: "SE170438", name: "Nguyen Thanh Vy", time: "08:06", method: "QR", status: "Present", reason: "" },
-    { id: "AR-027", studentId: "SE170449", name: "Tran Gia Huy", time: "-", method: "QR", status: "Absent", reason: "" },
-    { id: "AR-028", studentId: "SE170452", name: "Le Tuan Kiet", time: "08:05", method: "QR", status: "Present", reason: "" },
-    { id: "AR-029", studentId: "SE170463", name: "Do Kim Ngan", time: "-", method: "QR", status: "Absent", reason: "" },
-    { id: "AR-030", studentId: "SE170474", name: "Nguyen Thai Son", time: "08:14", method: "QR", status: "Present", reason: "" },
+    { id: "AR-001", studentId: "SE170123", name: "Nguyen Minh An", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-002", studentId: "SE170145", name: "Tran Bao Chau", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-003", studentId: "SE170188", name: "Le Quang Huy", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-004", studentId: "SE170219", name: "Pham Hoai Linh", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-005", studentId: "SE170224", name: "Do Gia Bao", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-006", studentId: "SE170231", name: "Mai Quoc Dat", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-007", studentId: "SE170246", name: "Hoang Nhat Duong", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-008", studentId: "SE170258", name: "Dang Bao Han", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-009", studentId: "SE170267", name: "Bui Minh Khang", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-010", studentId: "SE170274", name: "Vu Gia Khanh", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-011", studentId: "SE170281", name: "Pham Minh Khoi", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-012", studentId: "SE170296", name: "Le Hoang Lam", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-013", studentId: "SE170307", name: "Truong Bao Long", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-014", studentId: "SE170318", name: "Nguyen Hai Minh", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-015", studentId: "SE170329", name: "Tran Hoang Nam", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-016", studentId: "SE170334", name: "Vo Thanh Nhan", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-017", studentId: "SE170349", name: "Phan Minh Phuc", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-018", studentId: "SE170356", name: "Nguyen Anh Quan", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-019", studentId: "SE170361", name: "Dang Minh Quang", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-020", studentId: "SE170372", name: "Le Duc Tai", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-021", studentId: "SE170389", name: "Bui Anh Thu", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-022", studentId: "SE170394", name: "Do Minh Thu", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-023", studentId: "SE170405", name: "Vu Bao Tran", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-024", studentId: "SE170416", name: "Hoang Anh Tuan", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-025", studentId: "SE170427", name: "Pham Quoc Viet", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-026", studentId: "SE170438", name: "Nguyen Thanh Vy", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-027", studentId: "SE170449", name: "Tran Gia Huy", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-028", studentId: "SE170452", name: "Le Tuan Kiet", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-029", studentId: "SE170463", name: "Do Kim Ngan", time: "-", method: "-", status: "Not Yet", reason: "" },
+    { id: "AR-030", studentId: "SE170474", name: "Nguyen Thai Son", time: "-", method: "-", status: "Not Yet", reason: "" },
   ],
   config: [
     ["QR refresh interval", "10 seconds"],
@@ -82,7 +82,7 @@ const data = {
   ],
 };
 
-resetAttendanceToAbsent();
+initializeAttendanceRecords();
 
 const nav = {
   lecturer: [
@@ -132,11 +132,11 @@ function badge(value) {
     Open: "green",
     Configured: "green",
     Late: "amber",
+    "Not Yet": "blue",
     Review: "amber",
     Reopened: "amber",
     Scheduled: "blue",
     Absent: "red",
-    Rejected: "red",
     Closed: "slate",
     Passed: "green",
     "At risk": "amber",
@@ -173,7 +173,11 @@ function isReopenedForManual(session = selectedSession()) {
 }
 
 function canEditAttendance(session = selectedSession()) {
-  return isCheckInOpen(session) || isReopenable(session) || isReopenedForManual(session);
+  return isReopenedForManual(session);
+}
+
+function metricClass(label) {
+  return label.toLowerCase().replaceAll(" ", "-");
 }
 
 function initials(name) {
@@ -201,24 +205,26 @@ function studentGrades(record) {
 }
 
 function plannedAttendance(index) {
-  const finalAbsent = [2, 9, 14, 18, 22, 26, 28];
-  const late = [1, 7, 13, 21];
-  if (finalAbsent.includes(index)) return { time: "-", method: "QR", status: "Absent", reason: "" };
-  if (index === 3) return { time: "08:07", method: "QR", status: "Rejected", reason: "Outside classroom range" };
-  if (late.includes(index)) {
-    return { time: `08:${String(16 + late.indexOf(index)).padStart(2, "0")}`, method: state.pinVisible ? "PIN" : "QR", status: "Late", reason: "" };
-  }
+  const notCheckedIn = [2, 9, 14, 18, 22, 26, 28];
+  if (notCheckedIn.includes(index)) return { time: "-", method: "-", status: "Not Yet", reason: "" };
   return { time: `08:${String((index % 12) + 1).padStart(2, "0")}`, method: "QR", status: "Present", reason: "" };
 }
 
-function resetAttendanceToAbsent() {
+function initializeAttendanceRecords() {
   data.attendance.forEach((record) => {
     record.time = "-";
-    record.method = "QR";
-    record.status = "Absent";
+    record.method = "-";
+    record.status = "Not Yet";
     record.reason = "";
   });
   state.attendanceProgressIndex = 0;
+}
+
+function finalizeUncheckedAttendance() {
+  data.attendance.forEach((record) => {
+    if (record.status !== "Not Yet") return;
+    record.status = "Absent";
+  });
 }
 
 function advanceAttendanceProgress() {
@@ -384,6 +390,14 @@ function renderSessionActions(session) {
       </button>
     `;
   }
+  if (isReopenedForManual(session)) {
+    return `
+      <button class="btn btn-secondary" type="button" onclick="lockReopenedAttendance()">
+        ${icon("lock")}
+        Lock attendance
+      </button>
+    `;
+  }
   if (session.checkInState !== "closed") {
     return `
       <button class="btn btn-primary" type="button" onclick="createCheckIn()">
@@ -401,10 +415,10 @@ function renderSessionDetail() {
   const checkInOpen = isCheckInOpen(session);
   const manualEditEnabled = canEditAttendance(session);
   const counts = {
+    "Not Yet": data.attendance.filter((item) => item.status === "Not Yet").length,
     Present: data.attendance.filter((item) => item.status === "Present").length,
     Late: data.attendance.filter((item) => item.status === "Late").length,
     Absent: data.attendance.filter((item) => item.status === "Absent").length,
-    Rejected: data.attendance.filter((item) => item.status === "Rejected").length,
   };
   return `
     <div class="grid split">
@@ -418,7 +432,7 @@ function renderSessionDetail() {
 
         <div class="session-metrics">
           ${Object.entries(counts).map(([label, value]) => `
-            <div class="metric ${label.toLowerCase()}"><span>${label}</span><strong>${value}</strong></div>
+            <div class="metric ${metricClass(label)}"><span>${label}</span><strong>${value}</strong></div>
           `).join("")}
         </div>
 
@@ -445,7 +459,7 @@ function renderSessionDetail() {
         <div class="section-head">
           <div>
             <h3>Attendance list</h3>
-            <p>${manualEditEnabled ? "Manual changes require a reason." : "Manual editing is locked for this session state."}</p>
+            <p>${manualEditEnabled ? "Reopened attendance only allows Absent records to be marked Late with a reason." : "Manual editing is locked until the lecturer reopens a closed session."}</p>
           </div>
         </div>
         ${renderAttendanceTable(manualEditEnabled)}
@@ -483,8 +497,8 @@ function renderAttendanceTable(manualEditEnabled) {
                   <button class="btn btn-icon btn-secondary" type="button" onclick="openStudentDetail('${record.id}')" aria-label="View student detail">
                     ${icon("eye")}
                   </button>
-                  ${manualEditEnabled ? `
-                  <button class="btn btn-icon btn-secondary" type="button" onclick="openStatusModal('${record.id}')" aria-label="Manual edit attendance status">
+                  ${manualEditEnabled && record.status === "Absent" ? `
+                  <button class="btn btn-icon btn-secondary" type="button" onclick="openStatusModal('${record.id}')" aria-label="Mark absent student as late">
                     ${icon("pencil")}
                   </button>
                   ` : ""}
@@ -505,20 +519,21 @@ function createCheckIn() {
   session.closedAt = null;
   session.canReopen = false;
   state.pinVisible = false;
-  resetAttendanceToAbsent();
+  initializeAttendanceRecords();
   refreshToken();
-  toast("Check-in started");
+  toast("Attendance records created as Not Yet");
   render();
 }
 
 function closeCheckIn() {
   const session = selectedSession();
+  finalizeUncheckedAttendance();
   session.checkInState = "closed";
   session.status = "Closed";
   session.closedAt = Date.now();
   session.canReopen = true;
   state.pinVisible = false;
-  toast("Check-in gate closed");
+  toast("Not Yet records marked Absent");
   render();
 }
 
@@ -530,6 +545,17 @@ function reopenCheckIn() {
   session.canReopen = false;
   state.pinVisible = false;
   toast("Manual editing reopened");
+  render();
+}
+
+function lockReopenedAttendance() {
+  const session = selectedSession();
+  if (!isReopenedForManual(session)) return;
+  session.checkInState = "closed";
+  session.status = "Closed";
+  session.closedAt = Date.now();
+  session.canReopen = false;
+  toast("Attendance locked");
   render();
 }
 
@@ -632,10 +658,14 @@ function openStudentDetail(recordId) {
 
 function openStatusModal(recordId) {
   if (!canEditAttendance()) {
-    toast("Manual editing is locked");
+    toast("Reopen the closed session before marking late");
     return;
   }
   const record = data.attendance.find((item) => item.id === recordId);
+  if (!record || record.status !== "Absent") {
+    toast("Only Absent records can be marked Late after reopen");
+    return;
+  }
   state.modalRecordId = recordId;
   $("#modalRoot").innerHTML = `
     <div class="modal">
@@ -649,9 +679,10 @@ function openStatusModal(recordId) {
       <form class="form-grid" onsubmit="saveStatus(event)">
         <label>
           New status
-          <select name="status">
-            ${["Present", "Late", "Absent", "Rejected"].map((item) => `<option ${item === record.status ? "selected" : ""}>${item}</option>`).join("")}
+          <select name="status" disabled>
+            <option selected>Late</option>
           </select>
+          <input type="hidden" name="status" value="Late" />
         </label>
         <label>
           Reason
@@ -672,9 +703,19 @@ function saveStatus(event) {
   event.preventDefault();
   const values = Object.fromEntries(new FormData(event.target).entries());
   const record = data.attendance.find((item) => item.id === state.modalRecordId);
+  if (!isReopenedForManual() || !record || record.status !== "Absent") {
+    closeModal();
+    toast("Late marking is no longer available");
+    render();
+    return;
+  }
+  if (!values.reason.trim()) {
+    toast("Reason is required");
+    return;
+  }
   record.status = values.status;
-  record.reason = values.reason;
-  record.method = record.method === "-" ? "Manual" : record.method;
+  record.reason = values.reason.trim();
+  record.method = "Manual";
   record.time = record.time === "-" ? new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : record.time;
   closeModal();
   toast("Attendance status updated");
@@ -842,6 +883,7 @@ Object.assign(window, {
   createCheckIn,
   closeCheckIn,
   reopenCheckIn,
+  lockReopenedAttendance,
   togglePin,
   openStudentDetail,
   openStatusModal,
