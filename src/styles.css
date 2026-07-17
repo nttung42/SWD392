@@ -1192,6 +1192,92 @@ textarea:focus {
   color: white;
 }
 
+.camera-preview {
+  position: relative;
+  display: grid;
+  height: 270px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--radius);
+  color: white;
+}
+
+.front-camera {
+  background:
+    radial-gradient(circle at 50% 34%, rgba(255, 255, 255, 0.18), transparent 28%),
+    linear-gradient(145deg, #1f2731, #3b2a24 58%, #6f2d00);
+}
+
+.rear-camera {
+  background:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.12) 25%, transparent 25%),
+    var(--brand-dark);
+}
+
+.camera-label {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.22);
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.camera-caption {
+  position: absolute;
+  right: 16px;
+  bottom: 18px;
+  left: 16px;
+  text-align: center;
+}
+
+.face-frame {
+  position: relative;
+  display: grid;
+  width: 190px;
+  height: 220px;
+  place-items: center;
+}
+
+.face-oval {
+  width: 138px;
+  height: 180px;
+  border: 3px solid rgba(255, 255, 255, 0.96);
+  border-radius: 50% / 58%;
+  box-shadow:
+    0 0 0 999px rgba(0, 0, 0, 0.2),
+    0 0 22px rgba(255, 255, 255, 0.3);
+}
+
+.face-scan-line {
+  position: absolute;
+  left: 24px;
+  width: 142px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--brand);
+  box-shadow: 0 0 16px var(--brand);
+  animation: face-scan 1.45s ease-in-out infinite;
+}
+
+@keyframes face-scan {
+  0% {
+    top: 28px;
+  }
+  50% {
+    top: 176px;
+  }
+  100% {
+    top: 28px;
+  }
+}
+
 .scan-frame {
   width: 190px;
   height: 190px;

@@ -3,6 +3,7 @@ const state = {
   pin: "",
   checkMode: "QR",
   checkedIn: false,
+  qrFlowToken: 0,
 };
 
 const timetable = [
@@ -138,33 +139,104 @@ function renderClasses() {
   `;
 }
 
-function renderQrFlow() {
+const qrStepLabels = [
+  "Opening front camera",
+  "Validating biometric identity",
+  "Switching to rear camera",
+  "Reading QR token",
+  "Capturing location evidence",
+  "Recording attendance",
+];
+
+function renderQrSteps(activeIndex) {
+  return `
+    <div class="check-steps" id="qrSteps">
+      ${qrStepLabels.map((label, index) => {
+        const stateClass = index < activeIndex ? "done" : index === activeIndex ? "running" : "";
+        const stepIcon = index < activeIndex ? "check-circle-2" : index === activeIndex ? "loader-circle" : "circle";
+        return `<div class="check-step ${stateClass}">${icon(stepIcon)}${label}</div>`;
+      }).join("")}
+    </div>
+  `;
+}
+
+function cancelQrFlow() {
+  state.qrFlowToken += 1;
+  showScreen("home");
+}
+
+function renderQrBiometricFlow() {
   $("#screen-qr").innerHTML = `
-    <button class="btn btn-secondary" type="button" onclick="showScreen('home')" style="margin-bottom:14px;">
+    <button class="btn btn-secondary" type="button" onclick="cancelQrFlow()" style="margin-bottom:14px;">
+      ${icon("chevron-left")}
+      Back
+    </button>
+    <h2 style="margin:0 0 12px;">Biometric validation</h2>
+    <div class="camera-preview front-camera" aria-label="Front camera biometric validation">
+      <div class="camera-label">${icon("camera")}Front camera</div>
+      <div class="face-frame">
+        <div class="face-oval"></div>
+        <div class="face-scan-line"></div>
+      </div>
+      <strong class="camera-caption">Reading face identity</strong>
+    </div>
+    ${renderQrSteps(0)}
+  `;
+}
+
+function renderQrScanFlow() {
+  $("#screen-qr").innerHTML = `
+    <button class="btn btn-secondary" type="button" onclick="cancelQrFlow()" style="margin-bottom:14px;">
       ${icon("chevron-left")}
       Back
     </button>
     <h2 style="margin:0 0 12px;">QR check-in</h2>
-    <div class="scanner">
+    <div class="scanner rear-camera" aria-label="Rear camera QR scanner">
+      <div class="camera-label">${icon("camera")}Rear camera</div>
       <div class="scan-frame"></div>
       <div class="scan-line"></div>
-      <strong style="position:absolute;bottom:18px;">Scanning QR token</strong>
+      <strong class="camera-caption">Scanning QR token</strong>
     </div>
-    <div class="check-steps" id="qrSteps">
-      <div class="check-step running">${icon("loader-circle")}Opening camera</div>
-      <div class="check-step">${icon("circle")}Validating biometric identity</div>
-      <div class="check-step">${icon("circle")}Reading QR token</div>
-      <div class="check-step">${icon("circle")}Verifying classroom location</div>
-      <div class="check-step">${icon("circle")}Recording attendance</div>
-    </div>
+    ${renderQrSteps(3)}
   `;
 }
 
 function startQrFlow() {
   state.checkMode = "QR";
-  renderQrFlow();
+  state.qrFlowToken += 1;
+  const token = state.qrFlowToken;
+  renderQrBiometricFlow();
   showScreen("qr");
-  runCheckSteps("#qrSteps");
+  if (window.lucide) window.lucide.createIcons();
+
+  setTimeout(() => {
+    if (token !== state.qrFlowToken) return;
+    $("#qrSteps").outerHTML = renderQrSteps(1);
+    if (window.lucide) window.lucide.createIcons();
+  }, 850);
+
+  setTimeout(() => {
+    if (token !== state.qrFlowToken) return;
+    renderQrScanFlow();
+    if (window.lucide) window.lucide.createIcons();
+  }, 1900);
+
+  setTimeout(() => {
+    if (token !== state.qrFlowToken) return;
+    $("#qrSteps").outerHTML = renderQrSteps(4);
+    if (window.lucide) window.lucide.createIcons();
+  }, 2950);
+
+  setTimeout(() => {
+    if (token !== state.qrFlowToken) return;
+    $("#qrSteps").outerHTML = renderQrSteps(5);
+    if (window.lucide) window.lucide.createIcons();
+  }, 3650);
+
+  setTimeout(() => {
+    if (token !== state.qrFlowToken) return;
+    finishCheckIn();
+  }, 4850);
 }
 
 function runCheckSteps(selector) {
@@ -327,6 +399,7 @@ updateClock();
 Object.assign(window, {
   showScreen,
   startQrFlow,
+  cancelQrFlow,
   openPinFlow,
   addPinDigit,
   removePinDigit,
