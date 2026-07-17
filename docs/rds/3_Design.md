@@ -120,7 +120,6 @@ CheckInControl --> AttendanceSession : UC02/UC04 read active attendance session
 CheckInControl --> CodeRules : UC02/UC04 verify active code
 CodeRules --> AttendanceConfig : UC02/UC04 read validity parameters
 CheckInControl --> Session : UC02/UC04 read class section and scheduled start time
-CheckInControl --> ClassSectionStudent : UC02/UC04 verify enrollment
 CheckInControl --> StatusRules : UC02/UC04 classify Present or Late from official time
 CheckInControl --> AttendanceRecord : UC02/UC04 save check-in evidence and set official result, or record rejection reason
 CheckInControl --> MonitorControl : UC02/UC04 attendanceResultChanged
@@ -237,7 +236,7 @@ Access --> Adapters : synchronous with reply
 | Presentation Boundary              | `«user interaction subsystem»` | Receives client requests, validates request shape, maps to application services, returns results.                         | UC01-UC10                                |
 | Access and Profile Management      | `«service subsystem»`          | University identity confirmation, role checks, and AFAS profile lookup.                                                   | UC01, BR-01                              |
 | Attendance Coordination            | `«coordinator subsystem»`      | Orchestrates QR/PIN check-in, evidence validation, attendance record upsert, official result creation, and monitor notification. | UC02, UC04                               |
-| Attendance Validation              | `«service subsystem»`          | Validates identity evidence, active QR/PIN code, and enrollment, and classifies Present/Late; captured location is stored as evidence only and never gates the result. | UC02, UC04, BR-02, BR-04-BR-07, BR-12, BR-13 |
+| Attendance Validation              | `«service subsystem»`          | Validates identity evidence and active QR/PIN code, and classifies Present/Late; captured location is stored as evidence only and never gates the result. | UC02, UC04, BR-02, BR-04, BR-05, BR-07, BR-12, BR-13 |
 | Session Lifecycle                  | `«control subsystem»`          | Governs active, stopped, reopened, reviewed, and finalized attendance-session states.                                     | UC05, BR-08, BR-10                       |
 | Monitoring and Notification        | `«service subsystem»`          | Pushes accepted check-in status and retrieves live roster state.                                                          | UC06, NF-01                              |
 | Administrative Management          | `«service subsystem»`          | Maintains catalog and classroom location configuration.                                                                   | UC09, UC10                               |
@@ -624,17 +623,15 @@ ReportFile - IReportFileWriter
 2. Validate biometric or selfie proof through `IdentityEvidencePolicy`.
 3. Read active QR/PIN code from `IAttendanceCodeStore`.
 4. Validate code and session match through `AttendanceCodePolicy`.
-5. Read configuration and existing official result through repositories.
+5. Read configuration through repositories.
 6. Classify Present/Late when accepted; store submitted location coordinates as evidence only.
 7. Upsert the `AttendanceRecord` for `(StudentId, SessionId)`: save check-in evidence and official status when accepted, or record the latest rejection reason when rejected.
 8. Publish `AttendanceAcceptedNotification` for accepted official results.
 9. Return check-in result to the student client.
 
-**Exception Behavior:** Expired code records the latest rejection reason; student not enrolled records the latest rejection reason; an existing official result is returned unchanged. Missing or out-of-range location never blocks or rejects the check-in; it is recorded as informational evidence.
+**Exception Behavior:** Expired code records the latest rejection reason. Missing or out-of-range location never blocks or rejects the check-in; it is recorded as informational evidence.
 
 **Termination:** Ends after result is returned.
-
-**Concurrency Notes:** Official attendance creation is guarded by a uniqueness constraint on `(StudentId, SessionId)` to satisfy BR-06.
 
 ### **Task Interface Specification: QR/PIN Refresh Task**
 
@@ -701,12 +698,11 @@ ReportFile - IReportFileWriter
 
 **Responsibility:** Coordinate QR/PIN check-in from evidence submission to attendance record upsert and official result creation.
 
-**Traceability:** UC02, UC04, UC06; Check-in Control; BR-02, BR-04-BR-07, BR-12, BR-13.
+**Traceability:** UC02, UC04, UC06; Check-in Control; BR-02, BR-04, BR-05, BR-07, BR-12, BR-13.
 
 | Operation                   | Parameters                           | Return              | Precondition                                                                                                                          | Postcondition                                                                                                       | Invariant                                                                                                  |
 | :-------------------------- | :----------------------------------- | :------------------ | :------------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------- |
-| `processCheckIn`            | `command: CheckInCommand`            | `CheckInResult`     | Student is authenticated; active attendance session is expected; identity, device, and submitted code evidence are present. Location is optional (informational) and may be absent. | Upserts the single attendance record for the student and study session: saves evidence and official status when accepted, or records the latest rejection reason when rejected. | Official result status is only `Present`, `Late`, or `Absent`; a rejection is kept as `AttendanceRecord.RejectionReason`. |
-| `getExistingOfficialResult` | `studentId: Text`, `sessionId: Text` | `AttendanceRecord?` | Student and study session identifiers are present.                                                                                    | Returns existing official result if one exists.                                                                     | Does not create or modify attendance data.                                                                 |
+| `processCheckIn`            | `command: CheckInCommand`            | `CheckInResult`     | Student is authenticated; active attendance session is expected; identity, device, and submitted code evidence are present. Location is optional (informational) and may be absent. | Saves the attendance record for the student and study session: saves evidence and official status when accepted, or records the latest rejection reason when rejected. | Official result status is only `Present`, `Late`, or `Absent`; a rejection is kept as `AttendanceRecord.RejectionReason`. |
 
 ### **SessionService**
 
@@ -773,7 +769,7 @@ ReportFile - IReportFileWriter
 | Operation                        | Parameters                 | Return       | Precondition                                                            | Postcondition                                                       | Invariant                                                                      |
 | :------------------------------- | :------------------------- | :----------- | :---------------------------------------------------------------------- | :------------------------------------------------------------------ | :----------------------------------------------------------------------------- |
 | `findAccount`                    | `identity: Text`           | `Account?`   | Identity is present.                                                    | Returns account or not found.                                       | Repository hides physical database details from domain and application layers. |
-| `saveAttendanceRecord`           | `record: AttendanceRecord` | `SaveResult` | Record has student and study session; official status, evidence, or rejection reason are set as applicable. | The single attendance record for `(StudentId, SessionId)` is inserted or updated. | `(StudentId, SessionId)` is unique; repeated submissions update the same row (BR-06). |
+| `saveAttendanceRecord`           | `record: AttendanceRecord` | `SaveResult` | Record has student and study session; official status, evidence, or rejection reason are set as applicable. | The attendance record for the student and study session is inserted or updated. | Repository hides physical database details from domain and application layers. |
 
 ---
 
@@ -855,7 +851,7 @@ The persistence model maps the analysis entity class diagram in Figure II-1 to a
 | `sessions`                  | `session_id`                     | `class_section_id`, `room_id`, `session_date`, `start_time`, `end_time`                                                                                                                                                                                                                            | FK to class section and room; UC05                                                                                    |
 | `attendance_configurations` | `configuration_code`             | `qr_refresh_seconds`, `qr_validity_seconds`, `pin_refresh_seconds`, `late_threshold_minutes`, `default_allowed_radius`                                                                                                                                                                             | Timing and radius values are configurable; NF-06                                                                      |
 | `attendance_sessions`       | `session_id`                     | `dynamic_token`, `qr_refreshed_at`, `pin_code`, `pin_refreshed_at`, `session_status`                                                                                                                                                                                                               | One attendance session per scheduled session; UC05, BR-02, BR-10                                                      |
-| `attendance_records`        | `attendance_record_id`           | `student_id`, `session_id`, `check_in_method` (nullable), `submitted_at` (nullable), `submitted_latitude` (nullable), `submitted_longitude` (nullable), `location_accuracy_meters` (nullable), `device_identifier` (nullable), `device_display_name` (nullable), `face_evidence_reference` (nullable), `attendance_status` (nullable until set), `result_source`, `rejection_reason` (nullable), `finalized_at` (nullable) | Unique `(student_id, session_id)` — one row per student per study session, repeated submissions update the same row (BR-06); location columns are nullable and informational only (no distance computed) and never drive the result; `attendance_status` limited to `Present`, `Late`, `Absent`; UC02, UC04, UC05, UC07, UC08 |
+| `attendance_records`        | `attendance_record_id`           | `student_id`, `session_id`, `check_in_method` (nullable), `submitted_at` (nullable), `submitted_latitude` (nullable), `submitted_longitude` (nullable), `location_accuracy_meters` (nullable), `device_identifier` (nullable), `device_display_name` (nullable), `face_evidence_reference` (nullable), `attendance_status` (nullable until set), `result_source`, `rejection_reason` (nullable), `finalized_at` (nullable) | Location columns are nullable and informational only (no distance computed) and never drive the result; `attendance_status` limited to `Present`, `Late`, `Absent`; UC02, UC04, UC05, UC07, UC08 |
 
 ### **III.9.2 Database Wrapper Classes**
 
