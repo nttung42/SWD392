@@ -152,6 +152,7 @@ function renderQrFlow() {
     </div>
     <div class="check-steps" id="qrSteps">
       <div class="check-step running">${icon("loader-circle")}Opening camera</div>
+      <div class="check-step">${icon("circle")}Validating biometric identity</div>
       <div class="check-step">${icon("circle")}Reading QR token</div>
       <div class="check-step">${icon("circle")}Verifying classroom location</div>
       <div class="check-step">${icon("circle")}Recording attendance</div>

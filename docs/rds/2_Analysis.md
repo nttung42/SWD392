@@ -705,9 +705,6 @@ AttendanceSession --> SessionRules : active-session status
 alt outside scheduled hours
   SessionRules --> SessionControl : activation denied
   SessionControl --> LecturerUI : show outside scheduled hours error
-else active session already exists
-  SessionRules --> SessionControl : activation denied
-  SessionControl --> LecturerUI : show active session already exists error
 else activation allowed
   SessionRules --> SessionControl : activation allowed
   SessionControl -> SessionRules : activate attendance session
