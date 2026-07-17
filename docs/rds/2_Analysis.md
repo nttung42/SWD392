@@ -45,11 +45,6 @@ class "Room" as Room <<entity>> {
   AllowedRadius
 }
 
-class "CampusZone " as CampusZone  <<entity>> {
-  CampusZone Code
-  BoundaryCoordinates
-}
-
 class "Subject" as Subject <<entity>> {
   SubjectCode
   SubjectName
@@ -115,7 +110,6 @@ class "AttendanceRecord" as AttendanceRecord <<entity>> {
 
 Account "1" -- "0..1" Student
 Account "1" -- "0..1" Lecturer
-CampusZone  "1" -- "0..*" Room : contains valid room locations
 Lecturer "1" -- "0..*" ClassSection
 Subject "1" -- "0..*" ClassSection
 ClassSection "1" -- "0..*" ClassSectionStudent
@@ -216,7 +210,6 @@ The collaboration criteria for these objects are:
 *** Account
 *** Student
 *** Lecturer
-*** CampusZone 
 *** Room
 *** Subject
 *** ClassSection
@@ -242,9 +235,9 @@ The collaboration criteria for these objects are:
 | AuthenticationService                                                  | `«business logic»`          | Encapsulates role-access rules by locating the AFAS role profile for a confirmed university identity and checking whether the requested role is allowed.                                                                                                                                                                                                                                                                           | UC01, UC03, BR-01                                         |
 | CheckInService                                                         | `«business logic»`          | Encapsulates rules for a submitted student check-in by reading the required session, configuration, room, and attendance record facts, then checking QR/PIN validity, identity evidence, session match, and Present/Late status using official system time. Submitted location coordinates are captured and stored for information only; they never affect acceptance and are not required.                                                                                | UC02, UC04, BR-02, BR-04, BR-12, BR-13, NF-06      |
 | AttendanceSessionService                                               | `«business logic»`          | Encapsulates attendance history, attendance session lifecycle, and lecturer-operation policies by reading the required schedule, lecturer, session, roster, check-in, configuration, and official attendance facts, then checking scheduled time window, assigned lecturer, active session uniqueness, QR/PIN refresh policy, absent assignment, finalization, report eligibility, and whether manual adjustment is still allowed. | UC03, UC05, UC07, UC08, BR-02, BR-08, BR-10, BR-12, NF-06 |
-| CatalogManagementService                                               | `«business logic»`          | Encapsulates catalog and room-configuration rules by reading the required catalog and location facts, then checking catalog field validity, identifier uniqueness, classroom location coordinates, campus boundary membership, and allowed radius values.                                                                                                                                                                          | UC09, UC10, BR-03, BR-11                                  |
+| CatalogManagementService                                               | `«business logic»`          | Encapsulates catalog and room-configuration rules by reading the required catalog and location facts, then checking catalog field validity, identifier uniqueness, classroom location coordinates, and allowed radius values.                                                                                                                                                                          | UC09, UC10, BR-03, BR-11                                  |
 | Account, Student, Lecturer                                             | `«entity»`                  | Store AFAS role profile information linked to university identity.                                                                                                                                                                                                                                                                                                                                                                 | UC01, UC09                                                |
-| CampusZone , Room, Subject, ClassSection, ClassSectionStudent, Session | `«entity»`                  | Store academic catalog, roster, campus boundary, classroom coordinates, and scheduled session information.                                                                                                                                                                                                                                                                                                                         | UC02-UC10                                                 |
+| Room, Subject, ClassSection, ClassSectionStudent, Session | `«entity»`                  | Store academic catalog, roster, classroom coordinates, and scheduled session information.                                                                                                                                                                                                                                                                                                                         | UC02-UC10                                                 |
 | AttendanceConfiguration                                                | `«entity»`                  | Stores configurable attendance timing and default allowed radius values required by maintainability requirements.                                                                                                                                                                                                                                                                                                                  | UC02, UC04, UC05, UC10, NF-06                             |
 | AttendanceSession, AttendanceRecord                                    | `«entity»`                  | Store attendance session lifecycle, check-in evidence, and official result information.                                                                                                                                                                                                                                                                                                                                                             | UC02-UC08                                                 |
 
@@ -1164,7 +1157,6 @@ participant "CatalogManagementCoordinator\n«coordinator»" as RoomControl
 participant "MobileDeviceInterface\n«device I/O»" as MobileSensor
 participant "CatalogManagementService\n«business logic»" as LocationSettingRules
 participant "Room\n«entity»" as Room
-participant "CampusZone \n«entity»" as CampusZone 
 participant "AttendanceConfiguration\n«entity»" as AttendanceConfig
 
 Admin -> AdminUI : click Room Management
@@ -1199,17 +1191,11 @@ LocationSettingRules -> Room : read current room configuration
 Room --> LocationSettingRules : current room configuration
 LocationSettingRules -> AttendanceConfig : read default radius rule when needed
 AttendanceConfig --> LocationSettingRules : default radius rule
-LocationSettingRules -> CampusZone  : check location inside university boundary
-CampusZone  --> LocationSettingRules : boundary check result
 
 alt invalid coordinate or radius
   LocationSettingRules --> RoomControl : setting value invalid
   RoomControl --> AdminUI : warning to verify location values
   AdminUI --> Admin : show coordinate or radius validation warning
-else location outside university boundary
-  LocationSettingRules --> RoomControl : location outside campus boundary
-  RoomControl --> AdminUI : out-of-bounds location warning
-  AdminUI --> Admin : show campus boundary warning
 else location accepted
   LocationSettingRules -> Room : update room location settings
   LocationSettingRules --> RoomControl : location settings accepted
@@ -1230,7 +1216,6 @@ class "CatalogManagementCoordinator" as RoomControl <<coordinator>>
 class "MobileDeviceInterface" as MobileSensor <<device I/O>>
 class "CatalogManagementService" as LocationSettingRules <<business logic>>
 class "Room" as Room <<entity>>
-class "CampusZone " as CampusZone  <<entity>>
 class "AttendanceConfiguration" as AttendanceConfig <<entity>>
 
 Admin --> AdminUI : 1 configure classroom location
@@ -1240,7 +1225,6 @@ LocationSettingRules --> Room : 1.1.1.1 read or update room location settings
 LocationSettingRules --> AttendanceConfig : 1.1.1.2 read default allowed radius
 RoomControl --> MobileSensor : 1.1.2 read current location for calibration
 MobileSensor --> MobileHardware : 1.1.2.1 obtain current location
-LocationSettingRules --> CampusZone  : 1.1.1.3 check university boundary
 RoomControl --> AdminUI : 2 return saved result or warning
 @enduml
 ```
@@ -1301,7 +1285,7 @@ Finalized --> [*]
 | UC07 Adjust Attendance Manually          | Lecturer                                             | LecturerInteraction, AttendanceCoordinator, AttendanceSessionService, ClassSectionStudent, AttendanceRecord                                                                                                                | Figure II-15, Figure II-16, Figure II-24                          | BR-10                                                                       |
 | UC08 Export Attendance Report            | Lecturer                                             | LecturerInteraction, AttendanceCoordinator, AttendanceSessionService, ClassSectionStudent, Session, AttendanceRecord                                                                                                       | Figure II-17, Figure II-18, Figure II-24                          | BR-08                                                                       |
 | UC09 Manage System Catalog               | Admin                                                | AdminInteraction, CatalogManagementCoordinator, CatalogManagementService, Account, Student, Lecturer, Subject, ClassSection, ClassSectionStudent, Session                                                                                  | Figure II-19, Figure II-20                                        | BR-11                                                                       |
-| UC10 Configure Classroom Location        | Admin, Mobile Device Hardware                        | AdminInteraction, MobileDeviceInterface, CatalogManagementCoordinator, CatalogManagementService, CampusZone , AttendanceConfiguration, Room                                                                                                | Figure II-21, Figure II-22                                        | BR-03, NF-06                                                                |
+| UC10 Configure Classroom Location        | Admin, Mobile Device Hardware                        | AdminInteraction, MobileDeviceInterface, CatalogManagementCoordinator, CatalogManagementService, AttendanceConfiguration, Room                                                                                                | Figure II-21, Figure II-22                                        | BR-03, NF-06                                                                |
 | NF-06 Configurable attendance parameters | Student, Lecturer, Admin                             | AttendanceConfiguration, CheckInService, AttendanceSessionService, CatalogManagementService, CatalogManagementCoordinator                                                                                                                  | Figure II-1, Figure II-5, Figure II-9, Figure II-11, Figure II-21 | NF-06                                                                       |
 
 ---
@@ -1316,7 +1300,7 @@ Finalized --> [*]
 | Contextual boundary diagram contains only external participants and the AFAS black box                                                                    | Pass       | Figure II-2 contains AFAS, external users, Mobile Device Hardware, and University Identity System only                                                                                                                        |
 | Static data structure is isolated from behavior views                                                                                                     | Pass       | Figure II-1 contains only entity classes and relationships; Figure II-2 contains only the contextual boundary; Section II.2 provides use-case-specific behavior diagrams                                                      |
 | Mobile device hardware is represented consistently across context and interaction views                                                                   | Pass       | Figure II-2 represents Mobile Device Hardware as an external device; Figure II-5, Figure II-6, Figure II-9, Figure II-10, Figure II-21, and Figure II-22 use MobileDeviceInterface as the internal device I/O boundary object |
-| Entity relationships distinguish lifecycle ownership where appropriate                                                                                    | Pass       | Figure II-1 uses composition for study-session-owned attendance lifecycle data and association for campus-room location membership                                                                                            |
+| Entity relationships distinguish lifecycle ownership where appropriate                                                                                    | Pass       | Figure II-1 uses composition for study-session-owned attendance lifecycle data and association for room location membership                                                                                            |
 | Interface wireframes are included for key actor workflows                                                                                                 | Pass       | Section II.1.4 covers Student, Lecturer, and Admin wireframes with UC trace notes                                                                                                                                             |
 | NF-06 configurable attendance parameters are represented in Analysis                                                                                      | Pass       | AttendanceConfiguration appears in Figure II-1 and is used by CheckInService, AttendanceSessionService, CatalogManagementService, and CatalogManagementCoordinator                                                            |
 | QR/PIN check-in records the official result after identity and code checks; location is informational and never blocks check-in                   | Pass       | Figures II-5 and II-9                                                                                                                                                                                                         |
@@ -1327,6 +1311,6 @@ Finalized --> [*]
 | UC06 separates inactive sessions from interrupted live updates                                                                                            | Pass       | Figure II-13                                                                                                                                                                                                                  |
 | UC08 exports only finalized attendance results                                                                                                            | Pass       | Figure II-17 and Figure II-24                                                                                                                                                                                                 |
 | Official attendance results exclude Rejected status                                                                                                       | Pass       | Figure II-1, Figure II-24                                                                                                                                                                                                     |
-| UC10 validates coordinate, university campus boundary, and radius values                                                                                  | Pass       | Figure II-21                                                                                                                                                                                                                  |
+| UC10 validates coordinate and radius values                                                                                                              | Pass       | Figure II-21                                                                                                                                                                                                                  |
 | Location model supports submitted-coordinate and accuracy capture for information only (no distance computed; not used to accept or reject check-in)       | Pass       | Figure II-1, Figure II-5, Figure II-9, Figure II-21                                                                                                                                                                           |
 | Removed untraced analysis objects and flows                                                                                                               | Pass       | Old external-login flow, lecturer location storage, untraced device lifecycle, network evidence details, and unsupported face-matching threshold are not modeled                                                              |

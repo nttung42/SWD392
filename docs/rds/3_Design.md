@@ -96,7 +96,6 @@ object "ClassSection\n«entity»" as ClassSection
 object "ClassSectionStudent\n«entity»" as ClassSectionStudent
 object "Session\n«entity»" as Session
 object "Room\n«entity»" as Room
-object "CampusZone \n«entity»" as CampusZone 
 object "AttendanceConfiguration\n«entity»" as AttendanceConfig
 object "AttendanceSession\n«entity»" as AttendanceSession
 object "AttendanceRecord\n«entity»" as AttendanceRecord
@@ -164,8 +163,7 @@ CatalogControl --> ClassSection : UC09 maintain class sections
 
 AdminUI --> RoomControl : UC10 configure classroom location
 RoomControl --> MobileSensor : UC10 capture current location when calibrated on site
-RoomControl --> RoomRules : UC10 validate coordinate, campus boundary, and radius
-RoomRules --> CampusZone  : UC10 check university boundary
+RoomControl --> RoomRules : UC10 validate coordinate and radius
 RoomControl --> Room : UC10 update room location settings
 RoomControl --> AttendanceConfiguration : UC10 read default radius
 @enduml
@@ -380,37 +378,25 @@ DeviceAdapter --> StudentApp : location and device evidence
 StudentApp -> CheckInEndpoint : submit check-in evidence
 CheckInEndpoint -> CheckInService : processCheckIn(command)
 CheckInService -> IdentityPolicy : validate identity evidence
+IdentityPolicy --> CheckInService : identity evidence accepted
+CheckInService -> CodeCache : read active QR/PIN for session
+CodeCache --> CheckInService : active code and timestamps
+CheckInService -> CodePolicy : verify active code and session match
 
-alt identity evidence invalid
-  IdentityPolicy --> CheckInService : rejected
-  CheckInService --> CheckInEndpoint : blocked result
-  CheckInEndpoint --> StudentApp : show identity failure
-else identity evidence accepted
-  CheckInService -> CodeCache : read active QR/PIN for session
-  CodeCache --> CheckInService : active code and timestamps
-  CheckInService -> CodePolicy : verify active code and session match
-
-  alt code expired or mismatched
-    CodePolicy --> CheckInService : rejected
-    CheckInService -> Repository : record latest rejection reason on AttendanceRecord
-    CheckInService --> CheckInEndpoint : rejected result
-    CheckInEndpoint --> StudentApp : show expired or invalid code
-  else code valid
-    CheckInService -> Repository : read AttendanceConfiguration, existing AttendanceRecord
-    Repository --> CheckInService : config, existing result
-
-    alt no official result exists
-      CheckInService -> StatusPolicy : classify Present or Late
-      StatusPolicy --> CheckInService : official status
-      CheckInService -> Repository : save AttendanceRecord with check-in evidence and official status (submitted coordinates stored as evidence)
-      CheckInService -> Realtime : publish attendance accepted notification
-      CheckInService --> CheckInEndpoint : accepted result
-      CheckInEndpoint --> StudentApp : show Present or Late result
-    else official result already exists
-      CheckInService --> CheckInEndpoint : return existing official result
-      CheckInEndpoint --> StudentApp : show existing result
-    end
-  end
+alt code expired or mismatched
+  CodePolicy --> CheckInService : rejected
+  CheckInService -> Repository : record latest rejection reason on AttendanceRecord
+  CheckInService --> CheckInEndpoint : rejected result
+  CheckInEndpoint --> StudentApp : show expired or invalid code
+else code valid
+  CheckInService -> Repository : read AttendanceConfiguration
+  Repository --> CheckInService : config
+  CheckInService -> StatusPolicy : classify Present or Late
+  StatusPolicy --> CheckInService : official status
+  CheckInService -> Repository : save AttendanceRecord with check-in evidence and official status (submitted coordinates stored as evidence)
+  CheckInService -> Realtime : publish attendance accepted notification
+  CheckInService --> CheckInEndpoint : accepted result
+  CheckInEndpoint --> StudentApp : show Present or Late result
 end
 @enduml
 ```
@@ -762,7 +748,7 @@ ReportFile - IReportFileWriter
 
 | Operation              | Parameters                                               | Return                  | Precondition                                                           | Postcondition                                         | Invariant                                                                                        |
 | :--------------------- | :------------------------------------------------------- | :---------------------- | :--------------------------------------------------------------------- | :---------------------------------------------------- | :----------------------------------------------------------------------------------------------- |
-| `saveRoomCoordinates`  | `adminAccountId: Text`, `command: RoomCoordinateCommand` | `ConfigurationResult`   | Admin is authenticated; room exists; location and radius are provided. | Room coordinate settings are saved.                   | Allowed radius must be greater than zero and location must be inside configured campus boundary. |
+| `saveRoomCoordinates`  | `adminAccountId: Text`, `command: RoomCoordinateCommand` | `ConfigurationResult`   | Admin is authenticated; room exists; location and radius are provided. | Room coordinate settings are saved.                   | Allowed radius must be greater than zero.                                                        |
 | `getRoomConfiguration` | `roomId: Text`                                           | `RoomConfigurationView` | Room ID is present.                                                    | Returns current location, radius, and default values. | Read operation does not modify configuration.                                                    |
 
 ### **III.7.2 Repository and Wrapper Contracts**
@@ -862,8 +848,7 @@ The persistence model maps the analysis entity class diagram in Figure II-1 to a
 | `accounts`                  | `id`                             | `university_identity_code`, `email`, `full_name`, `role`, `registration_date`                                                                                                                                                                                                                      | Unique `university_identity_code`; UC01, UC09, BR-01, BR-11                                                           |
 | `students`                  | `student_id`                     | `account_id`                                                                                                                                                                                                                                                                                       | FK to `accounts`; UC01, UC03, UC09                                                                                    |
 | `lecturers`                 | `lecturer_id`                    | `account_id`, `department_name`                                                                                                                                                                                                                                                                    | FK to `accounts`; UC01, UC05-UC09                                                                                     |
-| `campus_boundaries`         | `campus_boundary_code`           | `boundary_coordinates`                                                                                                                                                                                                                                                                             | Validates admin room configuration only; not used for check-in gating; UC10                                           |
-| `rooms`                     | `room_id`                        | `campus_boundary_code`, `room_name`, `latitude`, `longitude`, `allowed_radius`                                                                                                                                                                                                                     | Radius > 0; UC02, UC04, UC10, BR-03                                                                                   |
+| `rooms`                     | `room_id`                        | `room_name`, `latitude`, `longitude`, `allowed_radius`                                                                                                                                                                                                                                             | Radius > 0; UC02, UC04, UC10, BR-03                                                                                   |
 | `subjects`                  | `subject_code`                   | `subject_name`, `credits`                                                                                                                                                                                                                                                                          | `credits > 0`; UC09, BR-11                                                                                            |
 | `class_sections`            | `class_section_id`               | `class_section_name`, `subject_code`, `lecturer_id`, `semester`                                                                                                                                                                                                                                    | FK to subject and lecturer; UC05-UC09                                                                                 |
 | `class_section_students`    | `(class_section_id, student_id)` | none beyond keys                                                                                                                                                                                                                                                                                   | Composite PK prevents duplicate enrollment; UC03, UC05, UC06, UC08                                                    |
@@ -942,7 +927,7 @@ RoomRepo --> Room
 | UC07 Adjust Attendance Manually       | Lecturer                                             | Lecturer Web Interface, Adjustment Control, Session Rules, AttendanceRecord                                                                                                                                                                                                        | AdjustmentService, Repository Adapters                                                                                                             | Figures III-1, III-6; AdjustmentService contract                  |
 | UC08 Export Attendance Report         | Lecturer                                             | Lecturer Web Interface, Report Control, Report Eligibility Rules, ClassSectionStudent, Session, AttendanceRecord                                                                                                                                                                   | Reporting subsystem, ReportService, ReportFileAdapter                                                                                              | Figures III-1, III-6; ReportService contract                      |
 | UC09 Manage System Catalog            | Admin                                                | Admin Web Interface, Catalog Control, Catalog Uniqueness Rules, Account, Student, Lecturer, Subject, ClassSection                                                                                                                                                                                  | Administrative Management, CatalogService, Repository Adapters                                                                                     | Figures III-1, III-6; persistence mapping                         |
-| UC10 Configure Classroom Location     | Admin                                                | Admin Web Interface, Mobile Device Sensor Interface, Room Configuration Control, Room Location Setting Rules, CampusZone , AttendanceConfiguration, Room                                                                                                                                           | RoomConfigurationService, Device Evidence Adapter for on-site calibration, Room repository                                                         | Figures III-1, III-6; RoomConfigurationService contract           |
+| UC10 Configure Classroom Location     | Admin                                                | Admin Web Interface, Mobile Device Sensor Interface, Room Configuration Control, Room Location Setting Rules, AttendanceConfiguration, Room                                                                                                                                           | RoomConfigurationService, Device Evidence Adapter for on-site calibration, Room repository                                                         | Figures III-1, III-6; RoomConfigurationService contract           |
 | NF-01 Performance and concurrency     | Student, Lecturer                                    | Attendance Code Rules, Monitor Control, AttendanceSession                                                                                                                                                                                                                                          | Attendance Code Cache, QR/PIN Refresh Task, Realtime Notification Adapter                                                                          | Figures III-3, III-5, III-6; TIS/TBS                              |
 | NF-06 Configurability                 | Lecturer, Admin                                      | AttendanceConfiguration, Attendance Code Rules, Attendance Status Calculation, Room Configuration Control                                                                                                                                                                                          | `attendance_configurations`, SessionService, RoomConfigurationService, policy classes                                                              | Figures III-1, III-3; persistence mapping                         |
 

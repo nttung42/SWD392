@@ -43,12 +43,6 @@ else biometric unavailable - face selfie fallback
   MobileSensor --> CheckInControl : face proof
   CheckInControl -> AttendanceRules : validate fallback proof
   AttendanceRules --> CheckInControl : fallback proof accepted
-else identity verification failed and no valid fallback
-  MobileSensor --> CheckInControl : identity evidence failed
-  CheckInControl --> StudentUI : identity evidence rejected
-  break check-in submission blocked
-    StudentUI --> Student : block check-in submission
-  end
 end
 CheckInControl --> StudentUI : identity verification accepted
 @enduml
@@ -58,7 +52,7 @@ CheckInControl --> StudentUI : identity verification accepted
 
 ### **UC02 - Check In via Dynamic QR Code**
 
-The rule checks (code validity, enrollment, duplicate result, Present/Late classification) are evaluated inside `CheckInService`, which returns a single business result. The coordinator selects one flat outcome branch. Location is captured and stored for information only; it never causes a rejection and is not required. Rejection reasons are listed in the catalog below.
+The rule checks (code validity and Present/Late classification) are evaluated inside `CheckInService`, which returns a single business result. The coordinator selects one flat outcome branch. Location is captured and stored for information only; it never causes a rejection and is not required. Rejection reasons are listed in the catalog below.
 
 ```plantuml
 @startuml
@@ -87,22 +81,18 @@ CheckInControl -> AttendanceRules : submit QR check-in evidence(scanned code, id
 
 note over AttendanceRules
   Evaluate rules in priority order, stop at first failure (reason recorded):
-  1) QR code still valid - BR-02      2) student enrolled - BR-14
-  3) no existing official result - BR-06
-  Reads AttendanceSession, Session, ClassSectionStudent, AttendanceConfiguration;
+  1) QR code still valid - BR-02
+  Reads AttendanceSession, Session, AttendanceConfiguration;
   updates AttendanceRecord (submitted coordinates stored as evidence).
   If all pass: classify Present or Late by Late threshold - BR-13.
 end note
 
-AttendanceRules --> CheckInControl : result(accepted | duplicate | rejected)
+AttendanceRules --> CheckInControl : result(accepted | rejected)
 
 alt check-in accepted
   CheckInControl --> StudentUI : check-in accepted(official status)
   CheckInControl --> LecturerUI : attendance result changed for live monitor
   StudentUI --> Student : show successful check-in time
-else official result already exists
-  CheckInControl --> StudentUI : return existing official result
-  StudentUI --> Student : show existing result
 else check-in rejected
   CheckInControl --> StudentUI : reject check-in(reason)
   StudentUI --> Student : show rejection reason
@@ -115,7 +105,6 @@ end
 | **Order** | **Reason**        | **Rule check**                                                                  | **Trace** |
 | :-------- | :---------------- | :------------------------------------------------------------------------------ | :-------- |
 | 1         | `ExpiredCode`     | Scanned QR is no longer within QR validity seconds.                             | BR-02     |
-| 2         | `NotEnrolled`     | Student is not in the target class section roster.                              | BR-14     |
 
 ---
 
@@ -150,22 +139,18 @@ CheckInControl -> AttendanceRules : submit PIN check-in evidence(PIN, identity, 
 
 note over AttendanceRules
   Evaluate rules in priority order, stop at first failure (reason recorded):
-  1) PIN still valid - BR-02          2) student enrolled - BR-14
-  3) no existing official result - BR-06
-  Reads AttendanceSession, Session, ClassSectionStudent, AttendanceConfiguration;
+  1) PIN still valid - BR-02
+  Reads AttendanceSession, Session, AttendanceConfiguration;
   updates AttendanceRecord (submitted coordinates stored as evidence).
   If all pass: classify Present or Late by Late threshold - BR-13.
 end note
 
-AttendanceRules --> CheckInControl : result(accepted | duplicate | rejected)
+AttendanceRules --> CheckInControl : result(accepted | rejected)
 
 alt check-in accepted
   CheckInControl --> StudentUI : check-in accepted(official status)
   CheckInControl --> LecturerUI : attendance result changed for live monitor
   StudentUI --> Student : show successful PIN check-in
-else official result already exists
-  CheckInControl --> StudentUI : return existing official result
-  StudentUI --> Student : show existing result
 else check-in rejected
   CheckInControl --> StudentUI : reject check-in(reason)
   StudentUI --> Student : show rejection reason
@@ -178,7 +163,6 @@ end
 | **Order** | **Reason**        | **Rule check**                                                                  | **Trace** |
 | :-------- | :---------------- | :------------------------------------------------------------------------------ | :-------- |
 | 1         | `ExpiredCode`     | Entered PIN is no longer within PIN refresh seconds.                            | BR-02     |
-| 2         | `NotEnrolled`     | Student is not in the target class section roster.                              | BR-14     |
 
 ---
 
@@ -268,7 +252,7 @@ else activation allowed
   end
 
   SessionControl -> SessionRules : assign Absent results for missing official records
-  note right of SessionRules : reads ClassSectionStudent, assigns Absent to students without Present/Late - BR-06
+  note right of SessionRules : reads ClassSectionStudent, assigns Absent to students without Present/Late
   SessionRules --> SessionControl : completed attendance list
   SessionControl --> LecturerUI : show completed attendance list
 
