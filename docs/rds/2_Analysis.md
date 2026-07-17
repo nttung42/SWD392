@@ -259,8 +259,8 @@ The collaboration criteria for these objects are:
 | AttendanceSessionControl                                               | `«state dependent control»` | Coordinates attendance session lifecycle transitions: active, stopped, reopened, finalized; delegates transition eligibility rules to attendance session policy logic.                                                                                                                                                                                                                                                             | UC05, BR-02, BR-08, BR-10, BR-12                          |
 | CatalogManagementCoordinator                                           | `«coordinator»`             | Coordinates administrator configuration flows and delegates catalog, classroom location, allowed radius, and default radius rule evaluation to catalog validation logic.                                                                                                                                                                                                                                                           | UC09, UC10, BR-03, BR-11, NF-06                           |
 | AuthenticationService                                                  | `«business logic»`          | Encapsulates role-access rules by locating the AFAS role profile for a confirmed university identity and checking whether the requested role is allowed.                                                                                                                                                                                                                                                                           | UC01, UC03, BR-01                                         |
-| CheckInService                                                         | `«business logic»`          | Encapsulates rules for a submitted student check-in attempt by reading the required session, configuration, roster, room, attempt, and official attendance facts, then checking QR/PIN validity, identity evidence, session match, enrollment, location eligibility, duplicate official result, and Present/Late status using official system time.                                                                                | UC02, UC04, BR-02, BR-04, BR-12, BR-13, BR-14, NF-06      |
-| DistanceAlgorithm                                                      | `«algorithm»`               | Calculates distance from submitted coordinates to classroom coordinates and evaluates the configured radius with location accuracy tolerance.                                                                                                                                                                                                                                                                                      | UC02, UC04, BR-03, NF-02                                  |
+| CheckInService                                                         | `«business logic»`          | Encapsulates rules for a submitted student check-in attempt by reading the required session, configuration, roster, room, attempt, and official attendance facts, then checking QR/PIN validity, identity evidence, session match, enrollment, duplicate official result, and Present/Late status using official system time. Submitted location is captured and stored for information only (reference distance computed when coordinates are available); it never affects acceptance and is not required.                                                                                | UC02, UC04, BR-02, BR-04, BR-12, BR-13, BR-14, NF-06      |
+| DistanceAlgorithm                                                      | `«algorithm»`               | Calculates the reference distance from submitted coordinates to classroom coordinates (with location accuracy tolerance) for informational recording and display; the result does not gate check-in acceptance.                                                                                                                                                                                                                                                                                      | UC02, UC04, BR-03, NF-02                                  |
 | AttendanceSessionService                                               | `«business logic»`          | Encapsulates attendance history, attendance session lifecycle, and lecturer-operation policies by reading the required schedule, lecturer, session, roster, check-in, configuration, and official attendance facts, then checking scheduled time window, assigned lecturer, active session uniqueness, QR/PIN refresh policy, absent assignment, finalization, report eligibility, and whether manual adjustment is still allowed. | UC03, UC05, UC07, UC08, BR-02, BR-08, BR-10, BR-12, NF-06 |
 | CatalogManagementService                                               | `«business logic»`          | Encapsulates catalog and room-configuration rules by reading the required catalog and location facts, then checking catalog field validity, identifier uniqueness, classroom location coordinates, campus boundary membership, and allowed radius values.                                                                                                                                                                          | UC09, UC10, BR-03, BR-11                                  |
 | Account, Student, Lecturer                                             | `«entity»`                  | Store AFAS role profile information linked to university identity.                                                                                                                                                                                                                                                                                                                                                                 | UC01, UC09                                                |
@@ -467,65 +467,56 @@ end
 StudentUI --> Student : display camera view
 Student -> StudentUI : scan active QR code
 StudentUI -> CheckInControl : submit scanned code
-CheckInControl -> MobileSensor : read GPS coordinates and device identifier
+CheckInControl -> MobileSensor : read GPS coordinates and device identifier (best effort)
 MobileSensor -> MobileHardware : request location and device evidence
-alt location unavailable
-  MobileHardware --> MobileSensor : location unavailable
-  MobileSensor --> CheckInControl : location unavailable
-  CheckInControl --> StudentUI : request location services
-  StudentUI --> Student : prompt to enable location services
-else location and device evidence available
-  MobileHardware --> MobileSensor : location and device evidence
-  MobileSensor --> CheckInControl : submitted location and device evidence
-  CheckInControl -> AttendanceRules : submit QR check-in evidence(scanned code, identity, location, device)
-  AttendanceRules -> AttendanceSession : read active session code and target study session
-  AttendanceSession --> AttendanceRules : active session information
-  AttendanceRules -> AttendanceConfig : read QR validity seconds
+MobileHardware --> MobileSensor : location and device evidence, or location unavailable
+MobileSensor --> CheckInControl : submitted location and device evidence, or location unavailable
+CheckInControl -> AttendanceRules : submit QR check-in evidence(scanned code, identity, location or unavailable, device)
+AttendanceRules -> AttendanceSession : read active session code and target study session
+AttendanceSession --> AttendanceRules : active session information
+AttendanceRules -> AttendanceConfig : read QR validity seconds
 
-  alt attendance code expired
-    AttendanceRules --> CheckInControl : invalid code
-    AttendanceRules -> CheckInAttempt : record rejected attempt(status = Rejected, reason = ExpiredCode)
-    CheckInControl --> StudentUI : reject QR expired
-    StudentUI --> Student : show QR expired message
-  else code valid
-    AttendanceRules -> Session : read class section and scheduled start time
-    Session --> AttendanceRules : class section and session start time
-    AttendanceRules -> ClassSectionStudent : verify student enrollment in class section
-    ClassSectionStudent --> AttendanceRules : enrollment result
+note over AttendanceRules, DistanceCalc
+  Location is informational only: when coordinates are available, DistanceCalc computes
+  the reference distance from Room and it is recorded on CheckInAttempt.
+  Location never blocks or rejects a check-in - BR-03.
+end note
 
-    alt student not enrolled
-      AttendanceRules -> CheckInAttempt : record rejected attempt(status = Rejected, reason = NotEnrolled)
-      AttendanceRules --> CheckInControl : rejected because student is not enrolled
-      CheckInControl --> StudentUI : reject not enrolled
-      StudentUI --> Student : show check-in not allowed
-    else student enrolled
-      AttendanceRules -> Room : read classroom coordinates and allowed range
-      Room --> AttendanceRules : classroom coordinates and range
-      AttendanceRules -> DistanceCalc : compare submitted coordinates, accuracy, and classroom range
-      DistanceCalc --> AttendanceRules : location check result
+alt attendance code expired
+  AttendanceRules --> CheckInControl : invalid code
+  AttendanceRules -> CheckInAttempt : record rejected attempt(status = Rejected, reason = ExpiredCode)
+  CheckInControl --> StudentUI : reject QR expired
+  StudentUI --> Student : show QR expired message
+else code valid
+  AttendanceRules -> Session : read class section and scheduled start time
+  Session --> AttendanceRules : class section and session start time
+  AttendanceRules -> ClassSectionStudent : verify student enrollment in class section
+  ClassSectionStudent --> AttendanceRules : enrollment result
 
-      alt outside allowed range
-        AttendanceRules -> CheckInAttempt : record rejected attempt(status = Rejected, reason = OutsideLocation)
-        AttendanceRules --> CheckInControl : rejected because outside allowed range
-        CheckInControl --> StudentUI : reject outside classroom range
-        StudentUI --> Student : show check-in not accepted
-      else within allowed range
-        AttendanceRules -> CheckInAttempt : record accepted attempt(status = Accepted, method = QR, submittedAt = official system time)
-        AttendanceRules -> AttendanceRecord : check existing official result
-        AttendanceRecord --> AttendanceRules : existing result or none
-        alt official result already exists
-          AttendanceRules --> CheckInControl : existing official result
-          CheckInControl --> StudentUI : return existing official result
-          StudentUI --> Student : show existing result
-        else no official result exists
-          AttendanceRules -> AttendanceConfig : read Late threshold minutes
-          AttendanceRules -> AttendanceRecord : register official result(Present or Late)
-          AttendanceRules --> CheckInControl : accepted official status
-          CheckInControl --> StudentUI : check-in accepted
-          CheckInControl --> LecturerUI : attendance result changed for live monitor
-          StudentUI --> Student : show successful check-in time
-        end
-      end
+  alt student not enrolled
+    AttendanceRules -> CheckInAttempt : record rejected attempt(status = Rejected, reason = NotEnrolled)
+    AttendanceRules --> CheckInControl : rejected because student is not enrolled
+    CheckInControl --> StudentUI : reject not enrolled
+    StudentUI --> Student : show check-in not allowed
+  else student enrolled
+    AttendanceRules -> Room : read classroom coordinates (reference only)
+    Room --> AttendanceRules : classroom coordinates or none
+    AttendanceRules -> DistanceCalc : compute reference distance when coordinates available
+    DistanceCalc --> AttendanceRules : reference distance or not available
+    AttendanceRules -> CheckInAttempt : record accepted attempt(status = Accepted, method = QR, submittedAt = official system time, reference location info)
+    AttendanceRules -> AttendanceRecord : check existing official result
+    AttendanceRecord --> AttendanceRules : existing result or none
+    alt official result already exists
+      AttendanceRules --> CheckInControl : existing official result
+      CheckInControl --> StudentUI : return existing official result
+      StudentUI --> Student : show existing result
+    else no official result exists
+      AttendanceRules -> AttendanceConfig : read Late threshold minutes
+      AttendanceRules -> AttendanceRecord : register official result(Present or Late)
+      AttendanceRules --> CheckInControl : accepted official status
+      CheckInControl --> StudentUI : check-in accepted
+      CheckInControl --> LecturerUI : attendance result changed for live monitor
+      StudentUI --> Student : show successful check-in time
     end
   end
 end
@@ -566,9 +557,9 @@ AttendanceRules --> AttendanceSession : 2.1.2.1 read active session and displaye
 AttendanceRules --> AttendanceConfig : 2.1.2.2 read QR validity and Late threshold
 AttendanceRules --> Session : 2.1.2.3 read class section and scheduled start time
 AttendanceRules --> ClassSectionStudent : 2.1.2.4 verify enrollment
-AttendanceRules --> Room : 2.1.2.5 read classroom coordinates and range
-AttendanceRules --> DistanceCalc : 2.1.2.6 compare submitted coordinates
-AttendanceRules --> CheckInAttempt : 2.1.2.7 record accepted or rejected attempt
+AttendanceRules --> Room : 2.1.2.5 read classroom coordinates (reference only)
+AttendanceRules --> DistanceCalc : 2.1.2.6 compute reference distance (informational, never rejects)
+AttendanceRules --> CheckInAttempt : 2.1.2.7 record accepted or rejected attempt with reference location info
 AttendanceRules --> AttendanceRecord : 2.1.2.8 [accepted] check/register official Present or Late result
 CheckInControl --> StudentUI : 3 return accepted/rejected result
 CheckInControl --> LecturerUI : 3.1 [new official result] update live monitor
@@ -705,65 +696,56 @@ end
 StudentUI --> Student : display PIN input screen
 Student -> StudentUI : enter active 6-digit PIN
 StudentUI -> CheckInControl : submit PIN code
-CheckInControl -> MobileSensor : read GPS coordinates and device identifier
+CheckInControl -> MobileSensor : read GPS coordinates and device identifier (best effort)
 MobileSensor -> MobileHardware : request location and device evidence
-alt location unavailable
-  MobileHardware --> MobileSensor : location unavailable
-  MobileSensor --> CheckInControl : location unavailable
-  CheckInControl --> StudentUI : request location services
-  StudentUI --> Student : prompt to enable location services
-else location and device evidence available
-  MobileHardware --> MobileSensor : location and device evidence
-  MobileSensor --> CheckInControl : submitted location and device evidence
-  CheckInControl -> AttendanceRules : submit PIN check-in evidence(PIN, identity, location, device)
-  AttendanceRules -> AttendanceSession : read active PIN session and target study session
-  AttendanceSession --> AttendanceRules : active session information
-  AttendanceRules -> AttendanceConfig : read PIN refresh seconds
+MobileHardware --> MobileSensor : location and device evidence, or location unavailable
+MobileSensor --> CheckInControl : submitted location and device evidence, or location unavailable
+CheckInControl -> AttendanceRules : submit PIN check-in evidence(PIN, identity, location or unavailable, device)
+AttendanceRules -> AttendanceSession : read active PIN session and target study session
+AttendanceSession --> AttendanceRules : active session information
+AttendanceRules -> AttendanceConfig : read PIN refresh seconds
 
-  alt PIN expired
-    AttendanceRules --> CheckInControl : invalid PIN
-    AttendanceRules -> CheckInAttempt : record rejected attempt(status = Rejected, reason = ExpiredCode)
-    CheckInControl --> StudentUI : reject PIN expired
-    StudentUI --> Student : show PIN expired message
-  else PIN valid
-    AttendanceRules -> Session : read class section and scheduled start time
-    Session --> AttendanceRules : class section and session start time
-    AttendanceRules -> ClassSectionStudent : verify student enrollment in class section
-    ClassSectionStudent --> AttendanceRules : enrollment result
+note over AttendanceRules, DistanceCalc
+  Location is informational only: when coordinates are available, DistanceCalc computes
+  the reference distance from Room and it is recorded on CheckInAttempt.
+  Location never blocks or rejects a check-in - BR-03.
+end note
 
-    alt student not enrolled
-      AttendanceRules -> CheckInAttempt : record rejected attempt(status = Rejected, reason = NotEnrolled)
-      AttendanceRules --> CheckInControl : rejected because student is not enrolled
-      CheckInControl --> StudentUI : reject not enrolled
-      StudentUI --> Student : show check-in not allowed
-    else student enrolled
-      AttendanceRules -> Room : read classroom coordinates and allowed range
-      Room --> AttendanceRules : classroom coordinates and range
-      AttendanceRules -> DistanceCalc : compare submitted coordinates, accuracy, and classroom range
-      DistanceCalc --> AttendanceRules : location check result
+alt PIN expired
+  AttendanceRules --> CheckInControl : invalid PIN
+  AttendanceRules -> CheckInAttempt : record rejected attempt(status = Rejected, reason = ExpiredCode)
+  CheckInControl --> StudentUI : reject PIN expired
+  StudentUI --> Student : show PIN expired message
+else PIN valid
+  AttendanceRules -> Session : read class section and scheduled start time
+  Session --> AttendanceRules : class section and session start time
+  AttendanceRules -> ClassSectionStudent : verify student enrollment in class section
+  ClassSectionStudent --> AttendanceRules : enrollment result
 
-      alt outside allowed range
-        AttendanceRules -> CheckInAttempt : record rejected attempt(status = Rejected, reason = OutsideLocation)
-        AttendanceRules --> CheckInControl : rejected because outside allowed range
-        CheckInControl --> StudentUI : reject outside classroom range
-        StudentUI --> Student : show check-in not accepted
-      else within allowed range
-        AttendanceRules -> CheckInAttempt : record accepted attempt(status = Accepted, method = PIN, submittedAt = official system time)
-        AttendanceRules -> AttendanceRecord : check existing official result
-        AttendanceRecord --> AttendanceRules : existing result or none
-        alt official result already exists
-          AttendanceRules --> CheckInControl : existing official result
-          CheckInControl --> StudentUI : return existing official result
-          StudentUI --> Student : show existing result
-        else no official result exists
-          AttendanceRules -> AttendanceConfig : read Late threshold minutes
-          AttendanceRules -> AttendanceRecord : register official result(Present or Late)
-          AttendanceRules --> CheckInControl : accepted official status
-          CheckInControl --> StudentUI : check-in accepted
-          CheckInControl --> LecturerUI : attendance result changed for live monitor
-          StudentUI --> Student : show successful PIN check-in
-        end
-      end
+  alt student not enrolled
+    AttendanceRules -> CheckInAttempt : record rejected attempt(status = Rejected, reason = NotEnrolled)
+    AttendanceRules --> CheckInControl : rejected because student is not enrolled
+    CheckInControl --> StudentUI : reject not enrolled
+    StudentUI --> Student : show check-in not allowed
+  else student enrolled
+    AttendanceRules -> Room : read classroom coordinates (reference only)
+    Room --> AttendanceRules : classroom coordinates or none
+    AttendanceRules -> DistanceCalc : compute reference distance when coordinates available
+    DistanceCalc --> AttendanceRules : reference distance or not available
+    AttendanceRules -> CheckInAttempt : record accepted attempt(status = Accepted, method = PIN, submittedAt = official system time, reference location info)
+    AttendanceRules -> AttendanceRecord : check existing official result
+    AttendanceRecord --> AttendanceRules : existing result or none
+    alt official result already exists
+      AttendanceRules --> CheckInControl : existing official result
+      CheckInControl --> StudentUI : return existing official result
+      StudentUI --> Student : show existing result
+    else no official result exists
+      AttendanceRules -> AttendanceConfig : read Late threshold minutes
+      AttendanceRules -> AttendanceRecord : register official result(Present or Late)
+      AttendanceRules --> CheckInControl : accepted official status
+      CheckInControl --> StudentUI : check-in accepted
+      CheckInControl --> LecturerUI : attendance result changed for live monitor
+      StudentUI --> Student : show successful PIN check-in
     end
   end
 end
@@ -804,9 +786,9 @@ AttendanceRules --> AttendanceSession : 2.1.2.1 read active PIN and target sessi
 AttendanceRules --> AttendanceConfig : 2.1.2.2 read PIN refresh setting and Late threshold
 AttendanceRules --> Session : 2.1.2.3 read class section and scheduled start time
 AttendanceRules --> ClassSectionStudent : 2.1.2.4 verify enrollment
-AttendanceRules --> Room : 2.1.2.5 read classroom coordinates and range
-AttendanceRules --> DistanceCalc : 2.1.2.6 compare submitted coordinates
-AttendanceRules --> CheckInAttempt : 2.1.2.7 record accepted or rejected attempt
+AttendanceRules --> Room : 2.1.2.5 read classroom coordinates (reference only)
+AttendanceRules --> DistanceCalc : 2.1.2.6 compute reference distance (informational, never rejects)
+AttendanceRules --> CheckInAttempt : 2.1.2.7 record accepted or rejected attempt with reference location info
 AttendanceRules --> AttendanceRecord : 2.1.2.8 [accepted] check/register official Present or Late result
 CheckInControl --> StudentUI : 3 return accepted/rejected result
 CheckInControl --> LecturerUI : 3.1 [new official result] update live monitor
@@ -1404,7 +1386,7 @@ RoomControl --> AdminUI : 2 return saved result or warning
 
 ### **II.3.1 AttendanceSessionControl state**
 
-`AttendanceSessionControl` is the `«state dependent control»` object for UC05 because it coordinates the lifecycle from scheduled session selection to active check-in, stopped review, optional short reopen, and finalization. The `AttendanceSession` entity records the lifecycle state, but the state machine below belongs to the control object that governs the lifecycle.
+`AttendanceSessionControl` is the `«state dependent control»` object for UC05 because it coordinates the lifecycle from scheduled session selection to active check-in, review with manual adjustment, and finalization. The `AttendanceSession` entity records the lifecycle state, but the state machine below belongs to the control object that governs the lifecycle.
 
 #### **Figure II-23 State diagram for AttendanceSessionControl**
 
@@ -1417,11 +1399,8 @@ NotStarted --> NotStarted : startAttendance [outside scheduled window or another
 
 Active --> Active : refreshQRCode [configured QR refresh interval]
 Active --> Active : refreshPIN [configured PIN refresh interval]
-Active --> Stopped : stopReceivingCheckIns
-
-Stopped --> Active : shortReopen [interruption reason and before finalization]
-Stopped --> Stopped : adjustAttendance [UC07, before finalization]
-Stopped --> Finalized : finalizeAttendance
+Active --> Active : adjustAttendance [UC07, before finalization]
+Active --> Finalized : finalizeAttendance
 Finalized --> [*]
 @enduml
 ```
@@ -1491,7 +1470,7 @@ Finalized --> [*]
 | Entity relationships distinguish lifecycle ownership where appropriate                                                                                    | Pass       | Figure II-1 uses composition for study-session-owned attendance lifecycle data and association for campus-room location membership                                                                                            |
 | Interface wireframes are included for key actor workflows                                                                                                 | Pass       | Section II.1.4 covers Student, Lecturer, and Admin wireframes with UC trace notes                                                                                                                                             |
 | NF-06 configurable attendance parameters are represented in Analysis                                                                                      | Pass       | AttendanceConfiguration appears in Figure II-1 and is used by CheckInService, AttendanceSessionService, CatalogManagementService, and CatalogManagementCoordinator                                                            |
-| QR/PIN check-in blocks invalid identity, missing location, and non-enrollment before official results                                                     | Pass       | Figures II-5 and II-9                                                                                                                                                                                                         |
+| QR/PIN check-in blocks invalid identity and non-enrollment before official results; location is informational and never blocks check-in                   | Pass       | Figures II-5 and II-9                                                                                                                                                                                                         |
 | BR-13 Late threshold is mapped to status calculation                                                                                                      | Pass       | Figures II-5 and II-9 use official submitted time, scheduled start time, and configured Late threshold                                                                                                                        |
 | Rejected attempts are retained for lecturer review                                                                                                        | Pass       | Figures II-5, II-9, II-11, II-24                                                                                                                                                                                              |
 | UC05 includes start, stop, review, short reopen, second stop after reopen, adjustment handoff, Absent assignment, completed-list review, and finalization | Pass       | Figure II-11 and Figure II-23                                                                                                                                                                                                 |
@@ -1500,5 +1479,5 @@ Finalized --> [*]
 | UC08 exports only finalized attendance results                                                                                                            | Pass       | Figure II-17 and Figure II-25                                                                                                                                                                                                 |
 | Official attendance results exclude Rejected status                                                                                                       | Pass       | Figure II-1, Figure II-24, Figure II-25                                                                                                                                                                                       |
 | UC10 validates coordinate, university campus boundary, and radius values                                                                                  | Pass       | Figure II-21                                                                                                                                                                                                                  |
-| Location model supports distance and accuracy checks                                                                                                      | Pass       | Figure II-1, Figure II-5, Figure II-9, Figure II-21                                                                                                                                                                           |
+| Location model supports reference distance and accuracy capture for information only (not used to accept or reject check-in)                               | Pass       | Figure II-1, Figure II-5, Figure II-9, Figure II-21                                                                                                                                                                           |
 | Removed untraced analysis objects and flows                                                                                                               | Pass       | Old external-login flow, lecturer location storage, untraced device lifecycle, network evidence details, and unsupported face-matching threshold are not modeled                                                              |
