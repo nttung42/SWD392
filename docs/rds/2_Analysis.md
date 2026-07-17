@@ -1128,9 +1128,9 @@ NotStarted --> NotStarted : startAttendance [outside scheduled window or another
 Active --> Active : refreshQRCode [configured QR refresh interval]
 Active --> Active : refreshPIN [configured PIN refresh interval]
 Active --> Finalized : finalizeAttendance
-Finalized --> ReopenedForLateAdjustment : reopenAttendance [assigned lecturer and finalized session]
-ReopenedForLateAdjustment --> ReopenedForLateAdjustment : adjustLateAttendance [UC07, Absent record and reason provided]
-ReopenedForLateAdjustment --> Finalized : closeReopenedAttendance
+Finalized --> Reopened : reopenAttendance [assigned lecturer and finalized session]
+Reopened --> Reopened : adjustLateAttendance [UC07, Absent record and reason provided]
+Reopened --> Finalized : closeReopenedAttendance
 Finalized --> [*]
 @enduml
 ```
