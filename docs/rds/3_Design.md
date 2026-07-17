@@ -1,8 +1,8 @@
 ## **III. Design Specification**
 
-This section transforms the COMET analysis model in [2_Analysis.md](2_Analysis.md) into a solution-domain software design for AFAS. The design remains traceable to the 10 use cases UC01-UC10, business rules in Section I.6, and non-functional requirements NF-01-NF-07 in [1_Requirement.md](1_Requirement.md).
+This section transforms the COMET analysis model in [2_Analysis.md](2_Analysis.md) into a solution-domain software design for AFAS. The design remains traceable to the 9 use cases UC01-UC09, business rules in Section I.6, and non-functional requirements NF-01-NF-07 in [1_Requirement.md](1_Requirement.md).
 
-Design decisions are intentionally limited to what is required by the project statement: dynamic QR/PIN attendance, location capture for reference, identity evidence, real-time lecturer monitoring, manual adjustment, reporting, catalog management, and classroom configuration.
+Design decisions are intentionally limited to what is required by the project statement: dynamic QR/PIN attendance, location capture for reference, identity evidence, real-time lecturer monitoring, manual adjustment, reporting, and catalog management.
 
 ---
 
@@ -30,17 +30,17 @@ Design decisions are intentionally limited to what is required by the project st
 
 **Trade-off:** The backend modules deploy together, so independent scaling by business module is limited. This is accepted because the project scope values maintainability and traceability over independent service operations.
 
-**Traceability:** UC01-UC10; NF-01, NF-04, NF-06, NF-07; analysis controls from Section II.1.3.
+**Traceability:** UC01-UC09; NF-01, NF-04, NF-06, NF-07; analysis controls from Section II.1.3.
 
 ### **III.1.3 Technology Mapping**
 
 | **Design Area**                   | **Selected Mechanism**                                                         | **Justification**                                                                                                    | **Traceability**          |
 | :-------------------------------- | :----------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------- | :------------------------ |
 | Student client                    | Mobile-first client application                                                | Supports QR scanning, PIN, biometric/selfie proof, GPS, and device evidence collection.                              | UC02, UC03, UC04          |
-| Staff client                      | Web portal                                                                     | Supports lecturer and administrator workflows on desktop screens.                                                    | UC05-UC10                 |
+| Staff client                      | Web portal                                                                     | Supports lecturer and administrator workflows on desktop screens.                                                    | UC05-UC09                 |
 | Backend architecture              | Modular monolith with Presentation, Application, Domain, Infrastructure layers | Keeps COMET controls, rules, entities, and wrappers separated while avoiding unnecessary service distribution.       | All UC; NF-06             |
 | University identity confirmation  | External identity-system wrapper                                               | AFAS relies on the existing University Identity System for identity confirmation and keeps only local role profiles. | UC01, BR-01               |
-| Persistence                       | Relational database accessed through `«database wrapper»` repositories         | Entity relationships in Figure II-1 map naturally to tables and constraints.                                         | Section II.1.1; UC01-UC10 |
+| Persistence                       | Relational database accessed through `«database wrapper»` repositories         | Entity relationships in Figure II-1 map naturally to tables and constraints.                                         | Section II.1.1; UC01-UC09 |
 | Short-lived attendance code store | Cache wrapper for active QR/PIN values                                         | Reduces repeated database reads during peak check-in bursts.                                                         | UC02, UC04, UC05; NF-01   |
 | Realtime lecturer monitor         | Subscription/notification channel                                              | Lecturer view must update after accepted check-ins.                                                                  | UC06; NF-01               |
 | Report file generation            | Report generator adapter                                                       | Isolates spreadsheet file formatting from attendance rules.                                                          | UC08, BR-08               |
@@ -77,7 +77,6 @@ object "Monitor Control\n«coordinator»" as MonitorControl
 object "Adjustment Control\n«coordinator»" as AdjustmentControl
 object "Report Control\n«coordinator»" as ReportControl
 object "Catalog Control\n«coordinator»" as CatalogControl
-object "Room Configuration Control\n«coordinator»" as RoomControl
 
 object "Authentication Rules\n«business logic»" as AuthRules
 object "Attendance Code Rules\n«business logic»" as CodeRules
@@ -86,7 +85,6 @@ object "Session Rules\n«business logic»" as SessionRules
 object "Attendance Status Calculation\n«business logic»" as StatusRules
 object "Report Eligibility Rules\n«business logic»" as ReportRules
 object "Catalog Uniqueness Rules\n«business logic»" as CatalogRules
-object "Room Location Setting Rules\n«business logic»" as RoomRules
 
 object "Account\n«entity»" as Account
 object "Student\n«entity»" as StudentEntity
@@ -101,8 +99,8 @@ object "AttendanceSession\n«entity»" as AttendanceSession
 object "AttendanceRecord\n«entity»" as AttendanceRecord
 Student --> StudentUI : UC01, UC02, UC03, UC04
 Lecturer --> LecturerUI : UC01, UC05, UC06, UC07, UC08
-Admin --> AdminUI : UC01, UC09, UC10
-MobileHardware --> MobileSensor : UC02, UC04, UC10
+Admin --> AdminUI : UC01, UC09
+MobileHardware --> MobileSensor : UC02, UC04
 UIS --> UISInterface : UC01
 
 StudentUI --> AuthControl : UC01 request authentication
@@ -160,10 +158,6 @@ CatalogControl --> LecturerEntity : UC09 maintain lecturers
 CatalogControl --> Subject : UC09 maintain subjects
 CatalogControl --> ClassSection : UC09 maintain class sections
 
-AdminUI --> RoomControl : UC10 configure classroom location
-RoomControl --> MobileSensor : UC10 capture current location when calibrated on site
-RoomControl --> RoomRules : UC10 validate coordinate
-RoomControl --> Room : UC10 update room location settings
 @enduml
 ```
 
@@ -171,10 +165,10 @@ RoomControl --> Room : UC10 update room location settings
 
 | **Analysis Element**                                                        | **Design Element**                                                    | **Transformation Rule**                                                                                       | **Traceability** |
 | :-------------------------------------------------------------------------- | :-------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------ | :--------------- |
-| `Student Mobile Interface`, `Lecturer Web Interface`, `Admin Web Interface` | Client UI components and Presentation endpoints                       | Analysis interface objects become client screens and server-side boundary endpoints.                          | UC01-UC10        |
+| `Student Mobile Interface`, `Lecturer Web Interface`, `Admin Web Interface` | Client UI components and Presentation endpoints                       | Analysis interface objects become client screens and server-side boundary endpoints.                          | UC01-UC09        |
 | `University Identity System Interface`                                      | `UniversityIdentityAdapter` `«external system wrapper»`               | External identity confirmation is isolated from AFAS application and domain rules.                            | UC01, BR-01      |
-| `Mobile Device Sensor Interface`                                            | `MobileDeviceEvidenceAdapter` `«hardware wrapper»` on the client side | Hardware access is isolated behind a wrapper for biometric, camera, location, and device evidence collection. | UC02, UC04, UC10 |
-| `Authentication Control`, `Check-in Control`, `Session Control`, etc.       | Application use case services                                         | Coordinators become application services that orchestrate rules, entities, and wrappers.                      | UC01-UC10        |
+| `Mobile Device Sensor Interface`                                            | `MobileDeviceEvidenceAdapter` `«hardware wrapper»` on the client side | Hardware access is isolated behind a wrapper for biometric, camera, location, and device evidence collection. | UC02, UC04       |
+| `Authentication Control`, `Check-in Control`, `Session Control`, etc.       | Application use case services                                         | Coordinators become application services that orchestrate rules, entities, and wrappers.                      | UC01-UC09        |
 | Business logic and algorithm objects                                        | Domain services and strategy classes                                  | Rules become replaceable policy classes; the distance algorithm becomes a strategy.                           | Section I.6      |
 | `«entity»` classes                                                          | Domain data abstraction classes plus database wrapper repositories    | Each persistent analysis entity maps to a domain class and repository interface/implementation.               | Section II.1.1   |
 | `Monitor Control`                                                           | Notification publisher plus lecturer monitor subscriber               | Accepted check-ins are published to the lecturer monitor using subscription/notification.                     | UC06, NF-01      |
@@ -230,15 +224,15 @@ Access --> Adapters : synchronous with reply
 | **Subsystem**                      | **Primary Stereotype**         | **Responsibility**                                                                                                        | **Traceability**                         |
 | :--------------------------------- | :----------------------------- | :------------------------------------------------------------------------------------------------------------------------ | :--------------------------------------- |
 | Student Client                     | `«client subsystem»`           | Student login, QR scan, PIN, history view, and evidence submission.                                                       | Student; UC01-UC04                       |
-| Staff Web Client                   | `«client subsystem»`           | Lecturer and admin screens for session, monitor, adjustment, reports, catalog, and classroom configuration.               | Lecturer, Admin; UC01, UC05-UC10         |
-| Device Evidence Access             | `«input/output subsystem»`     | Access device biometric, camera/selfie, GPS, and device identifier.                                                       | Mobile Device Hardware; UC02, UC04, UC10 |
-| Presentation Boundary              | `«user interaction subsystem»` | Receives client requests, validates request shape, maps to application services, returns results.                         | UC01-UC10                                |
+| Staff Web Client                   | `«client subsystem»`           | Lecturer and admin screens for session, monitor, adjustment, reports, and catalog.                                        | Lecturer, Admin; UC01, UC05-UC09         |
+| Device Evidence Access             | `«input/output subsystem»`     | Access device biometric, camera/selfie, GPS, and device identifier.                                                       | Mobile Device Hardware; UC02, UC04       |
+| Presentation Boundary              | `«user interaction subsystem»` | Receives client requests, validates request shape, maps to application services, returns results.                         | UC01-UC09                                |
 | Access and Profile Management      | `«service subsystem»`          | University identity confirmation, role checks, and AFAS profile lookup.                                                   | UC01, BR-01                              |
 | Attendance Coordination            | `«coordinator subsystem»`      | Orchestrates QR/PIN check-in, evidence validation, attendance record upsert, official result creation, and monitor notification. | UC02, UC04                               |
 | Attendance Validation              | `«service subsystem»`          | Validates identity evidence and active QR/PIN code, and classifies Present/Late; captured location is stored as evidence only and never gates the result. | UC02, UC04, BR-02, BR-04, BR-05, BR-07, BR-12, BR-13 |
 | Session Lifecycle                  | `«control subsystem»`          | Governs not-started, active, and finalized attendance-session states.                                     | UC05, BR-08, BR-10                       |
 | Monitoring and Notification        | `«service subsystem»`          | Pushes accepted check-in status and retrieves live roster state.                                                          | UC06, NF-01                              |
-| Administrative Management          | `«service subsystem»`          | Maintains catalog and classroom location configuration.                                                                   | UC09, UC10                               |
+| Administrative Management          | `«service subsystem»`          | Maintains catalog configuration.                                                                                          | UC09                                     |
 | Reporting                          | `«service subsystem»`          | Generates finalized attendance reports.                                                                                   | UC08, BR-08                              |
 | Persistence and Technical Adapters | `«service subsystem»`          | Implements database, cache, realtime, report file, and hardware wrappers.                                                 | All UC; NF-01, NF-04, NF-06              |
 
@@ -279,7 +273,6 @@ package "Application Layer" {
   component "MonitorService" as MonitorService
   component "AdjustmentService" as AdjustmentService
   component "CatalogService" as CatalogService
-  component "RoomConfigurationService" as RoomConfigurationService
   component "ReportService" as ReportService
 }
 
@@ -313,7 +306,6 @@ CheckInEndpoint --> CheckInService
 SessionEndpoint --> SessionService
 MonitorEndpoint --> MonitorService
 AdminEndpoint --> CatalogService
-AdminEndpoint --> RoomConfigurationService
 ReportEndpoint --> ReportService
 
 CheckInService --> DomainRules
@@ -322,7 +314,6 @@ SessionService --> DomainRules
 SessionService --> DomainEntities
 AuthenticationService --> DomainRules
 CatalogService --> DomainRules
-RoomConfigurationService --> DomainRules
 ReportService --> DomainRules
 
 AuthenticationService --> Repositories
@@ -336,7 +327,6 @@ SessionService --> Realtime
 MonitorService --> Repositories
 MonitorService --> Realtime
 CatalogService --> Repositories
-RoomConfigurationService --> Repositories
 ReportService --> Repositories
 ReportService --> ReportFile
 
@@ -580,7 +570,7 @@ ReportFile - IReportFileWriter
 | **Task/Object**               | **Active or Passive** | **Activation**                              | **Communication Pattern**                            | **Traceability** |
 | :---------------------------- | :-------------------- | :------------------------------------------ | :--------------------------------------------------- | :--------------- |
 | Student Interaction Task      | Active                | Event-driven by student actions             | Synchronous with reply                               | UC01-UC04        |
-| Staff Interaction Task        | Active                | Event-driven by lecturer/admin actions      | Synchronous with reply and subscription/notification | UC05-UC10        |
+| Staff Interaction Task        | Active                | Event-driven by lecturer/admin actions      | Synchronous with reply and subscription/notification | UC05-UC09        |
 | Attendance Check-in Task      | Active                | Demand-driven by submitted check-in command | Synchronous with reply; publishes notification       | UC02, UC04, UC06 |
 | QR/PIN Refresh Task           | Active                | Periodic while attendance session is active | Writes active code to cache and session state        | UC05, BR-02      |
 | Realtime Notification Task    | Active                | Event-driven by accepted attendance result  | Subscription/notification                            | UC06, NF-01      |
@@ -734,17 +724,6 @@ ReportFile - IReportFileWriter
 | :----------------------- | :----------------------------------------------------------- | :----------------- | :-------------------------------------------------------- | :---------------------------------------------------- | :------------------------------------------- |
 | `exportAttendanceReport` | `lecturerId: Text`, `classSectionId: Text`, `semester: Text` | `ReportFileResult` | Lecturer is assigned; finalized attendance results exist. | Returns generated report file or empty-state failure. | Reports use finalized official results only. |
 
-### **RoomConfigurationService**
-
-**Responsibility:** Configure classroom location coordinates, kept as informational reference only.
-
-**Traceability:** UC10; Room Configuration Control; BR-03, NF-06.
-
-| Operation              | Parameters                                               | Return                  | Precondition                                                           | Postcondition                                         | Invariant                                                                                        |
-| :--------------------- | :------------------------------------------------------- | :---------------------- | :--------------------------------------------------------------------- | :---------------------------------------------------- | :----------------------------------------------------------------------------------------------- |
-| `saveRoomCoordinates`  | `adminAccountId: Text`, `command: RoomCoordinateCommand` | `ConfigurationResult`   | Admin is authenticated; room exists; location is provided.            | Room coordinate settings are saved.                   | Coordinates must be valid.                                                                       |
-| `getRoomConfiguration` | `roomId: Text`                                           | `RoomConfigurationView` | Room ID is present.                                                    | Returns current location coordinates.                 | Read operation does not modify configuration.                                                    |
-
 ### **III.7.2 Repository and Wrapper Contracts**
 
 ### **IAttendanceCodeStore**
@@ -762,7 +741,7 @@ ReportFile - IReportFileWriter
 
 **Responsibility:** Provide database wrapper operations for domain entities.
 
-**Traceability:** Section II.1.1; UC01-UC10.
+**Traceability:** Section II.1.1; UC01-UC09.
 
 | Operation                        | Parameters                 | Return       | Precondition                                                            | Postcondition                                                       | Invariant                                                                      |
 | :------------------------------- | :------------------------- | :----------- | :---------------------------------------------------------------------- | :------------------------------------------------------------------ | :----------------------------------------------------------------------------- |
@@ -799,7 +778,7 @@ ReportFile - IReportFileWriter
 
 **Trade-off:** Requires interface definitions and adapter implementations.
 
-**Traceability:** UC02, UC04-UC08, UC10; NF-01, NF-04, NF-06.
+**Traceability:** UC02, UC04-UC08; NF-01, NF-04, NF-06.
 
 ### **Pattern: Observer**
 
@@ -827,7 +806,7 @@ ReportFile - IReportFileWriter
 
 **Trade-off:** Adds a mapping layer between transport requests and application commands.
 
-**Traceability:** UC01-UC10.
+**Traceability:** UC01-UC09.
 
 ---
 
@@ -842,7 +821,7 @@ The persistence model maps the analysis entity class diagram in Figure II-1 to a
 | `accounts`                  | `id`                             | `university_identity_code`, `email`, `full_name`, `role`, `registration_date`                                                                                                                                                                                                                      | Unique `university_identity_code`; UC01, UC09, BR-01, BR-11                                                           |
 | `students`                  | `student_id`                     | `account_id`                                                                                                                                                                                                                                                                                       | FK to `accounts`; UC01, UC03, UC09                                                                                    |
 | `lecturers`                 | `lecturer_id`                    | `account_id`, `department_name`                                                                                                                                                                                                                                                                    | FK to `accounts`; UC01, UC05-UC09                                                                                     |
-| `rooms`                     | `room_id`                        | `room_name`, `latitude`, `longitude`                                                                                                                                                                                                                                                               | UC02, UC04, UC10, BR-03                                                                                              |
+| `rooms`                     | `room_id`                        | `room_name`, `latitude`, `longitude`                                                                                                                                                                                                                                                               | UC02, UC04, BR-03                                                                                                    |
 | `subjects`                  | `subject_code`                   | `subject_name`, `credits`                                                                                                                                                                                                                                                                          | `credits > 0`; UC09, BR-11                                                                                            |
 | `class_sections`            | `class_section_id`               | `class_section_name`, `subject_code`, `lecturer_id`, `semester`                                                                                                                                                                                                                                    | FK to subject and lecturer; UC05-UC09                                                                                 |
 | `class_section_students`    | `(class_section_id, student_id)` | none beyond keys                                                                                                                                                                                                                                                                                   | Composite PK prevents duplicate enrollment; UC03, UC05, UC06, UC08                                                    |
@@ -900,11 +879,11 @@ RoomRepo --> Room
 | :-------------------- | :-------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------ | :--------------------------------------------------------- | :----------------------------- |
 | Performance           | Cache active QR/PIN values and keep backend application services stateless.                               | `AttendanceCodeCacheAdapter`, `IAttendanceCodeStore`, QR/PIN Refresh Task.      | Cache consistency and fallback handling must be designed.  | UC02, UC04, UC05; NF-01        |
 | Scalability           | Modular monolith can scale by adding application server instances while keeping one persistence boundary. | Deployment view and stateless check-in service.                                 | Does not provide independent module deployment.            | NF-07                          |
-| Accuracy              | Captured location coordinates are stored as reference only.             | `RoomConfigurationService`, `attendance_records.submitted_latitude/longitude`. | Location is informational only, so GPS error never affects the check-in result. | UC02, UC04, UC10; NF-02, BR-03 |
+| Accuracy              | Captured location coordinates are stored as reference only.             | `attendance_records.submitted_latitude/longitude`.                            | Location is informational only, so GPS error never affects the check-in result. | UC02, UC04; NF-02, BR-03       |
 | Security and privacy  | Role authorization and protected evidence reference.                                                      | `AuthenticationService`, `AdjustmentService`, face evidence reference.          | More validation and storage policy rules are required.     | UC01, UC02, UC04, UC07; NF-04  |
 | Modifiability         | Layered modules, adapter pattern, strategy pattern, configurable parameters.                              | Component diagram, interface contracts, `attendance_configurations`.            | More interfaces than a direct CRUD design.                 | NF-06                          |
-| Testability           | Domain rules and wrappers are behind interfaces.                                                          | `IRepositoryOperations`, `IAttendanceCodeStore`, policies and strategies.       | Requires mocks or fakes in tests.                          | UC02-UC10                      |
-| Traceability          | UC labels in integrated communication and tables.                                                         | Figure III-1 and traceability matrix.                                           | Documentation must be maintained when requirements change. | UC01-UC10                      |
+| Testability           | Domain rules and wrappers are behind interfaces.                                                          | `IRepositoryOperations`, `IAttendanceCodeStore`, policies and strategies.       | Requires mocks or fakes in tests.                          | UC02-UC09                      |
+| Traceability          | UC labels in integrated communication and tables.                                                         | Figure III-1 and traceability matrix.                                           | Documentation must be maintained when requirements change. | UC01-UC09                      |
 
 ---
 
@@ -921,9 +900,8 @@ RoomRepo --> Room
 | UC07 Adjust Attendance Manually       | Lecturer                                             | Lecturer Web Interface, Adjustment Control, Session Rules, AttendanceRecord                                                                                                                                                                                                        | AdjustmentService, Repository Adapters                                                                                                             | Figures III-1, III-6; AdjustmentService contract                  |
 | UC08 Export Attendance Report         | Lecturer                                             | Lecturer Web Interface, Report Control, Report Eligibility Rules, ClassSectionStudent, Session, AttendanceRecord                                                                                                                                                                   | Reporting subsystem, ReportService, ReportFileAdapter                                                                                              | Figures III-1, III-6; ReportService contract                      |
 | UC09 Manage System Catalog            | Admin                                                | Admin Web Interface, Catalog Control, Catalog Uniqueness Rules, Account, Student, Lecturer, Subject, ClassSection                                                                                                                                                                                  | Administrative Management, CatalogService, Repository Adapters                                                                                     | Figures III-1, III-6; persistence mapping                         |
-| UC10 Configure Classroom Location     | Admin                                                | Admin Web Interface, Mobile Device Sensor Interface, Room Configuration Control, Room Location Setting Rules, AttendanceConfiguration, Room                                                                                                                                           | RoomConfigurationService, Device Evidence Adapter for on-site calibration, Room repository                                                         | Figures III-1, III-6; RoomConfigurationService contract           |
 | NF-01 Performance and concurrency     | Student, Lecturer                                    | Attendance Code Rules, Monitor Control, AttendanceSession                                                                                                                                                                                                                                          | Attendance Code Cache, QR/PIN Refresh Task, Realtime Notification Adapter                                                                          | Figures III-3, III-5, III-6; TIS/TBS                              |
-| NF-06 Configurability                 | Lecturer, Admin                                      | AttendanceConfiguration, Attendance Code Rules, Attendance Status Calculation, Room Configuration Control                                                                                                                                                                                          | `attendance_configurations`, SessionService, RoomConfigurationService, policy classes                                                              | Figures III-1, III-3; persistence mapping                         |
+| NF-06 Configurability                 | Student, Lecturer                                    | AttendanceConfiguration, Attendance Code Rules, Attendance Status Calculation                                                                                                                                                         | `attendance_configurations`, SessionService, policy classes                                                                                         | Figures III-1, III-3; persistence mapping                         |
 
 ---
 

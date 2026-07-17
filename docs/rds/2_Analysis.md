@@ -1,6 +1,6 @@
 ## **II. Analysis models**
 
-This section realizes the AFAS requirements from Section I through COMET analysis objects. The source requirements are the 10 use cases UC01-UC10 and business rules BR-01-BR-13 in [1_Requirement.md](1_Requirement.md). No solution-domain technical decisions are introduced in this phase.
+This section realizes the AFAS requirements from Section I through COMET analysis objects. The source requirements are the 9 use cases UC01-UC09 and business rules BR-01-BR-13 in [1_Requirement.md](1_Requirement.md). No solution-domain technical decisions are introduced in this phase.
 
 ---
 
@@ -84,7 +84,6 @@ class "AttendanceSession" as AttendanceSession <<entity>> {
 class "AttendanceConfiguration" as AttendanceConfig <<entity>> {
   QRRefreshSeconds
   PINRefreshSeconds
-  LateThresholdMinutes
 }
 
 class "AttendanceRecord" as AttendanceRecord <<entity>> {
@@ -120,7 +119,7 @@ AttendanceConfig "1" -- "0..*" AttendanceSession : configures timing
 @enduml
 ```
 
-`AttendanceRecord` holds both the accepted check-in evidence and the official outcome for one student in one study session. `AttendanceStatus` represents only official attendance outcomes: `Present`, `Late`, or `Absent`. `CheckInMethod` represents only student check-in methods: `QR` or `PIN`, and is empty when the result comes from absent assignment or manual adjustment (represented by `ResultSource`). `RejectionReason` retains the most recent rejected check-in reason; rejected submissions do not create separate rows.
+`AttendanceRecord` holds both the accepted check-in evidence and the official outcome for one student in one study session. `AttendanceStatus` represents the attendance record state: `NotYet`, `Present`, `Absent`, or `Late`. When an attendance session starts, each enrolled student receives one `AttendanceRecord` with `AttendanceStatus = NotYet`. Accepted student check-in changes that record to `Present`; finalization changes remaining `NotYet` records to `Absent`; a reopened finalized session allows the lecturer to change an `Absent` record to `Late` with an adjustment reason. `CheckInMethod` represents only student check-in methods: `QR` or `PIN`, and is empty when the result comes from absent assignment or manual adjustment (represented by `ResultSource`). `RejectionReason` retains the most recent rejected check-in reason; rejected submissions do not create separate rows.
 
 Additional static constraints:
 
@@ -161,9 +160,9 @@ AFAS --> UIS : request identity confirmation
 | Student `«external user»`                      | AFAS -> Student                     | Returns access result, check-in acceptance or rejection, and personal attendance history.                                                                   | UC01, UC02, UC03, UC04         |
 | Lecturer `«external user»`                     | Lecturer -> AFAS                    | Sends session management actions, live monitoring requests, manual adjustment decisions, and report export requests.                                        | UC01, UC05, UC06, UC07, UC08   |
 | Lecturer `«external user»`                     | AFAS -> Lecturer                    | Returns assigned sessions, attendance session status, live attendance progress, adjustment result, and finalized report content.                            | UC05, UC06, UC07, UC08         |
-| Admin `«external user»`                        | Admin -> AFAS                       | Sends catalog management actions and classroom location configuration inputs.                                                                               | UC01, UC09, UC10               |
-| Admin `«external user»`                        | AFAS -> Admin                       | Returns catalog validation results, saved room configuration results, and configuration warnings.                                                           | UC09, UC10                     |
-| Mobile Device Hardware `«external device»`     | AFAS <-> Mobile Device Hardware     | Provides identity verification result, current location, device identifier, camera evidence, and room calibration location when requested by the user flow. | UC02, UC04, UC10, BR-04, BR-05 |
+| Admin `«external user»`                        | Admin -> AFAS                       | Sends catalog management actions.                                                                                                                           | UC01, UC09                     |
+| Admin `«external user»`                        | AFAS -> Admin                       | Returns catalog validation results.                                                                                                                         | UC09                           |
+| Mobile Device Hardware `«external device»`     | AFAS <-> Mobile Device Hardware     | Provides identity verification result, current location, device identifier, and camera evidence when requested by the user flow.                             | UC02, UC04, BR-04, BR-05       |
 | University Identity System `«external system»` | AFAS <-> University Identity System | Confirms whether the requesting user has a valid university identity for AFAS access.                                                                       | UC01, BR-01                    |
 
 ### **II.1.3 Object Structure Criteria**
@@ -221,20 +220,20 @@ The collaboration criteria for these objects are:
 | :--------------------------------------------------------------------- | :-------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------- |
 | StudentInteraction                                                     | `«user interaction»`        | Receives student QR, PIN, and history actions after access is granted.                                                                                                                                                                                                                                                                                                                                                             | Student; UC02-UC04                                        |
 | LecturerInteraction                                                    | `«user interaction»`        | Receives lecturer session, monitor, adjustment, and export actions after access is granted, and receives live accepted check-in result changes for classroom monitoring.                                                                                                                                                                                                                                                           | Lecturer; UC02, UC04-UC08                                 |
-| AdminInteraction                                                       | `«user interaction»`        | Receives administrator catalog and classroom configuration actions after access is granted.                                                                                                                                                                                                                                                                                                                                        | Admin; UC09-UC10                                          |
-| MobileDeviceInterface                                                  | `«device I/O»`              | Interfaces with mobile device hardware to request biometric verification, read GPS coordinates, read device identifier, access camera/selfie evidence, and capture calibration location when an administrator performs on-site classroom setup.                                                                                                                                                                                    | Mobile Device Hardware; UC02, UC04, UC10                  |
+| AdminInteraction                                                       | `«user interaction»`        | Receives administrator catalog actions after access is granted.                                                                                                                                                                                                                                                                                                                                                                     | Admin; UC09                                               |
+| MobileDeviceInterface                                                  | `«device I/O»`              | Interfaces with mobile device hardware to request biometric verification, read GPS coordinates, read device identifier, and access camera/selfie evidence.                                                                                                                                                                                                             | Mobile Device Hardware; UC02, UC04                        |
 | IdentitySystemProxy                                                    | `«proxy»`                   | Represents the AFAS boundary used to ask the existing University Identity System to confirm user identity.                                                                                                                                                                                                                                                                                                                         | University Identity System; UC01, BR-01                   |
 | AuthenticationCoordinator                                              | `«coordinator»`             | Coordinates the authentication use-case flow, delegates external identity confirmation and role-access evaluation, then returns the selected access outcome.                                                                                                                                                                                                                                                                       | UC01, BR-01                                               |
 | AttendanceCoordinator                                                  | `«coordinator»`             | Coordinates regular attendance use-case flows and delegates attendance rule decisions for QR/PIN check-in, personal history retrieval, live monitoring, manual adjustment, and finalized report preparation.                                                                                                                                                                                                                       | UC02, UC03, UC04, UC06, UC07, UC08, BR-01, BR-10          |
-| AttendanceSessionControl                                               | `«state dependent control»` | Coordinates attendance session lifecycle transitions: not started, active, finalized; delegates transition eligibility rules to attendance session policy logic.                                                                                                                                                                                                                                                             | UC05, BR-02, BR-08, BR-10, BR-12                          |
-| CatalogManagementCoordinator                                           | `«coordinator»`             | Coordinates administrator configuration flows and delegates catalog and classroom location evaluation to catalog validation logic.                                                                                                                                                                                                                                                           | UC09, UC10, BR-03, BR-11, NF-06                           |
+| AttendanceSessionControl                                               | `«state dependent control»` | Coordinates attendance session lifecycle transitions: not started, active, finalized, reopened for late adjustment; delegates transition eligibility rules to attendance session policy logic.                                                                                                                                                                                                                                                             | UC05, BR-02, BR-08, BR-10, BR-12                          |
+| CatalogManagementCoordinator                                           | `«coordinator»`             | Coordinates administrator catalog management flows and delegates catalog evaluation to catalog validation logic.                                                                                                                                                                                                                                                       | UC09, BR-11                                               |
 | AuthenticationService                                                  | `«business logic»`          | Encapsulates role-access rules by locating the AFAS role profile for a confirmed university identity and checking whether the requested role is allowed.                                                                                                                                                                                                                                                                           | UC01, UC03, BR-01                                         |
-| CheckInService                                                         | `«business logic»`          | Encapsulates rules for a submitted student check-in by reading the required session, configuration, room, and attendance record facts, then checking QR/PIN validity, identity evidence, session match, and Present/Late status using official system time. Submitted location coordinates are captured and stored for information only; they never affect acceptance and are not required.                                                                                | UC02, UC04, BR-02, BR-04, BR-12, BR-13, NF-06      |
-| AttendanceSessionService                                               | `«business logic»`          | Encapsulates attendance history, attendance session lifecycle, and lecturer-operation policies by reading the required schedule, lecturer, session, roster, check-in, configuration, and official attendance facts, then checking scheduled time window, assigned lecturer, active session uniqueness, QR/PIN refresh policy, absent assignment, finalization, report eligibility, and whether manual adjustment is still allowed. | UC03, UC05, UC07, UC08, BR-02, BR-08, BR-10, BR-12, NF-06 |
-| CatalogManagementService                                               | `«business logic»`          | Encapsulates catalog and room-configuration rules by reading the required catalog and location facts, then checking catalog field validity, identifier uniqueness, and classroom location coordinates.                                                                                                                                                                          | UC09, UC10, BR-03, BR-11                                  |
+| CheckInService                                                         | `«business logic»`          | Encapsulates rules for a submitted student check-in by reading the required session, configuration, room, and attendance record facts, then checking QR/PIN validity, identity evidence, session match, and whether the student's record is still `NotYet` before changing it to `Present` using official system time. Submitted location coordinates are captured and stored for information only; they never affect acceptance and are not required.                                                                                | UC02, UC04, BR-02, BR-04, BR-12, NF-06      |
+| AttendanceSessionService                                               | `«business logic»`          | Encapsulates attendance history, attendance session lifecycle, and lecturer-operation policies by reading the required schedule, lecturer, session, roster, check-in, configuration, and official attendance facts, then checking scheduled time window, assigned lecturer, active session uniqueness, QR/PIN refresh policy, `NotYet` record initialization, absent assignment, finalization, report eligibility, reopen eligibility, and late adjustment reason requirements. | UC03, UC05, UC07, UC08, BR-02, BR-08, BR-10, BR-12, NF-06 |
+| CatalogManagementService                                               | `«business logic»`          | Encapsulates catalog rules by reading the required catalog facts, then checking catalog field validity and identifier uniqueness.                                                                                                                                                                                                                                      | UC09, BR-11                                               |
 | Account, Student, Lecturer                                             | `«entity»`                  | Store AFAS role profile information linked to university identity.                                                                                                                                                                                                                                                                                                                                                                 | UC01, UC09                                                |
-| Room, Subject, ClassSection, ClassSectionStudent, Session | `«entity»`                  | Store academic catalog, roster, classroom coordinates, and scheduled session information.                                                                                                                                                                                                                                                                                                                         | UC02-UC10                                                 |
-| AttendanceConfiguration                                                | `«entity»`                  | Stores configurable attendance timing values required by maintainability requirements.                                                                                                                                                                                                                                                                                                                  | UC02, UC04, UC05, UC10, NF-06                             |
+| Room, Subject, ClassSection, ClassSectionStudent, Session | `«entity»`                  | Store academic catalog, roster, classroom coordinates, and scheduled session information.                                                                                                                                                                                                                                                                                                                         | UC02-UC09                                                 |
+| AttendanceConfiguration                                                | `«entity»`                  | Stores configurable attendance timing values required by maintainability requirements.                                                                                                                                                                                                                                                                                                                  | UC02, UC04, UC05, NF-06                                   |
 | AttendanceSession, AttendanceRecord                                    | `«entity»`                  | Store attendance session lifecycle, check-in evidence, and official result information.                                                                                                                                                                                                                                                                                                                                                             | UC02-UC08                                                 |
 
 ### **II.1.4 Interface wireframes**
@@ -252,7 +251,7 @@ The following analysis-level wireframes identify the user interaction surfaces r
     "Attendance input" | "Scan active QR or enter active PIN"
     "Evidence" | "Location, device, biometric or selfie proof"
     [Submit check-in]
-    "Result" | "Accepted as Present/Late or rejected reason"
+    "Result" | "Accepted as Present or rejected reason"
   }
 }
 @endsalt
@@ -268,9 +267,9 @@ Trace: Student; UC02, UC03, UC04.
   {^"Session" | "Monitor" | "Adjust" | "Report"}
   {
     "Selected class session" | "Scheduled class and room"
-    [Start Attendance] | [Finalize Attendance]
+    [Start Attendance] | [Finalize Attendance] | [Reopen Attendance]
     "Projector view" | "Dynamic QR, backup PIN, countdown"
-    "Live roster" | "Present / Late / Absent counts"
+    "Live roster" | "NotYet / Present counts while active; Absent / Late after finalization"
     "Rejection reasons" | "Latest rejected check-in reason and adjustment reason"
     [Export finalized report]
   }
@@ -285,19 +284,17 @@ Trace: Lecturer; UC05, UC06, UC07, UC08.
 ```plantuml
 @startsalt
 {
-  {^"Catalog" | "Room Configuration"}
+  {^"Catalog"}
   {
     "Catalog grid" | "Accounts, subjects, class sections"
     [Add] | [Edit] | [Delete] | [Import]
-    "Room" | "Room code and configured location"
-    [Capture Current Location] | [Save Configuration]
-    "Validation" | "Duplicate ID or invalid coordinate"
+    "Validation" | "Duplicate ID"
   }
 }
 @endsalt
 ```
 
-Trace: Admin; UC09, UC10.
+Trace: Admin; UC09.
 
 ---
 
@@ -440,11 +437,12 @@ alt attendance code expired
   CheckInControl --> StudentUI : reject QR expired
   StudentUI --> Student : show QR expired message
 else code valid
-  AttendanceRules -> Session : read class section and scheduled start time
-  Session --> AttendanceRules : class section and session start time
-  AttendanceRules -> AttendanceConfig : read Late threshold minutes
-  AttendanceRules -> AttendanceRecord : save accepted check-in evidence and set Present or Late(method = QR, submittedAt = official system time, submitted coordinates)
-  AttendanceRules --> CheckInControl : accepted official status
+  AttendanceRules -> Session : read target class section
+  Session --> AttendanceRules : class section
+  AttendanceRules -> AttendanceRecord : read student's attendance record
+  AttendanceRecord --> AttendanceRules : current status
+  AttendanceRules -> AttendanceRecord : save accepted check-in evidence and change NotYet to Present(method = QR, submittedAt = official system time, submitted coordinates)
+  AttendanceRules --> CheckInControl : accepted Present status
   CheckInControl --> StudentUI : check-in accepted
   CheckInControl --> LecturerUI : attendance result changed for live monitor
   StudentUI --> Student : show successful check-in time
@@ -479,9 +477,9 @@ CheckInControl --> MobileSensor : 2.1.1 read location and device evidence
 MobileSensor --> MobileHardware : 2.1.1.1 obtain GPS coordinates and device identifier
 CheckInControl --> AttendanceRules : 2.1.2 submit QR check-in evidence
 AttendanceRules --> AttendanceSession : 2.1.2.1 read active session and displayed QR code
-AttendanceRules --> AttendanceConfig : 2.1.2.2 read QR refresh and Late threshold
-AttendanceRules --> Session : 2.1.2.3 read class section and scheduled start time
-AttendanceRules --> AttendanceRecord : 2.1.2.4 save evidence and set Present/Late or record rejection reason
+AttendanceRules --> AttendanceConfig : 2.1.2.2 read QR refresh setting
+AttendanceRules --> Session : 2.1.2.3 read target class section
+AttendanceRules --> AttendanceRecord : 2.1.2.4 save evidence and change NotYet to Present or record rejection reason
 CheckInControl --> StudentUI : 3 return accepted/rejected result
 CheckInControl --> LecturerUI : 3.1 [new official result] update live monitor
 @enduml
@@ -622,11 +620,12 @@ alt PIN expired
   CheckInControl --> StudentUI : reject PIN expired
   StudentUI --> Student : show PIN expired message
 else PIN valid
-  AttendanceRules -> Session : read class section and scheduled start time
-  Session --> AttendanceRules : class section and session start time
-  AttendanceRules -> AttendanceConfig : read Late threshold minutes
-  AttendanceRules -> AttendanceRecord : save accepted check-in evidence and set Present or Late(method = PIN, submittedAt = official system time, submitted coordinates)
-  AttendanceRules --> CheckInControl : accepted official status
+  AttendanceRules -> Session : read target class section
+  Session --> AttendanceRules : class section
+  AttendanceRules -> AttendanceRecord : read student's attendance record
+  AttendanceRecord --> AttendanceRules : current status
+  AttendanceRules -> AttendanceRecord : save accepted check-in evidence and change NotYet to Present(method = PIN, submittedAt = official system time, submitted coordinates)
+  AttendanceRules --> CheckInControl : accepted Present status
   CheckInControl --> StudentUI : check-in accepted
   CheckInControl --> LecturerUI : attendance result changed for live monitor
   StudentUI --> Student : show successful PIN check-in
@@ -661,9 +660,9 @@ CheckInControl --> MobileSensor : 2.1.1 read location and device evidence
 MobileSensor --> MobileHardware : 2.1.1.1 obtain GPS coordinates and device identifier
 CheckInControl --> AttendanceRules : 2.1.2 submit PIN check-in evidence
 AttendanceRules --> AttendanceSession : 2.1.2.1 read active PIN and target session
-AttendanceRules --> AttendanceConfig : 2.1.2.2 read PIN refresh setting and Late threshold
-AttendanceRules --> Session : 2.1.2.3 read class section and scheduled start time
-AttendanceRules --> AttendanceRecord : 2.1.2.4 save evidence and set Present/Late or record rejection reason
+AttendanceRules --> AttendanceConfig : 2.1.2.2 read PIN refresh setting
+AttendanceRules --> Session : 2.1.2.3 read target class section
+AttendanceRules --> AttendanceRecord : 2.1.2.4 save evidence and change NotYet to Present or record rejection reason
 CheckInControl --> StudentUI : 3 return accepted/rejected result
 CheckInControl --> LecturerUI : 3.1 [new official result] update live monitor
 @enduml
@@ -712,6 +711,10 @@ else activation allowed
   SessionRules --> SessionControl : activation allowed
   SessionControl -> SessionRules : activate attendance session
   SessionRules -> AttendanceSession : mark session active
+  SessionRules -> ClassSectionStudent : read enrolled students
+  ClassSectionStudent --> SessionRules : enrolled students
+  SessionRules -> AttendanceRecord : create attendance records with NotYet status for enrolled students
+  AttendanceRecord --> SessionRules : initialized NotYet records
   SessionControl -> SessionRules : prepare QR and PIN refresh policy
   SessionRules -> AttendanceConfig : read QR and PIN refresh seconds
   SessionRules -> AttendanceSession : update current QR and PIN codes
@@ -730,25 +733,38 @@ else activation allowed
     UC02 and UC04: students submit check-ins while the attendance session is active
   end
 
-  opt adjustment while the session is active
-    ref over LecturerUI, SessionControl, SessionRules
-      UC07: lecturer manually adjusts an attendance result while the session is active
-    end
-    LecturerUI -> SessionControl : continue after UC07 adjustment
-  end
-
   Lecturer -> LecturerUI : click Finalize Attendance
   LecturerUI -> SessionControl : request finalization
   SessionControl -> SessionRules : stop accepting check-ins and validate finalization rules
   SessionRules -> AttendanceSession : mark session stopped for new check-ins
   SessionRules -> ClassSectionStudent : read enrolled students
   ClassSectionStudent --> SessionRules : enrolled students
-  SessionRules -> AttendanceRecord : assign Absent to students without Present or Late
+  SessionRules -> AttendanceRecord : change remaining NotYet records to Absent
   AttendanceRecord --> SessionRules : completed attendance list
   SessionRules -> AttendanceRecord : mark results finalized
   SessionRules -> AttendanceSession : mark session finalized
   SessionRules --> SessionControl : attendance finalized
   SessionControl --> LecturerUI : attendance finalized
+
+  opt reopen finalized attendance for late adjustment
+    Lecturer -> LecturerUI : click Reopen Attendance
+    LecturerUI -> SessionControl : request reopened late adjustment
+    SessionControl -> SessionRules : verify assigned lecturer and finalized session
+    SessionRules -> AttendanceSession : mark session reopened for late adjustment
+    SessionRules --> SessionControl : reopened late adjustment allowed
+    SessionControl --> LecturerUI : allow late adjustment
+
+    ref over LecturerUI, SessionControl, SessionRules
+      UC07: lecturer changes an Absent record to Late with reason
+    end
+
+    Lecturer -> LecturerUI : close reopened attendance
+    LecturerUI -> SessionControl : request close reopened attendance
+    SessionControl -> SessionRules : finalize reopened attendance
+    SessionRules -> AttendanceSession : mark session finalized
+    SessionRules --> SessionControl : reopened attendance finalized
+    SessionControl --> LecturerUI : attendance finalized
+  end
 end
 @enduml
 ```
@@ -771,9 +787,9 @@ Lecturer --> LecturerUI : 1 manage scheduled session
 LecturerUI --> SessionControl : 1.1 request sessions/start/adjust/finalize
 SessionControl --> SessionRules : 1.1.1 coordinate lifecycle business decision
 SessionRules --> Session : 1.1.1.1 read assigned sessions and schedule window
-SessionRules --> AttendanceSession : 1.1.1.2 activate, refresh codes, or finalize
+SessionRules --> AttendanceSession : 1.1.1.2 activate, refresh codes, finalize, or reopen for late adjustment
 SessionRules --> AttendanceConfig : 1.1.1.3 read QR/PIN refresh settings
-SessionRules --> AttendanceRecord : 1.1.1.4 read results and rejection reasons, assign Absent, finalize
+SessionRules --> AttendanceRecord : 1.1.1.4 initialize NotYet records, read results and rejection reasons, assign Absent, finalize
 SessionRules --> ClassSectionStudent : 1.1.1.5 read enrolled students
 SessionControl --> SessionRules : 1.1.2 reference UC02/UC04 active check-ins and UC07 adjustment handoff
 SessionControl --> LecturerUI : 2 show lifecycle result
@@ -819,10 +835,10 @@ else session is active
     loop attendanceResultChanged events from UC02 or UC04
       MonitorControl -> SessionRules : get changed official attendance result
       SessionRules -> AttendanceRecord : read changed official result
-      AttendanceRecord --> SessionRules : latest Present or Late status
-      SessionRules --> MonitorControl : latest Present or Late status
+      AttendanceRecord --> SessionRules : latest Present status
+      SessionRules --> MonitorControl : latest Present status
       MonitorControl --> LecturerUI : update student tile and count
-      LecturerUI --> Lecturer : show Present or Late status update
+      LecturerUI --> Lecturer : show Present status update
     end
   else live updates interrupted
     MonitorControl --> LecturerUI : monitoring interruption
@@ -832,7 +848,7 @@ end
 @enduml
 ```
 
-The monitor interaction is modeled at the business-event level only: accepted QR and PIN check-ins change the official attendance result, and AttendanceCoordinator updates the lecturer view from that change. The concrete delivery mechanism is deferred to Design Modeling.
+The monitor interaction is modeled at the business-event level only: accepted QR and PIN check-ins change a `NotYet` record to `Present`, and AttendanceCoordinator updates the lecturer view from that change. The concrete delivery mechanism is deferred to Design Modeling.
 
 #### **Figure II-14 Communication diagram for UC06 - Monitor Attendance in Real Time**
 
@@ -871,33 +887,40 @@ participant "AttendanceSessionService\n«business logic»" as SessionRules
 participant "ClassSectionStudent\n«entity»" as ClassSectionStudent
 participant "AttendanceRecord\n«entity»" as AttendanceRecord
 
-Lecturer -> LecturerUI : select student and click Adjust Status
+Lecturer -> LecturerUI : select absent student and click Mark Late
 LecturerUI -> AdjustmentControl : request adjustment context
-AdjustmentControl -> SessionRules : verify assigned lecturer and session not finalized
+AdjustmentControl -> SessionRules : verify assigned lecturer and reopened attendance session
 SessionRules -> ClassSectionStudent : verify target student belongs to session roster
 ClassSectionStudent --> SessionRules : roster entry or none
 
-alt session finalized or lecturer not assigned
+alt session is not reopened or lecturer not assigned
   SessionRules --> AdjustmentControl : adjustment not allowed
   AdjustmentControl --> LecturerUI : adjustment rejected
-  LecturerUI --> Lecturer : show finalized or unauthorized adjustment message
+  LecturerUI --> Lecturer : show reopen-required or unauthorized adjustment message
 else adjustment context allowed
   SessionRules -> AttendanceRecord : read current status and check-in evidence if any
-  AttendanceRecord --> SessionRules : current status and evidence, or none
-  SessionRules --> AdjustmentControl : adjustment context allowed with current status and evidence
-  AdjustmentControl --> LecturerUI : show Present, Late, Absent options and evidence summary
-  Lecturer -> LecturerUI : select official status, enter reason, and save
-  LecturerUI -> AdjustmentControl : submit adjustment(new status, reason)
+  AttendanceRecord --> SessionRules : current status and evidence
 
-  alt reason is missing
-    AdjustmentControl --> LecturerUI : reason required
-    LecturerUI --> Lecturer : prompt to write reason
-  else reason provided
-    AdjustmentControl -> SessionRules : save manual adjustment(new status, reason)
-    SessionRules -> AttendanceRecord : set result to Present, Late, or Absent(ResultSource = ManualAdjustment)
-    SessionRules --> AdjustmentControl : adjustment saved
-    AdjustmentControl --> LecturerUI : adjustment saved
-    LecturerUI --> Lecturer : show updated student status
+  alt current status is not Absent
+    SessionRules --> AdjustmentControl : late adjustment not allowed
+    AdjustmentControl --> LecturerUI : adjustment rejected
+    LecturerUI --> Lecturer : show only Absent records can be marked Late after reopen
+  else current status is Absent
+    SessionRules --> AdjustmentControl : late adjustment allowed with current status and evidence
+    AdjustmentControl --> LecturerUI : show Late option, reason field, and evidence summary
+    Lecturer -> LecturerUI : enter late reason and save
+    LecturerUI -> AdjustmentControl : submit late adjustment(reason)
+
+    alt reason is missing
+      AdjustmentControl --> LecturerUI : reason required
+      LecturerUI --> Lecturer : prompt to write reason
+    else reason provided
+      AdjustmentControl -> SessionRules : save late adjustment(reason)
+      SessionRules -> AttendanceRecord : change Absent to Late(ResultSource = ManualAdjustment, adjustment reason)
+      SessionRules --> AdjustmentControl : late adjustment saved
+      AdjustmentControl --> LecturerUI : late adjustment saved
+      LecturerUI --> Lecturer : show updated Late status
+    end
   end
 end
 @enduml
@@ -914,11 +937,11 @@ class "AttendanceSessionService" as SessionRules <<business logic>>
 class "ClassSectionStudent" as ClassSectionStudent <<entity>>
 class "AttendanceRecord" as AttendanceRecord <<entity>>
 
-Lecturer --> LecturerUI : 1 select student and save adjustment
+Lecturer --> LecturerUI : 1 select absent student and save late adjustment
 LecturerUI --> AdjustmentControl : 1.1 request context / submit adjustment
-AdjustmentControl --> SessionRules : 1.1.1 verify lecturer permission and non-finalized session
+AdjustmentControl --> SessionRules : 1.1.1 verify lecturer permission and reopened attendance session
 SessionRules --> ClassSectionStudent : 1.1.1.1 verify roster entry
-SessionRules --> AttendanceRecord : 1.1.1.2 read status and evidence, then set official status
+SessionRules --> AttendanceRecord : 1.1.1.2 read status and evidence, then change Absent to Late with reason
 AdjustmentControl --> LecturerUI : 2 show success, missing reason, or rejected adjustment
 @enduml
 ```
@@ -1087,93 +1110,11 @@ CatalogControl --> AdminUI : 2 return updated grid or validation error
 @enduml
 ```
 
-### **II.2.10 UC10 - Configure Classroom Location**
-
-#### **Figure II-21 Sequence diagram for UC10 - Configure Classroom Location**
-
-```plantuml
-@startuml
-skinparam style strictuml
-autonumber
-actor "Admin\n«external user»" as Admin
-participant "Mobile Device Hardware\n«external device»" as MobileHardware
-participant "AdminInteraction\n«user interaction»" as AdminUI
-participant "CatalogManagementCoordinator\n«coordinator»" as RoomControl
-participant "MobileDeviceInterface\n«device I/O»" as MobileSensor
-participant "CatalogManagementService\n«business logic»" as LocationSettingRules
-participant "Room\n«entity»" as Room
-
-Admin -> AdminUI : click Room Management
-AdminUI -> RoomControl : request classroom list
-RoomControl -> LocationSettingRules : get classroom configuration list
-LocationSettingRules -> Room : read physical classrooms
-Room --> LocationSettingRules : classroom list
-LocationSettingRules --> RoomControl : classroom list
-RoomControl --> AdminUI : classroom list with configuration action
-Admin -> AdminUI : select classroom and configure location
-AdminUI --> Admin : show location form
-
-alt on-site calibration
-  Admin -> AdminUI : capture current location
-  AdminUI -> RoomControl : request current calibration location
-  RoomControl -> MobileSensor : read current GPS coordinates
-  MobileSensor -> MobileHardware : request current location
-  MobileHardware --> MobileSensor : captured classroom location
-  MobileSensor --> RoomControl : captured classroom location
-  RoomControl --> AdminUI : captured location values
-  AdminUI --> Admin : populate captured location values
-else manual entry
-  Admin -> AdminUI : enter classroom center point
-end
-
-Admin -> AdminUI : enter location and save configuration
-AdminUI -> RoomControl : submit location settings
-RoomControl -> LocationSettingRules : validate classroom location
-LocationSettingRules -> Room : read current room configuration
-Room --> LocationSettingRules : current room configuration
-
-alt invalid coordinate
-  LocationSettingRules --> RoomControl : setting value invalid
-  RoomControl --> AdminUI : warning to verify location values
-  AdminUI --> Admin : show coordinate validation warning
-else location accepted
-  LocationSettingRules -> Room : update room location settings
-  LocationSettingRules --> RoomControl : location settings accepted
-  RoomControl --> AdminUI : configuration saved
-  AdminUI --> Admin : show saved configuration
-end
-@enduml
-```
-
-#### **Figure II-22 Communication diagram for UC10 - Configure Classroom Location**
-
-```plantuml
-@startuml
-class "Admin" as Admin <<external user>>
-class "Mobile Device Hardware" as MobileHardware <<external device>>
-class "AdminInteraction" as AdminUI <<user interaction>>
-class "CatalogManagementCoordinator" as RoomControl <<coordinator>>
-class "MobileDeviceInterface" as MobileSensor <<device I/O>>
-class "CatalogManagementService" as LocationSettingRules <<business logic>>
-class "Room" as Room <<entity>>
-
-Admin --> AdminUI : 1 configure classroom location
-AdminUI --> RoomControl : 1.1 request rooms / submit settings
-RoomControl --> LocationSettingRules : 1.1.1 retrieve, validate, and save room location settings
-LocationSettingRules --> Room : 1.1.1.1 read or update room location settings
-RoomControl --> MobileSensor : 1.1.2 read current location for calibration
-MobileSensor --> MobileHardware : 1.1.2.1 obtain current location
-RoomControl --> AdminUI : 2 return saved result or warning
-@enduml
-```
-
----
-
 ## **II.3 State diagrams**
 
 ### **II.3.1 AttendanceSessionControl state**
 
-`AttendanceSessionControl` is the `«state dependent control»` object for UC05 because it coordinates the lifecycle from scheduled session selection to active check-in with manual adjustment, and finalization. The `AttendanceSession` entity records the lifecycle state, but the state machine below belongs to the control object that governs the lifecycle.
+`AttendanceSessionControl` is the `«state dependent control»` object for UC05 because it coordinates the lifecycle from scheduled session selection to active check-in, finalization, and reopened late adjustment. The `AttendanceSession` entity records the lifecycle state, but the state machine below belongs to the control object that governs the lifecycle.
 
 #### **Figure II-23 State diagram for AttendanceSessionControl**
 
@@ -1186,25 +1127,30 @@ NotStarted --> NotStarted : startAttendance [outside scheduled window or another
 
 Active --> Active : refreshQRCode [configured QR refresh interval]
 Active --> Active : refreshPIN [configured PIN refresh interval]
-Active --> Active : adjustAttendance [UC07, before finalization]
 Active --> Finalized : finalizeAttendance
+Finalized --> ReopenedForLateAdjustment : reopenAttendance [assigned lecturer and finalized session]
+ReopenedForLateAdjustment --> ReopenedForLateAdjustment : adjustLateAttendance [UC07, Absent record and reason provided]
+ReopenedForLateAdjustment --> Finalized : closeReopenedAttendance
 Finalized --> [*]
 @enduml
 ```
 
 ### **II.3.2 AttendanceRecord state**
 
-`AttendanceRecord` is state-dependent only for its lifecycle before and after finalization. It holds both the check-in evidence and the official outcome for one student in one study session. `AttendanceStatus` remains an attribute with values `Present`, `Late`, or `Absent`; `ResultSource` records whether the value came from QR, PIN, absent assignment, or manual adjustment; `RejectionReason` retains the most recent rejected check-in reason.
+`AttendanceRecord` is state-dependent for the official attendance outcome of one student in one study session. It is created as `NotYet` when the attendance session starts. Accepted student check-in changes it to `Present`; finalization changes remaining `NotYet` records to `Absent`; a reopened finalized session allows a lecturer to change an `Absent` record to `Late` with a required adjustment reason. `ResultSource` records whether the value came from QR, PIN, absent assignment, or manual adjustment; `RejectionReason` retains the most recent rejected check-in reason.
 
 #### **Figure II-24 State diagram for AttendanceRecord**
 
 ```plantuml
 @startuml
 skinparam style strictuml
-[*] --> Draft : firstCheckIn / manualAdjustment / absentAssignmentAtFinalize
-Draft --> Draft : statusChanged [accepted check-in, rejection reason, or manual adjustment]
-Draft --> Finalized : finalizeAttendance
-Finalized --> [*]
+[*] --> NotYet : initializeRecord [attendance session starts]
+NotYet --> Present : acceptedCheckIn [valid QR/PIN and identity evidence]
+NotYet --> Absent : finalizeAttendance [student has not checked in]
+Absent --> Late : markLateAfterReopen [lecturer provides reason]
+Present --> [*]
+Absent --> [*]
+Late --> [*]
 @enduml
 ```
 
@@ -1215,16 +1161,15 @@ Finalized --> [*]
 | **Requirement / UC**                     | **Actor**                                            | **Analysis objects**                                                                                                                                                                                                                       | **Dynamic diagrams**                                              | **Business rules covered**                                                  |
 | :--------------------------------------- | :--------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------- | :-------------------------------------------------------------------------- |
 | UC01 Authenticate User                   | Student, Lecturer, Admin, University Identity System | UserInteraction, IdentitySystemProxy, AuthenticationCoordinator, AuthenticationService, Account                                                                                                                                            | Figure II-3, Figure II-4                                          | BR-01                                                                       |
-| UC02 Check In via Dynamic QR Code        | Student, Mobile Device Hardware                      | StudentInteraction, LecturerInteraction, MobileDeviceInterface, AttendanceCoordinator, CheckInService, AttendanceConfiguration, AttendanceSession, Session, AttendanceRecord | Figure II-5, Figure II-6, Figure II-24              | BR-02, BR-03, BR-04, BR-05, BR-12, BR-13, NF-02, NF-06        |
+| UC02 Check In via Dynamic QR Code        | Student, Mobile Device Hardware                      | StudentInteraction, LecturerInteraction, MobileDeviceInterface, AttendanceCoordinator, CheckInService, AttendanceConfiguration, AttendanceSession, Session, AttendanceRecord | Figure II-5, Figure II-6, Figure II-24              | BR-02, BR-03, BR-04, BR-05, BR-12, NF-02, NF-06        |
 | UC03 View Personal Attendance History    | Student                                              | StudentInteraction, AttendanceCoordinator, AuthenticationService, AttendanceSessionService, ClassSectionStudent, ClassSection, AttendanceRecord                                                                                            | Figure II-7, Figure II-8                                          | BR-01                                                                       |
-| UC04 Check In via PIN                    | Student, Mobile Device Hardware                      | StudentInteraction, LecturerInteraction, MobileDeviceInterface, AttendanceCoordinator, CheckInService, AttendanceConfiguration, AttendanceSession, Session, AttendanceRecord | Figure II-9, Figure II-10, Figure II-24             | BR-02, BR-03, BR-04, BR-05, BR-07, BR-12, BR-13, NF-02, NF-06 |
+| UC04 Check In via PIN                    | Student, Mobile Device Hardware                      | StudentInteraction, LecturerInteraction, MobileDeviceInterface, AttendanceCoordinator, CheckInService, AttendanceConfiguration, AttendanceSession, Session, AttendanceRecord | Figure II-9, Figure II-10, Figure II-24             | BR-02, BR-03, BR-04, BR-05, BR-07, BR-12, NF-02, NF-06 |
 | UC05 Manage Attendance Session           | Lecturer                                             | LecturerInteraction, AttendanceSessionControl, AttendanceSessionService, AttendanceConfiguration, Session, ClassSectionStudent, AttendanceSession, AttendanceRecord                                                        | Figure II-11, Figure II-12, Figure II-23                          | BR-02, BR-08, BR-10, BR-12, NF-06                                    |
 | UC06 Monitor Attendance in Real Time     | Lecturer                                             | LecturerInteraction, AttendanceCoordinator, AttendanceSessionService, AttendanceSession, ClassSectionStudent, AttendanceRecord                                                                                                             | Figure II-13, Figure II-14                                        | NF-01                                                                       |
 | UC07 Adjust Attendance Manually          | Lecturer                                             | LecturerInteraction, AttendanceCoordinator, AttendanceSessionService, ClassSectionStudent, AttendanceRecord                                                                                                                | Figure II-15, Figure II-16, Figure II-24                          | BR-10                                                                       |
 | UC08 Export Attendance Report            | Lecturer                                             | LecturerInteraction, AttendanceCoordinator, AttendanceSessionService, ClassSectionStudent, Session, AttendanceRecord                                                                                                       | Figure II-17, Figure II-18, Figure II-24                          | BR-08                                                                       |
 | UC09 Manage System Catalog               | Admin                                                | AdminInteraction, CatalogManagementCoordinator, CatalogManagementService, Account, Student, Lecturer, Subject, ClassSection, ClassSectionStudent, Session                                                                                  | Figure II-19, Figure II-20                                        | BR-11                                                                       |
-| UC10 Configure Classroom Location        | Admin, Mobile Device Hardware                        | AdminInteraction, MobileDeviceInterface, CatalogManagementCoordinator, CatalogManagementService, Room                                                                                                | Figure II-21, Figure II-22                                        | BR-03, NF-06                                                                |
-| NF-06 Configurable attendance parameters | Student, Lecturer, Admin                             | AttendanceConfiguration, CheckInService, AttendanceSessionService, CatalogManagementService, CatalogManagementCoordinator                                                                                                                  | Figure II-1, Figure II-5, Figure II-9, Figure II-11, Figure II-21 | NF-06                                                                       |
+| NF-06 Configurable attendance parameters | Student, Lecturer                                    | AttendanceConfiguration, CheckInService, AttendanceSessionService                                                                                                                                                                           | Figure II-1, Figure II-5, Figure II-9, Figure II-11               | NF-06                                                                       |
 
 ---
 
@@ -1232,23 +1177,22 @@ Finalized --> [*]
 
 | **Check item**                                                                                                                                            | **Status** | **Evidence in this section**                                                                                                                                                                                                  |
 | :-------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| UC list matches Requirement Section I.5.2                                                                                                                 | Pass       | UC01-UC10 only; Figures II-3 through II-22                                                                                                                                                                                    |
-| UC names match Requirement Section I.5.2                                                                                                                  | Pass       | Headings II.2.1-II.2.10                                                                                                                                                                                                       |
-| Analysis uses detailed COMET stereotypes                                                                                                                  | Pass       | Figures II-1 through II-22 use `«user interaction»`, `«device I/O»`, `«coordinator»`, `«state dependent control»`, `«entity»`, and `«business logic»`                                                          |
+| UC list matches Requirement Section I.5.2                                                                                                                 | Pass       | UC01-UC09 only; Figures II-3 through II-20                                                                                                                                                                                    |
+| UC names match Requirement Section I.5.2                                                                                                                  | Pass       | Headings II.2.1-II.2.9                                                                                                                                                                                                        |
+| Analysis uses detailed COMET stereotypes                                                                                                                  | Pass       | Figures II-1 through II-20 use `«user interaction»`, `«device I/O»`, `«coordinator»`, `«state dependent control»`, `«entity»`, and `«business logic»`                                                          |
 | Contextual boundary diagram contains only external participants and the AFAS black box                                                                    | Pass       | Figure II-2 contains AFAS, external users, Mobile Device Hardware, and University Identity System only                                                                                                                        |
 | Static data structure is isolated from behavior views                                                                                                     | Pass       | Figure II-1 contains only entity classes and relationships; Figure II-2 contains only the contextual boundary; Section II.2 provides use-case-specific behavior diagrams                                                      |
-| Mobile device hardware is represented consistently across context and interaction views                                                                   | Pass       | Figure II-2 represents Mobile Device Hardware as an external device; Figure II-5, Figure II-6, Figure II-9, Figure II-10, Figure II-21, and Figure II-22 use MobileDeviceInterface as the internal device I/O boundary object |
+| Mobile device hardware is represented consistently across context and interaction views                                                                   | Pass       | Figure II-2 represents Mobile Device Hardware as an external device; Figure II-5, Figure II-6, Figure II-9, and Figure II-10 use MobileDeviceInterface as the internal device I/O boundary object |
 | Entity relationships distinguish lifecycle ownership where appropriate                                                                                    | Pass       | Figure II-1 uses composition for study-session-owned attendance lifecycle data and association for room location membership                                                                                            |
 | Interface wireframes are included for key actor workflows                                                                                                 | Pass       | Section II.1.4 covers Student, Lecturer, and Admin wireframes with UC trace notes                                                                                                                                             |
-| NF-06 configurable attendance parameters are represented in Analysis                                                                                      | Pass       | AttendanceConfiguration appears in Figure II-1 and is used by CheckInService, AttendanceSessionService, CatalogManagementService, and CatalogManagementCoordinator                                                            |
-| QR/PIN check-in records the official result after identity and code checks; location is informational and never blocks check-in                   | Pass       | Figures II-5 and II-9                                                                                                                                                                                                         |
-| BR-13 Late threshold is mapped to status calculation                                                                                                      | Pass       | Figures II-5 and II-9 use official submitted time, scheduled start time, and configured Late threshold                                                                                                                        |
+| NF-06 configurable attendance parameters are represented in Analysis                                                                                      | Pass       | AttendanceConfiguration appears in Figure II-1 and is used by CheckInService and AttendanceSessionService                                                                                                                     |
+| QR/PIN check-in changes an initialized `NotYet` record to `Present` after identity and code checks; location is informational and never blocks check-in   | Pass       | Figures II-5, II-9, and II-24                                                                                                                                                                                                  |
+| Attendance records are initialized as `NotYet` when the attendance session starts                                                                          | Pass       | Figure II-11 and Figure II-24                                                                                                                                                                                                  |
 | Latest rejection reason is retained on the attendance record for lecturer review                                                                          | Pass       | Figures II-5, II-9, II-11, II-24                                                                                                                                                                                              |
-| UC05 includes start, active check-in with adjustment handoff, and a single finalize action that stops check-ins, assigns Absent, and finalizes | Pass       | Figure II-11 and Figure II-23                                                                                                                                                                                                 |
-| UC07 can create or update an official result during manual adjustment                                                                                     | Pass       | Figure II-15                                                                                                                                                                                                                  |
+| UC05 includes start, active check-in, finalize action that stops check-ins, changes remaining `NotYet` records to `Absent`, and reopen for late adjustment | Pass       | Figure II-11 and Figure II-23                                                                                                                                                                                                 |
+| UC07 changes an `Absent` record to `Late` only after attendance is reopened and a reason is provided                                                       | Pass       | Figure II-15 and Figure II-24                                                                                                                                                                                                 |
 | UC06 separates inactive sessions from interrupted live updates                                                                                            | Pass       | Figure II-13                                                                                                                                                                                                                  |
 | UC08 exports only finalized attendance results                                                                                                            | Pass       | Figure II-17 and Figure II-24                                                                                                                                                                                                 |
 | Official attendance results exclude Rejected status                                                                                                       | Pass       | Figure II-1, Figure II-24                                                                                                                                                                                                     |
-| UC10 validates coordinate values                                                                                                              | Pass       | Figure II-21                                                                                                                                                                                                                  |
-| Location model supports submitted-coordinate and accuracy capture for information only (no distance computed; not used to accept or reject check-in)       | Pass       | Figure II-1, Figure II-5, Figure II-9, Figure II-21                                                                                                                                                                           |
+| Location model supports submitted-coordinate and accuracy capture for information only (no distance computed; not used to accept or reject check-in)       | Pass       | Figure II-1, Figure II-5, Figure II-9                                                                                                                                                                                         |
 | Removed untraced analysis objects and flows                                                                                                               | Pass       | Old external-login flow, lecturer location storage, untraced device lifecycle, network evidence details, and unsupported face-matching threshold are not modeled                                                              |

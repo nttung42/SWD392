@@ -17,7 +17,7 @@
 | V1.0        | 26/05/2026 | A          | SWD392 Team   | Initial release of Requirement Specification (Section I) for AFAS including Problem Description, Features, Context, NFRs, Use Cases, Activity Diagrams, and Data Dictionary.                                                                                                                                                         |
 | V1.1        | 27/05/2026 | A          | SWD392 Team   | Added Analysis Models (Section II): Interaction Diagrams (Sequence & Communication) for UC01, UC03, UC05, UC06, UC07, UC08, UC11; State Diagrams for AttendanceVersion, AttendanceRecord, DeviceBinding; Static Analysis (Contextual Boundary Class Diagram, Object Structuring Criteria, UI Mockups).                               |
 | V1.2        | 27/05/2026 | A          | SWD392 Team   | Added Design Specification (Section III): Integrated Communication Diagram, 3-View Architecture, Component/Package Diagrams, Detailed Class Design, Database Schema. Added Implementation Mapping (Section IV) and Verification/Testing (Section V).                                                                                 |
-| V1.3        | 09/06/2026 | M          | SWD392 Team   | Added cross-phase traceability framework: source-to-feature matrix, business process model, anti-fraud rule catalog, missing dynamic analysis diagrams for UC02/UC04/UC09/UC10, analysis-to-design transformation matrices, NFR realization matrix, DB rule mappings, implementation traceability, and verification coverage matrix. |
+| V1.3        | 09/06/2026 | M          | SWD392 Team   | Added cross-phase traceability framework: source-to-feature matrix, business process model, anti-fraud rule catalog, missing dynamic analysis diagrams for UC02/UC04/UC09, analysis-to-design transformation matrices, NFR realization matrix, DB rule mappings, implementation traceability, and verification coverage matrix. |
 | V1.4        | 13/07/2026 | M          | SWD392 Team   | Refined Requirement Modeling scope for SWD392: removed production-grade email/network evidence from MVP, simplified NFRs, renamed UC05 to Manage Attendance Session, added business rule catalog, requirement traceability matrix, and end-to-end activity diagram.                                                                  |
 | V1.5        | 14/07/2026 | M          | SWD392 Team   | Added University Identity System as an external system for user authentication in Requirement Modeling.                                                                                                                                                                                                                              |
 
@@ -59,7 +59,7 @@ The core requirements are described as follows:
 7.  **Real-time Monitoring:** As students successfully check in, the lecturer interface highlights their attendance status for live classroom monitoring.
 8.  **Manual Adjustments:** Lecturers can review the latest rejection reason for a student and manually adjust the student's attendance status when there is a legitimate reason.
 9.  **Reporting:** Lecturers can export finalized attendance sheets to spreadsheet formats such as Excel.
-10. **System Configurations:** Administrators manage users, subjects, class sections, and classroom location settings, including the reference classroom location (kept for reference only, not used to block check-in).
+10. **System Configurations:** Administrators manage users, subjects, and class sections.
 
 ---
 
@@ -83,7 +83,6 @@ The system comprises three main portals: Student Mobile App, Lecturer Web Portal
 
 ### **Features for Administrators (Web Portal):**
 *   **F11: System Catalog Management:** Manage AFAS role profiles (Students, Lecturers), Subjects, and Class Sections.
-*   **F12: Classroom Location Configuration:** Setup room location, kept for reference only.
 
 
 
@@ -182,7 +181,6 @@ rectangle "Anti-Fraud Attendance System" as AFAS {
     usecase "UC07: Adjust Attendance Manually" as UC07
     usecase "UC08: Export Attendance Report" as UC08
     usecase "UC09: Manage System Catalog" as UC09
-    usecase "UC10: Configure Classroom Location" as UC10
 }
 
 Student --> UC01
@@ -198,12 +196,10 @@ Lecturer --> UC08
 
 Admin --> UC01
 Admin --> UC09
-Admin --> UC10
 
 UC01 --> UIS
 UC02 --> MDH
 UC04 --> MDH
-UC10 --> MDH
 
 @enduml
 ```
@@ -212,7 +208,7 @@ UC10 --> MDH
 
 ### **I.5.2 Use case descriptions**
 
-Below are the detailed descriptions for all **10 Use Cases** of the AFAS system:
+Below are the detailed descriptions for all **9 Use Cases** of the AFAS system:
 
 #### **Table I-1: Use case description for UC01 - Authenticate User**
 | **Field**              | **Description**                                                                                                                                                                                                                                                                                                                                                   |
@@ -379,25 +375,6 @@ Below are the detailed descriptions for all **10 Use Cases** of the AFAS system:
 
 ---
 
-#### **Table I-10: Use case description for UC10 - Configure Classroom Location**
-| **Field**              | **Description**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| :--------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **ID and Name:**       | **UC10: Configure Classroom Location**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| **Created By:**        | SWD392 Team                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| **Primary Actor:**     | Admin                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| **Secondary Actor:**   | Mobile Device Hardware                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| **Description:**       | Admin configures the exact classroom location coordinates for classrooms on campus, which are kept as reference information only (not used to accept or reject check-ins).                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| **Trigger:**           | Admin clicks "Room Management" on the dashboard.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| **Preconditions:**     | Admin is logged in (UC01).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| **Postconditions:**    | Room location settings are updated in the room configurations.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| **Normal Flow:**       | 1. Admin navigates to "Room Management".<br>2. System displays all physical classrooms on campus.<br>3. Admin selects a room (e.g., `AL-L402`) and clicks "Configure Location".<br>4. System opens a configuration form for room location.<br>5. Admin sets the exact classroom center point or manually inputs the classroom location values.<br>6. Admin clicks "Save Configuration".<br>7. System verifies that the location belongs to the university campus and updates the room configurations. |
-| **Alternative Flows:** | **A5.1 On-site Mobile Calibration:** Admin visits the room physically on-site and selects "Capture Current Location". The current location is automatically populated.                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| **Exceptions:**        | **E8.1 Out-of-bounds Location:** If Admin inputs a location that is not within the university's boundary, system prompts a warning to verify the number.                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| **Priority:**          | High                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| **Business Rules:**    | BR-03                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-
----
-
 ### **I.5.3 Activity diagrams**
 
 Below are the activity diagrams modeling the end-to-end attendance process and the key event flows of check-in, session management, and manual adjustment.
@@ -417,45 +394,44 @@ skinparam swimlaneHeaderFontStyle bold
 
 |Admin|
 start
-:1. Configure classroom location;
-:2. Maintain users, subjects,\nand class sections;
+:1. Maintain users, subjects,\nand class sections;
 
 |Lecturer|
-:3. Open assigned class session;
-:4. Start attendance session;
+:2. Open assigned class session;
+:3. Start attendance session;
 
 |System|
-:5. Display dynamic QR code\nand backup PIN;
+:4. Display dynamic QR code\nand backup PIN;
 
 |Student|
-:6. Scan QR code\nor enter PIN;
-:7. Complete biometric verification\nor provide face selfie proof;
+:5. Scan QR code\nor enter PIN;
+:6. Complete biometric verification\nor provide face selfie proof;
 
 |System|
-:8. Check attendance code validity;
-:9. Record submitted location\n(informational, never rejects);
+:7. Check attendance code validity;
+:8. Record submitted location\n(informational, never rejects);
 
 if (Check-in accepted?) then ([Yes])
-  :10. Record official result\n(Present or Late);
+  :9. Record official result\n(Present or Late);
   |Lecturer|
-  :11. Monitor live attendance status;
+  :10. Monitor live attendance status;
 else ([No])
   |System|
-  :10a. Record latest rejection\nreason on attendance record;
+  :9a. Record latest rejection\nreason on attendance record;
   |Lecturer|
-  :11a. Review rejection reason;
+  :10a. Review rejection reason;
 endif
 
 |Lecturer|
 if (Manual adjustment needed?) then ([Yes])
-  :12. Adjust attendance status\nwith reason;
+  :11. Adjust attendance status\nwith reason;
 else ([No])
 endif
-:13. Finalize attendance result;
+:12. Finalize attendance result;
 |System|
-:14. Assign Absent to enrolled students\nwithout official Present or Late\nand lock the finalized result;
+:13. Assign Absent to enrolled students\nwithout official Present or Late\nand lock the finalized result;
 |Lecturer|
-:15. Export attendance report;
+:14. Export attendance report;
 stop
 @enduml
 ```
@@ -686,13 +662,13 @@ The following business rules use stable IDs so that later Analysis, Design, and 
 | :--------------------------------- | :------------- | :--------------- | :------------------- |
 | Dynamic QR attendance              | F03, F07       | UC02, UC05       | BR-02, BR-12, BR-13  |
 | Late threshold classification      | F03, F04       | UC02, UC04       | BR-13                |
-| Location reference capture         | F03, F04, F12  | UC02, UC04, UC10 | BR-03                |
+| Location reference capture         | F03, F04       | UC02, UC04       | BR-03                |
 | Biometric or selfie verification   | F02, F03, F04  | UC02, UC04       | BR-04                |
 | Device ID evidence                 | F03, F04       | UC02, UC04       | BR-05                |
 | Real-time lecturer monitoring      | F08            | UC06             | NF-01                |
 | Manual adjustment and finalization | F07, F09       | UC05, UC07       | BR-08, BR-10         |
 | Excel/spreadsheet export           | F10            | UC08             | BR-08                |
-| System catalog and classroom setup | F11, F12       | UC09, UC10       | BR-03, BR-11         |
+| System catalog management          | F11            | UC09             | BR-11                |
 
 ---
 
@@ -700,7 +676,7 @@ The following business rules use stable IDs so that later Analysis, Design, and 
 
 This section keeps only the data dictionary needed for Requirement Modeling. Entity class diagrams and object relationships belong to Analysis Modeling.
 
-### **Table I-11: Data Description (Data dictionary)**
+### **Table I-10: Data Description (Data dictionary)**
 
 | **Name**                    | **Data Type** | **Description**                                                                                                                                                      |
 | :-------------------------- | :------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
