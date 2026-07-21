@@ -172,7 +172,7 @@ The object structure criteria below group analysis objects by COMET responsibili
 
 The collaboration criteria for these objects are:
 
-- `«user interaction»`, `«device I/O»`, and `«proxy»` objects represent the system boundary. They receive or provide external events and send those events to a coordinator or application logic object; they do not access entity objects directly.
+- `«user interface»`, `«device I/O»`, and `«proxy»` objects represent the system boundary. They receive or provide external events and send those events to a coordinator or application logic object; they do not access entity objects directly.
 - `«coordinator»` and `«state dependent control»` objects own the use-case flow. They receive a boundary event, delegate business decisions to application logic objects, and choose the next flow branch from the returned business result. They should not pre-read entity data merely to pass extracted fields into business logic.
 - `«business logic»` objects encapsulate business rules. When a rule needs retained domain facts, the business logic object retrieves or updates the relevant `«entity»` objects and returns an analysis-level business result to the coordinator.
 - `«entity»` objects retain domain information and lifecycle state. They expose domain-level information or state changes needed by business logic, but they do not initiate use-case coordination.
@@ -181,10 +181,10 @@ The collaboration criteria for these objects are:
 @startwbs
 * System Analysis Objects
 ** Boundary Objects
-*** User Interaction Objects
-**** StudentInteraction
-**** LecturerInteraction
-**** AdminInteraction
+*** User Interface Objects
+**** StudentInterface
+**** LecturerInterface
+**** AdminInterface
 *** External System Proxy Objects
 **** IdentitySystemProxy
 *** Device I/O Objects
@@ -198,10 +198,10 @@ The collaboration criteria for these objects are:
 **** AttendanceSessionControl
 ** Application Logic Objects
 *** Business Logic Objects
-**** AuthenticationService
-**** CheckInService
-**** AttendanceSessionService
-**** CatalogManagementService
+**** AuthenticationRules
+**** CheckInRules
+**** AttendanceSessionRules
+**** CatalogManagementRules
 ** Entity Objects
 *** Account
 *** Student
@@ -219,19 +219,19 @@ The collaboration criteria for these objects are:
 
 | **Object**                                                             | **Stereotype**              | **Responsibility**                                                                                                                                                                                                                                                                                                                                                                                                                 | **Trace source**                                          |
 | :--------------------------------------------------------------------- | :-------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------- |
-| StudentInteraction                                                     | `«user interaction»`        | Receives student QR, PIN, and history actions after access is granted.                                                                                                                                                                                                                                                                                                                                                             | Student; UC02-UC04                                        |
-| LecturerInteraction                                                    | `«user interaction»`        | Receives lecturer session, monitor, adjustment, and export actions after access is granted, and receives live accepted check-in result changes for classroom monitoring.                                                                                                                                                                                                                                                           | Lecturer; UC02, UC04-UC08                                 |
-| AdminInteraction                                                       | `«user interaction»`        | Receives administrator catalog actions after access is granted.                                                                                                                                                                                                                                                                                                                                                                     | Admin; UC09                                               |
+| StudentInterface                                                     | `«user interface»`        | Receives student QR, PIN, and history actions after access is granted.                                                                                                                                                                                                                                                                                                                                                             | Student; UC02-UC04                                        |
+| LecturerInterface                                                    | `«user interface»`        | Receives lecturer session, monitor, adjustment, and export actions after access is granted, and receives live accepted check-in result changes for classroom monitoring.                                                                                                                                                                                                                                                           | Lecturer; UC02, UC04-UC08                                 |
+| AdminInterface                                                       | `«user interface»`        | Receives administrator catalog actions after access is granted.                                                                                                                                                                                                                                                                                                                                                                     | Admin; UC09                                               |
 | MobileDeviceInterface                                                  | `«device I/O»`              | Interfaces with mobile device hardware to request biometric verification, read GPS coordinates, read device identifier, and access camera/selfie evidence.                                                                                                                                                                                                             | Mobile Device Hardware; UC02, UC04                        |
 | IdentitySystemProxy                                                    | `«proxy»`                   | Represents the AFAS boundary used to ask the existing University Identity System to confirm user identity.                                                                                                                                                                                                                                                                                                                         | University Identity System; UC01, BR-01                   |
 | AuthenticationCoordinator                                              | `«coordinator»`             | Coordinates the authentication use-case flow, delegates external identity confirmation and role-access evaluation, then returns the selected access outcome.                                                                                                                                                                                                                                                                       | UC01, BR-01                                               |
 | AttendanceCoordinator                                                  | `«coordinator»`             | Coordinates regular attendance use-case flows and delegates attendance rule decisions for QR/PIN check-in, personal history retrieval, live monitoring, manual adjustment, and finalized report preparation.                                                                                                                                                                                                                       | UC02, UC03, UC04, UC06, UC07, UC08, BR-01, BR-10          |
 | AttendanceSessionControl                                               | `«state dependent control»` | Coordinates attendance session lifecycle transitions: not started, active, finalized, reopened for late adjustment; delegates transition eligibility rules to attendance session policy logic.                                                                                                                                                                                                                                                             | UC05, BR-02, BR-08, BR-10, BR-12, BR-13                   |
 | CatalogManagementCoordinator                                           | `«coordinator»`             | Coordinates administrator catalog management flows and delegates catalog evaluation to catalog validation logic.                                                                                                                                                                                                                                                       | UC09, BR-11                                               |
-| AuthenticationService                                                  | `«business logic»`          | Encapsulates role-access rules by locating the AFAS role profile for a confirmed university identity and checking whether the requested role is allowed.                                                                                                                                                                                                                                                                           | UC01, UC03, BR-01                                         |
-| CheckInService                                                         | `«business logic»`          | Encapsulates rules for a submitted student check-in by reading the required session, configuration, room, and attendance record facts, then checking QR/PIN validity, identity evidence, session match, and whether the student's record is still `NotYet` before changing it to `Present` using official system time. Submitted location coordinates are captured and stored for information only; they never affect acceptance and are not required.                                                                                | UC02, UC04, BR-02, BR-04, BR-12, NF-06      |
-| AttendanceSessionService                                               | `«business logic»`          | Encapsulates attendance history, attendance session lifecycle, and lecturer-operation policies by reading the required schedule, lecturer, session, roster, check-in, configuration, and official attendance facts, then checking scheduled time window, assigned lecturer, active session uniqueness, QR/PIN refresh policy, `NotYet` record initialization, absent assignment, finalization, report eligibility, reopen eligibility, and late adjustment reason requirements. | UC03, UC05, UC07, UC08, BR-02, BR-08, BR-10, BR-12, BR-13, NF-06 |
-| CatalogManagementService                                               | `«business logic»`          | Encapsulates catalog rules by reading the required catalog facts, then checking catalog field validity and identifier uniqueness.                                                                                                                                                                                                                                      | UC09, BR-11                                               |
+| AuthenticationRules                                                  | `«business logic»`          | Encapsulates role-access rules by locating the AFAS role profile for a confirmed university identity and checking whether the requested role is allowed.                                                                                                                                                                                                                                                                           | UC01, UC03, BR-01                                         |
+| CheckInRules                                                         | `«business logic»`          | Encapsulates rules for a submitted student check-in by reading the required session, configuration, room, and attendance record facts, then checking QR/PIN validity, identity evidence, session match, and whether the student's record is still `NotYet` before changing it to `Present` using official system time. Submitted location coordinates are captured and stored for information only; they never affect acceptance and are not required.                                                                                | UC02, UC04, BR-02, BR-04, BR-12, NF-06      |
+| AttendanceSessionRules                                               | `«business logic»`          | Encapsulates attendance history, attendance session lifecycle, and lecturer-operation policies by reading the required schedule, lecturer, session, roster, check-in, configuration, and official attendance facts, then checking scheduled time window, assigned lecturer, active session uniqueness, QR/PIN refresh policy, `NotYet` record initialization, absent assignment, finalization, report eligibility, reopen eligibility, and late adjustment reason requirements. | UC03, UC05, UC07, UC08, BR-02, BR-08, BR-10, BR-12, BR-13, NF-06 |
+| CatalogManagementRules                                               | `«business logic»`          | Encapsulates catalog rules by reading the required catalog facts, then checking catalog field validity and identifier uniqueness.                                                                                                                                                                                                                                      | UC09, BR-11                                               |
 | Account, Student, Lecturer                                             | `«entity»`                  | Store AFAS role profile information linked to university identity.                                                                                                                                                                                                                                                                                                                                                                 | UC01, UC09                                                |
 | Room, Subject, ClassSection, ClassSectionStudent, Session | `«entity»`                  | Store academic catalog, roster, classroom coordinates, and scheduled session information.                                                                                                                                                                                                                                                                                                                         | UC02-UC09                                                 |
 | Configuration                                                | `«entity»`                  | Stores configurable attendance parameters required by maintainability requirements, including refresh timing values and the campus boundary reference used for location evidence context.                                                                                                                                                                                                                                                                                                                  | UC02, UC04, UC05, NF-06                                   |
@@ -239,9 +239,9 @@ The collaboration criteria for these objects are:
 
 ### **II.1.4 Interface wireframes**
 
-The following analysis-level wireframes identify the user interaction surfaces required by the use cases. They do not introduce implementation technology; they only show the business information and actions visible at the system boundary.
+The following analysis-level wireframes identify the user interface surfaces required by the use cases. They do not introduce implementation technology; they only show the business information and actions visible at the system boundary.
 
-#### **StudentInteraction wireframes**
+#### **StudentInterface wireframes**
 
 ```plantuml
 @startsalt
@@ -260,7 +260,7 @@ The following analysis-level wireframes identify the user interaction surfaces r
 
 Trace: Student; UC02, UC03, UC04.
 
-#### **LecturerInteraction wireframes**
+#### **LecturerInterface wireframes**
 
 ```plantuml
 @startsalt
@@ -280,7 +280,7 @@ Trace: Student; UC02, UC03, UC04.
 
 Trace: Lecturer; UC05, UC06, UC07, UC08.
 
-#### **AdminInteraction wireframes**
+#### **AdminInterface wireframes**
 
 ```plantuml
 @startsalt
@@ -314,9 +314,9 @@ Sequence diagrams are kept to validate detailed main and alternative flows. Comm
 skinparam style strictuml
 autonumber
 actor "User\n«external user»" as User
-boundary "UserInteraction\n«user interaction»" as AccessUI
+boundary "UserInterface\n«user interface»" as AccessUI
 control "AuthenticationCoordinator\n«coordinator»" as AuthControl
-participant "AuthenticationService\n«business logic»" as AuthRules
+participant "AuthenticationRules\n«business logic»" as AuthRules
 boundary "IdentitySystemProxy\n«proxy»" as UISInterface
 entity "Account\n«entity»" as Account
 
@@ -350,16 +350,16 @@ else identity support needed
 end
 @enduml
 ```
-- Note: User Interaction is general for all roles (Student, Lecturer, Admin).
+- Note: User Interface is general for all roles (Student, Lecturer, Admin).
 
 #### **Figure II-4 Communication diagram for UC01 - Authenticate User**
 
 ```plantuml
 @startuml
 class "User\n(Student/Lecturer/Admin)" as User <<external user>>
-class "UserInteraction" as AccessUI <<user interaction>>
+class "UserInterface" as AccessUI <<user interface>>
 class "AuthenticationCoordinator" as AuthControl <<coordinator>>
-class "AuthenticationService" as AuthRules <<business logic>>
+class "AuthenticationRules" as AuthRules <<business logic>>
 class "IdentitySystemProxy" as UISInterface <<proxy>>
 class "University Identity System" as UIS <<external system>>
 class "Account" as Account <<entity>>
@@ -387,11 +387,11 @@ skinparam style strictuml
 autonumber
 actor "Student\n«external user»" as Student
 participant "Mobile Device Hardware\n«external device»" as MobileHardware
-participant "StudentInteraction\n«user interaction»" as StudentUI
-participant "LecturerInteraction\n«user interaction»" as LecturerUI
+participant "StudentInterface\n«user interface»" as StudentUI
+participant "LecturerInterface\n«user interface»" as LecturerUI
 participant "AttendanceCoordinator\n«coordinator»" as CheckInControl
 participant "MobileDeviceInterface\n«device I/O»" as MobileSensor
-participant "CheckInService\n«business logic»" as AttendanceRules
+participant "CheckInRules\n«business logic»" as AttendanceRules
 participant "AttendanceSession\n«entity»" as AttendanceSession
 participant "Configuration\n«entity»" as Configuration
 participant "Session\n«entity»" as Session
@@ -457,11 +457,11 @@ end
 @startuml
 class "Student" as Student <<external user>>
 class "Mobile Device Hardware" as MobileHardware <<external device>>
-class "StudentInteraction" as StudentUI <<user interaction>>
-class "LecturerInteraction" as LecturerUI <<user interaction>>
+class "StudentInterface" as StudentUI <<user interface>>
+class "LecturerInterface" as LecturerUI <<user interface>>
 class "AttendanceCoordinator" as CheckInControl <<coordinator>>
 class "MobileDeviceInterface" as MobileSensor <<device I/O>>
-class "CheckInService" as AttendanceRules <<business logic>>
+class "CheckInRules" as AttendanceRules <<business logic>>
 class "AttendanceSession" as AttendanceSession <<entity>>
 class "Configuration" as Configuration <<entity>>
 class "Session" as Session <<entity>>
@@ -495,10 +495,10 @@ CheckInControl --> LecturerUI : 3.1 [new official result] update live monitor
 skinparam style strictuml
 autonumber
 actor "Student\n«external user»" as Student
-participant "StudentInteraction\n«user interaction»" as StudentUI
+participant "StudentInterface\n«user interface»" as StudentUI
 participant "AttendanceCoordinator\n«coordinator»" as HistoryControl
-participant "AuthenticationService\n«business logic»" as AuthRules
-participant "AttendanceSessionService\n«business logic»" as HistoryRules
+participant "AuthenticationRules\n«business logic»" as AuthRules
+participant "AttendanceSessionRules\n«business logic»" as HistoryRules
 participant "ClassSectionStudent\n«entity»" as ClassSectionStudent
 participant "ClassSection\n«entity»" as ClassSection
 participant "AttendanceRecord\n«entity»" as AttendanceRecord
@@ -537,10 +537,10 @@ end
 ```plantuml
 @startuml
 class "Student" as Student <<external user>>
-class "StudentInteraction" as StudentUI <<user interaction>>
+class "StudentInterface" as StudentUI <<user interface>>
 class "AttendanceCoordinator" as HistoryControl <<coordinator>>
-class "AuthenticationService" as AuthRules <<business logic>>
-class "AttendanceSessionService" as HistoryRules <<business logic>>
+class "AuthenticationRules" as AuthRules <<business logic>>
+class "AttendanceSessionRules" as HistoryRules <<business logic>>
 class "ClassSectionStudent" as ClassSectionStudent <<entity>>
 class "ClassSection" as ClassSection <<entity>>
 class "AttendanceRecord" as AttendanceRecord <<entity>>
@@ -570,11 +570,11 @@ skinparam style strictuml
 autonumber
 actor "Student\n«external user»" as Student
 participant "Mobile Device Hardware\n«external device»" as MobileHardware
-participant "StudentInteraction\n«user interaction»" as StudentUI
-participant "LecturerInteraction\n«user interaction»" as LecturerUI
+participant "StudentInterface\n«user interface»" as StudentUI
+participant "LecturerInterface\n«user interface»" as LecturerUI
 participant "AttendanceCoordinator\n«coordinator»" as CheckInControl
 participant "MobileDeviceInterface\n«device I/O»" as MobileSensor
-participant "CheckInService\n«business logic»" as AttendanceRules
+participant "CheckInRules\n«business logic»" as AttendanceRules
 participant "AttendanceSession\n«entity»" as AttendanceSession
 participant "Configuration\n«entity»" as Configuration
 participant "Session\n«entity»" as Session
@@ -640,11 +640,11 @@ end
 @startuml
 class "Student" as Student <<external user>>
 class "Mobile Device Hardware" as MobileHardware <<external device>>
-class "StudentInteraction" as StudentUI <<user interaction>>
-class "LecturerInteraction" as LecturerUI <<user interaction>>
+class "StudentInterface" as StudentUI <<user interface>>
+class "LecturerInterface" as LecturerUI <<user interface>>
 class "AttendanceCoordinator" as CheckInControl <<coordinator>>
 class "MobileDeviceInterface" as MobileSensor <<device I/O>>
-class "CheckInService" as AttendanceRules <<business logic>>
+class "CheckInRules" as AttendanceRules <<business logic>>
 class "AttendanceSession" as AttendanceSession <<entity>>
 class "Configuration" as Configuration <<entity>>
 class "Session" as Session <<entity>>
@@ -678,9 +678,9 @@ CheckInControl --> LecturerUI : 3.1 [new official result] update live monitor
 skinparam style strictuml
 autonumber
 actor "Lecturer\n«external user»" as Lecturer
-participant "LecturerInteraction\n«user interaction»" as LecturerUI
+participant "LecturerInterface\n«user interface»" as LecturerUI
 participant "AttendanceSessionControl\n«state dependent control»" as SessionControl
-participant "AttendanceSessionService\n«business logic»" as SessionRules
+participant "AttendanceSessionRules\n«business logic»" as SessionRules
 participant "Configuration\n«entity»" as Configuration
 participant "Session\n«entity»" as Session
 participant "ClassSectionStudent\n«entity»" as ClassSectionStudent
@@ -772,9 +772,9 @@ end
 ```plantuml
 @startuml
 class "Lecturer" as Lecturer <<external user>>
-class "LecturerInteraction" as LecturerUI <<user interaction>>
+class "LecturerInterface" as LecturerUI <<user interface>>
 class "AttendanceSessionControl" as SessionControl <<state dependent control>>
-class "AttendanceSessionService" as SessionRules <<business logic>>
+class "AttendanceSessionRules" as SessionRules <<business logic>>
 class "Configuration" as Configuration <<entity>>
 class "Session" as Session <<entity>>
 class "ClassSectionStudent" as ClassSectionStudent <<entity>>
@@ -803,9 +803,9 @@ SessionControl --> LecturerUI : 2 show lifecycle result
 skinparam style strictuml
 autonumber
 actor "Lecturer\n«external user»" as Lecturer
-participant "LecturerInteraction\n«user interaction»" as LecturerUI
+participant "LecturerInterface\n«user interface»" as LecturerUI
 participant "AttendanceCoordinator\n«coordinator»" as MonitorControl
-participant "AttendanceSessionService\n«business logic»" as SessionRules
+participant "AttendanceSessionRules\n«business logic»" as SessionRules
 participant "AttendanceSession\n«entity»" as AttendanceSession
 participant "ClassSectionStudent\n«entity»" as ClassSectionStudent
 participant "AttendanceRecord\n«entity»" as AttendanceRecord
@@ -853,9 +853,9 @@ The monitor interaction is modeled at the business-event level only: accepted QR
 ```plantuml
 @startuml
 class "Lecturer" as Lecturer <<external user>>
-class "LecturerInteraction" as LecturerUI <<user interaction>>
+class "LecturerInterface" as LecturerUI <<user interface>>
 class "AttendanceCoordinator" as MonitorControl <<coordinator>>
-class "AttendanceSessionService" as SessionRules <<business logic>>
+class "AttendanceSessionRules" as SessionRules <<business logic>>
 class "AttendanceSession" as AttendanceSession <<entity>>
 class "ClassSectionStudent" as ClassSectionStudent <<entity>>
 class "AttendanceRecord" as AttendanceRecord <<entity>>
@@ -879,9 +879,9 @@ MonitorControl --> LecturerUI : 2 show unavailable, update grid, or show interru
 skinparam style strictuml
 autonumber
 actor "Lecturer\n«external user»" as Lecturer
-participant "LecturerInteraction\n«user interaction»" as LecturerUI
+participant "LecturerInterface\n«user interface»" as LecturerUI
 participant "AttendanceCoordinator\n«coordinator»" as AdjustmentControl
-participant "AttendanceSessionService\n«business logic»" as SessionRules
+participant "AttendanceSessionRules\n«business logic»" as SessionRules
 participant "ClassSectionStudent\n«entity»" as ClassSectionStudent
 participant "AttendanceRecord\n«entity»" as AttendanceRecord
 
@@ -929,9 +929,9 @@ end
 ```plantuml
 @startuml
 class "Lecturer" as Lecturer <<external user>>
-class "LecturerInteraction" as LecturerUI <<user interaction>>
+class "LecturerInterface" as LecturerUI <<user interface>>
 class "AttendanceCoordinator" as AdjustmentControl <<coordinator>>
-class "AttendanceSessionService" as SessionRules <<business logic>>
+class "AttendanceSessionRules" as SessionRules <<business logic>>
 class "ClassSectionStudent" as ClassSectionStudent <<entity>>
 class "AttendanceRecord" as AttendanceRecord <<entity>>
 
@@ -953,9 +953,9 @@ AdjustmentControl --> LecturerUI : 2 show success, missing reason, or rejected a
 skinparam style strictuml
 autonumber
 actor "Lecturer\n«external user»" as Lecturer
-participant "LecturerInteraction\n«user interaction»" as LecturerUI
+participant "LecturerInterface\n«user interface»" as LecturerUI
 participant "AttendanceCoordinator\n«coordinator»" as ReportControl
-participant "AttendanceSessionService\n«business logic»" as ReportRules
+participant "AttendanceSessionRules\n«business logic»" as ReportRules
 participant "ClassSectionStudent\n«entity»" as ClassSectionStudent
 participant "Session\n«entity»" as Session
 participant "AttendanceRecord\n«entity»" as AttendanceRecord
@@ -989,9 +989,9 @@ end
 ```plantuml
 @startuml
 class "Lecturer" as Lecturer <<external user>>
-class "LecturerInteraction" as LecturerUI <<user interaction>>
+class "LecturerInterface" as LecturerUI <<user interface>>
 class "AttendanceCoordinator" as ReportControl <<coordinator>>
-class "AttendanceSessionService" as ReportRules <<business logic>>
+class "AttendanceSessionRules" as ReportRules <<business logic>>
 class "ClassSectionStudent" as ClassSectionStudent <<entity>>
 class "Session" as Session <<entity>>
 class "AttendanceRecord" as AttendanceRecord <<entity>>
@@ -1015,9 +1015,9 @@ ReportControl --> LecturerUI : 2 return report content or empty state
 skinparam style strictuml
 autonumber
 actor "Admin\n«external user»" as Admin
-participant "AdminInteraction\n«user interaction»" as AdminUI
+participant "AdminInterface\n«user interface»" as AdminUI
 participant "CatalogManagementCoordinator\n«coordinator»" as CatalogControl
-participant "CatalogManagementService\n«business logic»" as CatalogRules
+participant "CatalogManagementRules\n«business logic»" as CatalogRules
 participant "Account\n«entity»" as Account
 participant "Student\n«entity»" as Student
 participant "Lecturer\n«entity»" as Lecturer
@@ -1046,11 +1046,7 @@ CatalogRules -> Account : check account identifier uniqueness when applicable
 CatalogRules -> Student : check student identifier uniqueness when applicable
 CatalogRules -> ClassSection : check class section identifier uniqueness when applicable
 
-alt duplicate identifier
-  CatalogRules --> CatalogControl : duplicate detected
-  CatalogControl --> AdminUI : validation error
-  AdminUI --> Admin : show ID already exists
-else batch import selected
+alt batch import selected
   Admin -> AdminUI : upload structured catalog data
   AdminUI -> CatalogControl : submit batch catalog data
   CatalogControl -> CatalogRules : validate imported records
@@ -1063,7 +1059,7 @@ else batch import selected
   CatalogRules --> CatalogControl : import validation result
   CatalogControl --> AdminUI : import result
   AdminUI --> Admin : show imported records and validation feedback
-else valid single change
+else
   CatalogRules -> Account : record user account change when applicable
   CatalogRules -> Student : record student change when applicable
   CatalogRules -> Lecturer : record lecturer change when applicable
@@ -1083,9 +1079,9 @@ end
 ```plantuml
 @startuml
 class "Admin" as Admin <<external user>>
-class "AdminInteraction" as AdminUI <<user interaction>>
+class "AdminInterface" as AdminUI <<user interface>>
 class "CatalogManagementCoordinator" as CatalogControl <<coordinator>>
-class "CatalogManagementService" as CatalogRules <<business logic>>
+class "CatalogManagementRules" as CatalogRules <<business logic>>
 class "Account" as Account <<entity>>
 class "Student" as Student <<entity>>
 class "Lecturer" as Lecturer <<entity>>
@@ -1157,16 +1153,16 @@ Late --> [*]
 
 | **Requirement / UC**                     | **Actor**                                            | **Analysis objects**                                                                                                                                                                                                                       | **Dynamic diagrams**                                              | **Business rules covered**                                                  |
 | :--------------------------------------- | :--------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------- | :-------------------------------------------------------------------------- |
-| UC01 Authenticate User                   | Student, Lecturer, Admin, University Identity System | UserInteraction, IdentitySystemProxy, AuthenticationCoordinator, AuthenticationService, Account                                                                                                                                            | Figure II-3, Figure II-4                                          | BR-01                                                                       |
-| UC02 Check In via Dynamic QR Code        | Student, Mobile Device Hardware                      | StudentInteraction, LecturerInteraction, MobileDeviceInterface, AttendanceCoordinator, CheckInService, Configuration, AttendanceSession, Session, AttendanceRecord | Figure II-5, Figure II-6, Figure II-24              | BR-02, BR-03, BR-04, BR-05, BR-12, NF-02, NF-06        |
-| UC03 View Personal Attendance History    | Student                                              | StudentInteraction, AttendanceCoordinator, AuthenticationService, AttendanceSessionService, ClassSectionStudent, ClassSection, AttendanceRecord                                                                                            | Figure II-7, Figure II-8                                          | BR-01                                                                       |
-| UC04 Check In via PIN                    | Student, Mobile Device Hardware                      | StudentInteraction, LecturerInteraction, MobileDeviceInterface, AttendanceCoordinator, CheckInService, Configuration, AttendanceSession, Session, AttendanceRecord | Figure II-9, Figure II-10, Figure II-24             | BR-02, BR-03, BR-04, BR-05, BR-07, BR-12, NF-02, NF-06 |
-| UC05 Manage Attendance Session           | Lecturer                                             | LecturerInteraction, AttendanceSessionControl, AttendanceSessionService, Configuration, Session, ClassSectionStudent, AttendanceSession, AttendanceRecord                                                        | Figure II-11, Figure II-12, Figure II-23                          | BR-02, BR-08, BR-10, BR-12, BR-13, NF-06                             |
-| UC06 Monitor Attendance in Real Time     | Lecturer                                             | LecturerInteraction, AttendanceCoordinator, AttendanceSessionService, AttendanceSession, ClassSectionStudent, AttendanceRecord                                                                                                             | Figure II-13, Figure II-14                                        | NF-01                                                                       |
-| UC07 Adjust Attendance Manually          | Lecturer                                             | LecturerInteraction, AttendanceCoordinator, AttendanceSessionService, ClassSectionStudent, AttendanceRecord                                                                                                                | Figure II-15, Figure II-16, Figure II-24                          | BR-10, BR-13                                                               |
-| UC08 Export Attendance Report            | Lecturer                                             | LecturerInteraction, AttendanceCoordinator, AttendanceSessionService, ClassSectionStudent, Session, AttendanceRecord                                                                                                       | Figure II-17, Figure II-18, Figure II-24                          | BR-08                                                                       |
-| UC09 Manage System Catalog               | Admin                                                | AdminInteraction, CatalogManagementCoordinator, CatalogManagementService, Account, Student, Lecturer, Subject, ClassSection, ClassSectionStudent, Session                                                                                  | Figure II-19, Figure II-20                                        | BR-11                                                                       |
-| NF-06 Configurable attendance parameters | Student, Lecturer                                    | Configuration, CheckInService, AttendanceSessionService                                                                                                                                                                           | Figure II-1, Figure II-5, Figure II-9, Figure II-11               | NF-06                                                                       |
+| UC01 Authenticate User                   | Student, Lecturer, Admin, University Identity System | UserInterface, IdentitySystemProxy, AuthenticationCoordinator, AuthenticationRules, Account                                                                                                                                            | Figure II-3, Figure II-4                                          | BR-01                                                                       |
+| UC02 Check In via Dynamic QR Code        | Student, Mobile Device Hardware                      | StudentInterface, LecturerInterface, MobileDeviceInterface, AttendanceCoordinator, CheckInRules, Configuration, AttendanceSession, Session, AttendanceRecord | Figure II-5, Figure II-6, Figure II-24              | BR-02, BR-03, BR-04, BR-05, BR-12, NF-02, NF-06        |
+| UC03 View Personal Attendance History    | Student                                              | StudentInterface, AttendanceCoordinator, AuthenticationRules, AttendanceSessionRules, ClassSectionStudent, ClassSection, AttendanceRecord                                                                                            | Figure II-7, Figure II-8                                          | BR-01                                                                       |
+| UC04 Check In via PIN                    | Student, Mobile Device Hardware                      | StudentInterface, LecturerInterface, MobileDeviceInterface, AttendanceCoordinator, CheckInRules, Configuration, AttendanceSession, Session, AttendanceRecord | Figure II-9, Figure II-10, Figure II-24             | BR-02, BR-03, BR-04, BR-05, BR-07, BR-12, NF-02, NF-06 |
+| UC05 Manage Attendance Session           | Lecturer                                             | LecturerInterface, AttendanceSessionControl, AttendanceSessionRules, Configuration, Session, ClassSectionStudent, AttendanceSession, AttendanceRecord                                                        | Figure II-11, Figure II-12, Figure II-23                          | BR-02, BR-08, BR-10, BR-12, BR-13, NF-06                             |
+| UC06 Monitor Attendance in Real Time     | Lecturer                                             | LecturerInterface, AttendanceCoordinator, AttendanceSessionRules, AttendanceSession, ClassSectionStudent, AttendanceRecord                                                                                                             | Figure II-13, Figure II-14                                        | NF-01                                                                       |
+| UC07 Adjust Attendance Manually          | Lecturer                                             | LecturerInterface, AttendanceCoordinator, AttendanceSessionRules, ClassSectionStudent, AttendanceRecord                                                                                                                | Figure II-15, Figure II-16, Figure II-24                          | BR-10, BR-13                                                               |
+| UC08 Export Attendance Report            | Lecturer                                             | LecturerInterface, AttendanceCoordinator, AttendanceSessionRules, ClassSectionStudent, Session, AttendanceRecord                                                                                                       | Figure II-17, Figure II-18, Figure II-24                          | BR-08                                                                       |
+| UC09 Manage System Catalog               | Admin                                                | AdminInterface, CatalogManagementCoordinator, CatalogManagementRules, Account, Student, Lecturer, Subject, ClassSection, ClassSectionStudent, Session                                                                                  | Figure II-19, Figure II-20                                        | BR-11                                                                       |
+| NF-06 Configurable attendance parameters | Student, Lecturer                                    | Configuration, CheckInRules, AttendanceSessionRules                                                                                                                                                                           | Figure II-1, Figure II-5, Figure II-9, Figure II-11               | NF-06                                                                       |
 
 ---
 
@@ -1176,13 +1172,13 @@ Late --> [*]
 | :-------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | UC list matches Requirement Section I.5.2                                                                                                                 | Pass       | UC01-UC09 only; Figures II-3 through II-20                                                                                                                                                                                    |
 | UC names match Requirement Section I.5.2                                                                                                                  | Pass       | Headings II.2.1-II.2.9                                                                                                                                                                                                        |
-| Analysis uses detailed COMET stereotypes                                                                                                                  | Pass       | Figures II-1 through II-20 use `«user interaction»`, `«device I/O»`, `«coordinator»`, `«state dependent control»`, `«entity»`, and `«business logic»`                                                          |
+| Analysis uses detailed COMET stereotypes                                                                                                                  | Pass       | Figures II-1 through II-20 use `«user interface»`, `«device I/O»`, `«coordinator»`, `«state dependent control»`, `«entity»`, and `«business logic»`                                                          |
 | Contextual boundary diagram contains only external participants and the AFAS black box                                                                    | Pass       | Figure II-2 contains AFAS, external users, Mobile Device Hardware, and University Identity System only                                                                                                                        |
 | Static data structure is isolated from behavior views                                                                                                     | Pass       | Figure II-1 contains only entity classes and relationships; Figure II-2 contains only the contextual boundary; Section II.2 provides use-case-specific behavior diagrams                                                      |
 | Mobile device hardware is represented consistently across context and interaction views                                                                   | Pass       | Figure II-2 represents Mobile Device Hardware as an external device; Figure II-5, Figure II-6, Figure II-9, and Figure II-10 use MobileDeviceInterface as the internal device I/O boundary object |
 | Entity relationships distinguish lifecycle ownership where appropriate                                                                                    | Pass       | Figure II-1 uses composition for study-session-owned attendance lifecycle data and association for room location membership                                                                                            |
 | Interface wireframes are included for key actor workflows                                                                                                 | Pass       | Section II.1.4 covers Student, Lecturer, and Admin wireframes with UC trace notes                                                                                                                                             |
-| NF-06 configurable attendance parameters are represented in Analysis                                                                                      | Pass       | Configuration appears in Figure II-1 and is used by CheckInService and AttendanceSessionService                                                                                                                     |
+| NF-06 configurable attendance parameters are represented in Analysis                                                                                      | Pass       | Configuration appears in Figure II-1 and is used by CheckInRules and AttendanceSessionRules                                                                                                                     |
 | QR/PIN check-in changes an initialized `NotYet` record to `Present` after identity and code checks; location is informational and never blocks check-in   | Pass       | Figures II-5, II-9, and II-24                                                                                                                                                                                                  |
 | Attendance records are initialized as `NotYet` when the attendance session starts                                                                          | Pass       | Figure II-11 and Figure II-24                                                                                                                                                                                                  |
 | Latest rejection reason is retained on the attendance record for lecturer review                                                                          | Pass       | Figures II-5, II-9, II-11, II-24                                                                                                                                                                                              |
