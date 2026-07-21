@@ -120,7 +120,7 @@ Configuration "1" -- "0..*" AttendanceSession : configures timing
 @enduml
 ```
 
-`AttendanceRecord` holds both the accepted check-in evidence and the official outcome for one student in one study session. `AttendanceStatus` represents the attendance record state: `NotYet`, `Present`, `Absent`, or `Late`. When an attendance session starts, each enrolled student receives one `AttendanceRecord` with `AttendanceStatus = NotYet`. Accepted student check-in changes that record to `Present`; finalization changes remaining `NotYet` records to `Absent`; a reopened finalized session allows the lecturer to change an `Absent` record to `Late` with an adjustment reason. `CheckInMethod` represents only student check-in methods: `QR` or `PIN`, and is empty when the result comes from absent assignment or manual adjustment (represented by `ResultSource`). `RejectionReason` retains the most recent rejected check-in reason; rejected submissions do not create separate rows.
+`AttendanceRecord` holds both the accepted check-in evidence and the official outcome for one student in one study session. `AttendanceStatus` represents the attendance record state: `NotYet`, `Present`, `Absent`, or `Late`. When an attendance session starts, each enrolled student receives one `AttendanceRecord` with `AttendanceStatus = NotYet`. Accepted student check-in changes that record to `Present`; finalization changes remaining `NotYet` records to `Absent`; same-day manual edit allows the assigned lecturer to correct an official status with an adjustment reason. `CheckInMethod` represents only student check-in methods: `QR` or `PIN`, and is empty when the result comes from absent assignment or manual adjustment (represented by `ResultSource`). `RejectionReason` retains the most recent rejected check-in reason; rejected submissions do not create separate rows.
 
 Additional static constraints:
 
@@ -226,11 +226,11 @@ The collaboration criteria for these objects are:
 | IdentitySystemProxy                                                    | `«proxy»`                   | Represents the AFAS boundary used to ask the existing University Identity System to confirm user identity.                                                                                                                                                                                                                                                                                                                         | University Identity System; UC01, BR-01                   |
 | AuthenticationCoordinator                                              | `«coordinator»`             | Coordinates the authentication use-case flow, delegates external identity confirmation and role-access evaluation, then returns the selected access outcome.                                                                                                                                                                                                                                                                       | UC01, BR-01                                               |
 | AttendanceCoordinator                                                  | `«coordinator»`             | Coordinates regular attendance use-case flows and delegates attendance rule decisions for QR/PIN check-in, personal history retrieval, live monitoring, manual adjustment, and finalized report preparation.                                                                                                                                                                                                                       | UC02, UC03, UC04, UC06, UC07, UC08, BR-01, BR-10          |
-| AttendanceSessionControl                                               | `«state dependent control»` | Coordinates attendance session lifecycle transitions: not started, active, finalized, reopened for late adjustment; delegates transition eligibility rules to attendance session policy logic.                                                                                                                                                                                                                                                             | UC05, BR-02, BR-08, BR-10, BR-12, BR-13                   |
+| AttendanceSessionControl                                               | `«state dependent control»` | Coordinates attendance session lifecycle transitions: not started, active, and finalized; delegates transition eligibility rules to attendance session policy logic.                                                                                                                                                                                                                                                             | UC05, BR-02, BR-08, BR-10, BR-12                   |
 | CatalogManagementCoordinator                                           | `«coordinator»`             | Coordinates administrator catalog management flows and delegates catalog evaluation to catalog validation logic.                                                                                                                                                                                                                                                       | UC09, BR-11                                               |
 | AuthenticationRules                                                  | `«business logic»`          | Encapsulates role-access rules by locating the AFAS role profile for a confirmed university identity and checking whether the requested role is allowed.                                                                                                                                                                                                                                                                           | UC01, UC03, BR-01                                         |
 | CheckInRules                                                         | `«business logic»`          | Encapsulates rules for a submitted student check-in by reading the required session, configuration, room, and attendance record facts, then checking QR/PIN validity, identity evidence, session match, and whether the student's record is still `NotYet` before changing it to `Present` using official system time. Submitted location coordinates are captured and stored for information only; they never affect acceptance and are not required.                                                                                | UC02, UC04, BR-02, BR-04, BR-12, NF-06      |
-| AttendanceSessionRules                                               | `«business logic»`          | Encapsulates attendance history, attendance session lifecycle, and lecturer-operation policies by reading the required schedule, lecturer, session, roster, check-in, configuration, and official attendance facts, then checking scheduled time window, assigned lecturer, active session uniqueness, QR/PIN refresh policy, `NotYet` record initialization, absent assignment, finalization, report eligibility, reopen eligibility, and late adjustment reason requirements. | UC03, UC05, UC07, UC08, BR-02, BR-08, BR-10, BR-12, BR-13, NF-06 |
+| AttendanceSessionRules                                               | `«business logic»`          | Encapsulates attendance history, attendance session lifecycle, and lecturer-operation policies by reading the required schedule, lecturer, session, roster, check-in, configuration, and official attendance facts, then checking scheduled time window, assigned lecturer, active session uniqueness, QR/PIN refresh policy, `NotYet` record initialization, absent assignment, finalization, report eligibility, same-day edit eligibility, and manual edit reason requirements. | UC03, UC05, UC07, UC08, BR-02, BR-08, BR-10, BR-12, BR-13, NF-06 |
 | CatalogManagementRules                                               | `«business logic»`          | Encapsulates catalog rules by reading the required catalog facts, then checking catalog field validity and identifier uniqueness.                                                                                                                                                                                                                                      | UC09, BR-11                                               |
 | Account, Student, Lecturer                                             | `«entity»`                  | Store AFAS role profile information linked to university identity.                                                                                                                                                                                                                                                                                                                                                                 | UC01, UC09                                                |
 | Room, Subject, ClassSection, ClassSectionStudent, Session | `«entity»`                  | Store academic catalog, roster, classroom coordinates, and scheduled session information.                                                                                                                                                                                                                                                                                                                         | UC02-UC09                                                 |
@@ -268,7 +268,7 @@ Trace: Student; UC02, UC03, UC04.
   {^"Session" | "Monitor" | "Adjust" | "Report"}
   {
     "Selected class session" | "Scheduled class and room"
-    [Start Attendance] | [Finalize Attendance] | [Reopen Attendance]
+    [Start Attendance] | [Finalize Attendance] | [Edit Attendance]
     "Projector view" | "Dynamic QR, backup PIN, countdown"
     "Live roster" | "NotYet / Present counts while active; Absent / Late after finalization"
     "Rejection reasons" | "Latest rejected check-in reason and adjustment reason"
@@ -311,7 +311,6 @@ Sequence diagrams are kept to validate detailed main and alternative flows. Comm
 
 ```plantuml
 @startuml
-skinparam style strictuml
 autonumber
 actor "User\n«external user»" as User
 boundary "UserInterface\n«user interface»" as AccessUI
@@ -744,24 +743,10 @@ else activation allowed
   SessionRules --> SessionControl : attendance finalized
   SessionControl --> LecturerUI : attendance finalized
 
-  opt reopen finalized attendance for late adjustment
-    Lecturer -> LecturerUI : click Reopen Attendance
-    LecturerUI -> SessionControl : request reopened late adjustment
-    SessionControl -> SessionRules : verify assigned lecturer and finalized session
-    SessionRules -> AttendanceSession : mark session reopened for late adjustment
-    SessionRules --> SessionControl : reopened late adjustment allowed
-    SessionControl --> LecturerUI : allow late adjustment
-
+  opt same-day manual edit needed
     ref over LecturerUI, SessionControl, SessionRules
-      UC07: lecturer changes an Absent record to Late with reason
+      UC07: lecturer manually edits one attendance record with reason on the scheduled session date
     end
-
-    Lecturer -> LecturerUI : close reopened attendance
-    LecturerUI -> SessionControl : request close reopened attendance
-    SessionControl -> SessionRules : finalize reopened attendance
-    SessionRules -> AttendanceSession : mark session finalized
-    SessionRules --> SessionControl : reopened attendance finalized
-    SessionControl --> LecturerUI : attendance finalized
   end
 end
 @enduml
@@ -785,7 +770,7 @@ Lecturer --> LecturerUI : 1 manage scheduled session
 LecturerUI --> SessionControl : 1.1 request sessions/start/adjust/finalize
 SessionControl --> SessionRules : 1.1.1 coordinate lifecycle business decision
 SessionRules --> Session : 1.1.1.1 read assigned sessions and schedule window
-SessionRules --> AttendanceSession : 1.1.1.2 activate, refresh codes, finalize, or reopen for late adjustment
+SessionRules --> AttendanceSession : 1.1.1.2 activate, refresh codes, or finalize
 SessionRules --> Configuration : 1.1.1.3 read QR/PIN refresh settings
 SessionRules --> AttendanceRecord : 1.1.1.4 initialize NotYet records, read results and rejection reasons, assign Absent, finalize
 SessionRules --> ClassSectionStudent : 1.1.1.5 read enrolled students
@@ -882,43 +867,39 @@ actor "Lecturer\n«external user»" as Lecturer
 participant "LecturerInterface\n«user interface»" as LecturerUI
 participant "AttendanceCoordinator\n«coordinator»" as AdjustmentControl
 participant "AttendanceSessionRules\n«business logic»" as SessionRules
+participant "Session\n«entity»" as Session
 participant "ClassSectionStudent\n«entity»" as ClassSectionStudent
 participant "AttendanceRecord\n«entity»" as AttendanceRecord
 
-Lecturer -> LecturerUI : select absent student and click Mark Late
+Lecturer -> LecturerUI : select student and click Edit Attendance
 LecturerUI -> AdjustmentControl : request adjustment context
-AdjustmentControl -> SessionRules : verify assigned lecturer and reopened attendance session
+AdjustmentControl -> SessionRules : verify assigned lecturer, session date, and roster membership
+SessionRules -> Session : read scheduled date and assigned lecturer
+Session --> SessionRules : session date and lecturer assignment
 SessionRules -> ClassSectionStudent : verify target student belongs to session roster
 ClassSectionStudent --> SessionRules : roster entry or none
 
-alt session is not reopened or lecturer not assigned
+alt outside scheduled session date or unauthorized roster target
   SessionRules --> AdjustmentControl : adjustment not allowed
   AdjustmentControl --> LecturerUI : adjustment rejected
-  LecturerUI --> Lecturer : show reopen-required or unauthorized adjustment message
+  LecturerUI --> Lecturer : show outside-session-date or unauthorized adjustment message
 else adjustment context allowed
   SessionRules -> AttendanceRecord : read current status and check-in evidence if any
   AttendanceRecord --> SessionRules : current status and evidence
+  SessionRules --> AdjustmentControl : manual edit allowed with current status and evidence
+  AdjustmentControl --> LecturerUI : show status choices, reason field, and evidence summary
+  Lecturer -> LecturerUI : select corrected status, enter reason, and save
+  LecturerUI -> AdjustmentControl : submit manual edit(new status, reason)
 
-  alt current status is not Absent
-    SessionRules --> AdjustmentControl : late adjustment not allowed
-    AdjustmentControl --> LecturerUI : adjustment rejected
-    LecturerUI --> Lecturer : show only Absent records can be marked Late after reopen
-  else current status is Absent
-    SessionRules --> AdjustmentControl : late adjustment allowed with current status and evidence
-    AdjustmentControl --> LecturerUI : show Late option, reason field, and evidence summary
-    Lecturer -> LecturerUI : enter late reason and save
-    LecturerUI -> AdjustmentControl : submit late adjustment(reason)
-
-    alt reason is missing
-      AdjustmentControl --> LecturerUI : reason required
-      LecturerUI --> Lecturer : prompt to write reason
-    else reason provided
-      AdjustmentControl -> SessionRules : save late adjustment(reason)
-      SessionRules -> AttendanceRecord : change Absent to Late(ResultSource = ManualAdjustment, adjustment reason)
-      SessionRules --> AdjustmentControl : late adjustment saved
-      AdjustmentControl --> LecturerUI : late adjustment saved
-      LecturerUI --> Lecturer : show updated Late status
-    end
+  alt reason is missing
+    AdjustmentControl --> LecturerUI : reason required
+    LecturerUI --> Lecturer : prompt to write reason
+  else reason provided
+    AdjustmentControl -> SessionRules : save manual edit(new status, reason)
+    SessionRules -> AttendanceRecord : update official status(ResultSource = ManualAdjustment, adjustment reason)
+    SessionRules --> AdjustmentControl : manual edit saved
+    AdjustmentControl --> LecturerUI : manual edit saved
+    LecturerUI --> Lecturer : show updated status
   end
 end
 @enduml
@@ -932,14 +913,16 @@ class "Lecturer" as Lecturer <<external user>>
 class "LecturerInterface" as LecturerUI <<user interface>>
 class "AttendanceCoordinator" as AdjustmentControl <<coordinator>>
 class "AttendanceSessionRules" as SessionRules <<business logic>>
+class "Session" as Session <<entity>>
 class "ClassSectionStudent" as ClassSectionStudent <<entity>>
 class "AttendanceRecord" as AttendanceRecord <<entity>>
 
-Lecturer --> LecturerUI : 1 select absent student and save late adjustment
+Lecturer --> LecturerUI : 1 select student and save manual edit
 LecturerUI --> AdjustmentControl : 1.1 request context / submit adjustment
-AdjustmentControl --> SessionRules : 1.1.1 verify lecturer permission and reopened attendance session
-SessionRules --> ClassSectionStudent : 1.1.1.1 verify roster entry
-SessionRules --> AttendanceRecord : 1.1.1.2 read status and evidence, then change Absent to Late with reason
+AdjustmentControl --> SessionRules : 1.1.1 verify lecturer permission, session date, and roster entry
+SessionRules --> Session : 1.1.1.1 read scheduled date and assigned lecturer
+SessionRules --> ClassSectionStudent : 1.1.1.2 verify roster entry
+SessionRules --> AttendanceRecord : 1.1.1.3 read status and evidence, then update official status with reason
 AdjustmentControl --> LecturerUI : 2 show success, missing reason, or rejected adjustment
 @enduml
 ```
@@ -1108,7 +1091,7 @@ CatalogControl --> AdminUI : 2 return updated grid or validation error
 
 ### **II.3.1 AttendanceSessionControl state**
 
-`AttendanceSessionControl` is the `«state dependent control»` object for UC05 because it coordinates the lifecycle from scheduled session selection to active check-in, finalization, and reopened late adjustment. The `AttendanceSession` entity records the lifecycle state, but the state machine below belongs to the control object that governs the lifecycle.
+`AttendanceSessionControl` is the `«state dependent control»` object for UC05 because it coordinates the lifecycle from scheduled session selection to active check-in and finalization. The `AttendanceSession` entity records the lifecycle state, but the state machine below belongs to the control object that governs the lifecycle.
 
 #### **Figure II-23 State diagram for AttendanceSessionControl**
 
@@ -1121,16 +1104,13 @@ NotStarted --> NotStarted : startAttendance [outside scheduled window or active 
 
 Active --> Active : refreshQRCode / refreshPIN
 Active --> Finalized : finalizeAttendance
-Finalized --> Reopened : reopenAttendance [assigned lecturer and finalized session]
-Reopened --> Reopened : adjustLateAttendance [UC07, Absent record and reason provided]
-Reopened --> Finalized : closeReopenedAttendance
 Finalized --> [*]
 @enduml
 ```
 
 ### **II.3.2 AttendanceRecord state**
 
-`AttendanceRecord` is state-dependent for the official attendance outcome of one student in one study session. It is created as `NotYet` when the attendance session starts. Accepted student check-in changes it to `Present`; finalization changes remaining `NotYet` records to `Absent`; a reopened finalized session allows a lecturer to change an `Absent` record to `Late` with a required adjustment reason. `ResultSource` records whether the value came from QR, PIN, absent assignment, or manual adjustment; `RejectionReason` retains the most recent rejected check-in reason.
+`AttendanceRecord` is state-dependent for the official attendance outcome of one student in one study session. It is created as `NotYet` when the attendance session starts. Accepted student check-in changes it to `Present`; finalization changes remaining `NotYet` records to `Absent`; same-day manual edit allows the assigned lecturer to correct the official status with a required adjustment reason. `ResultSource` records whether the value came from QR, PIN, absent assignment, or manual adjustment; `RejectionReason` retains the most recent rejected check-in reason.
 
 #### **Figure II-24 State diagram for AttendanceRecord**
 
@@ -1140,7 +1120,15 @@ skinparam style strictuml
 [*] --> NotYet : initializeRecord [attendance session starts]
 NotYet --> Present : acceptedCheckIn [valid QR/PIN and identity evidence]
 NotYet --> Absent : finalizeAttendance [student has not checked in]
-Absent --> Late : markLateAfterReopen [lecturer provides reason]
+Absent --> Late : manualEdit [assigned lecturer, session date, reason]
+Present --> Present : manualEdit [assigned lecturer, session date, reason]
+Present --> Absent : manualEdit [assigned lecturer, session date, reason]
+Present --> Late : manualEdit [assigned lecturer, session date, reason]
+Absent --> Present : manualEdit [assigned lecturer, session date, reason]
+Absent --> Absent : manualEdit [assigned lecturer, session date, reason]
+Late --> Present : manualEdit [assigned lecturer, session date, reason]
+Late --> Absent : manualEdit [assigned lecturer, session date, reason]
+Late --> Late : manualEdit [assigned lecturer, session date, reason]
 Present --> [*]
 Absent --> [*]
 Late --> [*]
@@ -1157,9 +1145,9 @@ Late --> [*]
 | UC02 Check In via Dynamic QR Code        | Student, Mobile Device Hardware                      | StudentInterface, LecturerInterface, MobileDeviceInterface, AttendanceCoordinator, CheckInRules, Configuration, AttendanceSession, Session, AttendanceRecord | Figure II-5, Figure II-6, Figure II-24              | BR-02, BR-03, BR-04, BR-05, BR-12, NF-02, NF-06        |
 | UC03 View Personal Attendance History    | Student                                              | StudentInterface, AttendanceCoordinator, AuthenticationRules, AttendanceSessionRules, ClassSectionStudent, ClassSection, AttendanceRecord                                                                                            | Figure II-7, Figure II-8                                          | BR-01                                                                       |
 | UC04 Check In via PIN                    | Student, Mobile Device Hardware                      | StudentInterface, LecturerInterface, MobileDeviceInterface, AttendanceCoordinator, CheckInRules, Configuration, AttendanceSession, Session, AttendanceRecord | Figure II-9, Figure II-10, Figure II-24             | BR-02, BR-03, BR-04, BR-05, BR-07, BR-12, NF-02, NF-06 |
-| UC05 Manage Attendance Session           | Lecturer                                             | LecturerInterface, AttendanceSessionControl, AttendanceSessionRules, Configuration, Session, ClassSectionStudent, AttendanceSession, AttendanceRecord                                                        | Figure II-11, Figure II-12, Figure II-23                          | BR-02, BR-08, BR-10, BR-12, BR-13, NF-06                             |
+| UC05 Manage Attendance Session           | Lecturer                                             | LecturerInterface, AttendanceSessionControl, AttendanceSessionRules, Configuration, Session, ClassSectionStudent, AttendanceSession, AttendanceRecord                                                        | Figure II-11, Figure II-12, Figure II-23                          | BR-02, BR-08, BR-10, BR-12, NF-06                             |
 | UC06 Monitor Attendance in Real Time     | Lecturer                                             | LecturerInterface, AttendanceCoordinator, AttendanceSessionRules, AttendanceSession, ClassSectionStudent, AttendanceRecord                                                                                                             | Figure II-13, Figure II-14                                        | NF-01                                                                       |
-| UC07 Adjust Attendance Manually          | Lecturer                                             | LecturerInterface, AttendanceCoordinator, AttendanceSessionRules, ClassSectionStudent, AttendanceRecord                                                                                                                | Figure II-15, Figure II-16, Figure II-24                          | BR-10, BR-13                                                               |
+| UC07 Adjust Attendance Manually          | Lecturer                                             | LecturerInterface, AttendanceCoordinator, AttendanceSessionRules, Session, ClassSectionStudent, AttendanceRecord                                                                                                                | Figure II-15, Figure II-16, Figure II-24                          | BR-10, BR-13                                                               |
 | UC08 Export Attendance Report            | Lecturer                                             | LecturerInterface, AttendanceCoordinator, AttendanceSessionRules, ClassSectionStudent, Session, AttendanceRecord                                                                                                       | Figure II-17, Figure II-18, Figure II-24                          | BR-08                                                                       |
 | UC09 Manage System Catalog               | Admin                                                | AdminInterface, CatalogManagementCoordinator, CatalogManagementRules, Account, Student, Lecturer, Subject, ClassSection, ClassSectionStudent, Session                                                                                  | Figure II-19, Figure II-20                                        | BR-11                                                                       |
 | NF-06 Configurable attendance parameters | Student, Lecturer                                    | Configuration, CheckInRules, AttendanceSessionRules                                                                                                                                                                           | Figure II-1, Figure II-5, Figure II-9, Figure II-11               | NF-06                                                                       |
@@ -1182,8 +1170,8 @@ Late --> [*]
 | QR/PIN check-in changes an initialized `NotYet` record to `Present` after identity and code checks; location is informational and never blocks check-in   | Pass       | Figures II-5, II-9, and II-24                                                                                                                                                                                                  |
 | Attendance records are initialized as `NotYet` when the attendance session starts                                                                          | Pass       | Figure II-11 and Figure II-24                                                                                                                                                                                                  |
 | Latest rejection reason is retained on the attendance record for lecturer review                                                                          | Pass       | Figures II-5, II-9, II-11, II-24                                                                                                                                                                                              |
-| UC05 includes start, active check-in, finalize action that stops check-ins, changes remaining `NotYet` records to `Absent`, and reopen for late adjustment | Pass       | Figure II-11 and Figure II-23                                                                                                                                                                                                 |
-| UC07 changes an `Absent` record to `Late` only after attendance is reopened and a reason is provided                                                       | Pass       | Figure II-15 and Figure II-24                                                                                                                                                                                                 |
+| UC05 includes start, active check-in, and finalize action that stops check-ins and changes remaining `NotYet` records to `Absent` | Pass       | Figure II-11 and Figure II-23                                                                                                                                                                                                 |
+| UC07 allows the assigned lecturer to manually edit an attendance status only on the scheduled session date with a reason                                    | Pass       | Figure II-15 and Figure II-24                                                                                                                                                                                                 |
 | UC06 separates inactive sessions from interrupted live updates                                                                                            | Pass       | Figure II-13                                                                                                                                                                                                                  |
 | UC08 exports only finalized attendance results                                                                                                            | Pass       | Figure II-17 and Figure II-24                                                                                                                                                                                                 |
 | Official attendance results exclude Rejected status                                                                                                       | Pass       | Figure II-1, Figure II-24                                                                                                                                                                                                     |

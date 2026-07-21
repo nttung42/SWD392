@@ -183,8 +183,8 @@ else activation allowed
     UC02 / UC04: students submit check-ins while the session is active
   end ref
 
-  == Optional adjust while active ==
-  opt adjustment while the session is active
+  == Optional same-day manual edit ==
+  opt adjustment on the scheduled session date
     ref over LecturerUI, SessionControl, SessionRules
       UC07: lecturer manually adjusts an attendance result
     end ref

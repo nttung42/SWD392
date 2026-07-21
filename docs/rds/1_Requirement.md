@@ -57,7 +57,7 @@ The core requirements are described as follows:
 5.  **Device Evidence:** The student device identifier is recorded with each attendance attempt as supporting evidence. It is not used as a separate trusted-device or email-alert workflow in the MVP scope.
 6.  **Attendance Session Management:** Lecturers can start a session and finalize the attendance result before reporting.
 7.  **Real-time Monitoring:** As students successfully check in, the lecturer interface highlights their attendance status for live classroom monitoring.
-8.  **Manual Adjustments:** After finalization, lecturers can reopen the attendance result, review evidence, and mark an absent student as late when there is a legitimate reason.
+8.  **Manual Adjustments:** On the scheduled session date, assigned lecturers can review attendance evidence and manually edit a student's official attendance status with a required reason.
 9.  **Reporting:** Lecturers can export finalized attendance sheets to spreadsheet formats such as Excel.
 10. **System Configurations:** Administrators manage users, subjects, and class sections.
 
@@ -76,9 +76,9 @@ The system comprises three main portals: Student Mobile App, Lecturer Web Portal
 
 ### **Features for Lecturers (Web Portal):**
 *   **F06: Class Section Management:** View assigned classes, schedule, and student rosters.
-*   **F07: Manage Attendance Session:** Start the session, create initial `Not Yet` attendance records, display dynamic QR (10s refresh) and PIN (30s refresh), finalize the result, and reopen finalized attendance for late adjustment when needed.
+*   **F07: Manage Attendance Session:** Start the session, create initial `Not Yet` attendance records, display dynamic QR (10s refresh) and PIN (30s refresh), and finalize the result.
 *   **F08: Real-time Attendance Monitor:** Track live check-in progress with color-coded student names.
-*   **F09: Manual Adjustments:** After attendance is reopened, manually mark an `Absent` student as `Late` with a required reason.
+*   **F09: Manual Adjustments:** Manually edit a student's official attendance status within the scheduled session date with a required reason.
 *   **F10: Export Attendance Report:** Export attendance history sheets to spreadsheet formats such as Excel.
 
 ### **Features for Administrators (Web Portal):**
@@ -294,12 +294,12 @@ Below are the detailed descriptions for all **9 Use Cases** of the AFAS system:
 | **Description:**       | Lecturer manages the attendance session lifecycle for a class, including starting the session and finalizing attendance.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | **Trigger:**           | The lecturer selects a scheduled session and clicks "Start Attendance".                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | **Preconditions:**     | Lecturer is logged in (UC01) and currently within the scheduled session time window.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| **Postconditions:**    | **POST-1 Success:** Attendance result is finalized and ready for report export; any reopened late adjustments are saved with reasons.<br>**POST-2 Failure:** Requested session action is not completed, and an error is displayed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| **Postconditions:**    | **POST-1 Success:** Attendance result is finalized and ready for report export.<br>**POST-2 Failure:** Requested session action is not completed, and an error is displayed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | **Normal Flow:**       | 1. Lecturer navigates to "My Scheduled Classes" on Web Portal.<br>2. System displays assigned classes and scheduled sessions.<br>3. Lecturer selects the current session and clicks "Start Attendance".<br>4. System validates that the current time is within the session's scheduled window.<br>5. System marks the attendance session as active and creates one `Not Yet` attendance record for each enrolled student in the session roster.<br>6. System begins displaying a QR attendance code refreshed every 10 seconds and a PIN code refreshed every 30 seconds.<br>7. Web Portal displays the projector view with the dynamic QR, PIN, and attendance progress.<br>8. Students submit check-ins through UC02 or UC04 while the session is active; accepted check-ins change the student's record from `Not Yet` to `Present`, and the lecturer may monitor progress (UC06).<br>9. Lecturer clicks "Finalize Attendance".<br>10. System stops accepting new QR/PIN check-ins, changes all remaining `Not Yet` records to `Absent`, and marks the attendance result as finalized. |
-| **Alternative Flows:** | **A10.1 Reopen finalized attendance for late adjustment:** After finalization, the assigned lecturer reopens the attendance result, uses UC07 to change an `Absent` record to `Late` with a reason, and closes the reopened attendance result.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| **Alternative Flows:** | None. Manual edits to individual attendance records are handled by UC07 and are limited to the scheduled session date.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | **Exceptions:**        | **E4.1 Outside scheduled hours:** If lecturer tries to start session outside the class time slot, system denies activation.<br>**E5.1 Session already active:** If the selected study session already has an active attendance session, system denies creating another active session.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | **Priority:**          | High                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| **Business Rules:**    | BR-02, BR-08, BR-10, BR-12, BR-13                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| **Business Rules:**    | BR-02, BR-08, BR-10, BR-12                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ---
 
@@ -327,13 +327,13 @@ Below are the detailed descriptions for all **9 Use Cases** of the AFAS system:
 | **ID and Name:**       | **UC07: Adjust Attendance Manually**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | **Created By:**        | SWD392 Team                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | **Primary Actor:**     | Lecturer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| **Description:**       | Allows the assigned lecturer to mark an `Absent` student as `Late` after a finalized attendance result has been reopened, when there is a legitimate reason.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| **Trigger:**           | Lecturer selects an absent student from the reopened attendance list and clicks "Mark Late".                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| **Preconditions:**     | Lecturer is authenticated (UC01), the lecturer is assigned to the session, the target session has been finalized and reopened for late adjustment, and the target student's attendance record currently has status `Absent`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| **Postconditions:**    | Student status is updated from `Absent` to `Late`, and the adjustment reason is saved.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| **Normal Flow:**       | 1. Lecturer opens the reopened attendance result for a finalized session.<br>2. Lecturer selects a student whose current status is `Absent` and clicks "Mark Late".<br>3. System displays the current status, evidence summary, latest rejection reason if any, and a required reason field.<br>4. Lecturer enters the late adjustment reason.<br>5. Lecturer clicks "Save".<br>6. System changes the student's official attendance status from `Absent` to `Late` and saves the reason. |
+| **Description:**       | Allows the assigned lecturer to manually edit a student's official attendance status on the scheduled session date when there is a legitimate reason.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| **Trigger:**           | Lecturer selects a student from the attendance roster and clicks "Edit Attendance".                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| **Preconditions:**     | Lecturer is authenticated (UC01), the lecturer is assigned to the session, the current date is the scheduled session date, and the target student belongs to the session roster.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Postconditions:**    | Student official attendance status is updated, and the adjustment reason is saved.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Normal Flow:**       | 1. Lecturer opens the attendance roster for the scheduled session.<br>2. Lecturer selects a student record and clicks "Edit Attendance".<br>3. System displays the current status, evidence summary, latest rejection reason if any, available status choices, and a required reason field.<br>4. Lecturer selects the corrected status and enters the adjustment reason.<br>5. Lecturer clicks "Save".<br>6. System updates the student's official attendance status and saves the reason. |
 | **Alternative Flows:** | None.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| **Exceptions:**        | **E5.1 Missing reason:** If the lecturer saves without inputting a reason, the system prompts them to write a reason before saving.<br>**E5.2 Attendance not reopened:** If the finalized attendance result has not been reopened for late adjustment, the system rejects the adjustment and informs the lecturer to reopen attendance first.<br>**E5.3 Status not Absent:** If the selected student's current status is not `Absent`, the system rejects the late adjustment.                                                                                                                                                                                                                                                                                                                                                                         |
+| **Exceptions:**        | **E5.1 Missing reason:** If the lecturer saves without inputting a reason, the system prompts them to write a reason before saving.<br>**E5.2 Outside session date:** If the current date is not the scheduled session date, the system rejects the manual edit.<br>**E5.3 Unauthorized or invalid roster target:** If the lecturer is not assigned to the session or the selected student is not in the session roster, the system rejects the manual edit.                                                                                                                                                                                                                                                                                                                                                                         |
 | **Priority:**          | High                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | **Business Rules:**    | BR-10, BR-13                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
@@ -429,17 +429,14 @@ endif
 :13. Change remaining Not Yet records\nto Absent and lock the finalized result;
 
 |Lecturer|
-if (Late adjustment needed?) then ([Yes])
-  :14. Reopen finalized attendance;
-  :15. Mark Absent student as Late\nwith reason;
+if (Manual edit needed?) then ([Yes])
+  :14. Use UC07 to edit attendance\nwithin the session date;
   |System|
-  :16. Save Late status\nand adjustment reason;
-  |Lecturer|
-  :17. Close reopened attendance;
+  :15. Save corrected status\nand adjustment reason;
 else ([No])
 endif
 |Lecturer|
-:18. Export attendance report;
+:16. Export attendance report;
 stop
 @enduml
 ```
@@ -573,20 +570,15 @@ else ([Yes])
     :13. Mark attendance result as finalized;
 
     |Lecturer|
-    if (Need late adjustment?) then ([Yes])
-      :14. Click "Reopen Attendance";
+    if (Need manual edit?) then ([Yes])
+      :14. Use UC07 to edit attendance\nwithin the session date;
       |System|
-      :15. Reopen finalized attendance\nfor late adjustment;
-      |Lecturer|
-      :16. Mark Absent student as Late\nusing UC07;
-      :17. Close reopened attendance;
-      |System|
-      :18. Mark attendance result as finalized;
+      :15. Save corrected status\nand adjustment reason;
     else ([No])
     endif
 
     |System|
-    :19. Close projector view and return to session dashboard;
+    :16. Close projector view and return to session dashboard;
   endif
 endif
 
@@ -611,27 +603,27 @@ skinparam swimlaneHeaderFontStyle bold
 
 |Lecturer|
 start
-:1. Open reopened attendance result\nfor a finalized session;
-:2. Select an Absent student record;
-:3. Click "Mark Late";
+:1. Open attendance roster\nfor the scheduled session;
+:2. Select a student record;
+:3. Click "Edit Attendance";
 
 |System|
-if (Is attendance reopened?) then ([No])
-  :E5.2 Reject adjustment;
+if (Is current date the scheduled\nsession date?) then ([No])
+  :E5.2 Reject manual edit;
   |Lecturer|
-  :View reopen-required message;
+  :View outside-session-date message;
 else ([Yes])
   |System|
-  if (Is selected status Absent?) then ([No])
-    :E5.3 Reject late adjustment;
+  if (Is lecturer assigned and\nstudent in roster?) then ([No])
+    :E5.3 Reject manual edit;
     |Lecturer|
-    :View only Absent records\ncan be marked Late;
+    :View unauthorized or invalid roster message;
   else ([Yes])
     |System|
-    :4. Display current Absent status,\nevidence summary, latest rejection reason,\nand reason field;
+    :4. Display current status,\nevidence summary, latest rejection reason,\nstatus choices, and reason field;
 
     |Lecturer|
-    :5. Enter late adjustment reason;
+    :5. Select corrected status\nand enter adjustment reason;
     :6. Click "Save";
 
     |System|
@@ -644,12 +636,12 @@ else ([Yes])
     endif
 
     |System|
-    :7. Change attendance status\nfrom Absent to Late;
+    :7. Update official attendance status;
     :8. Save adjustment reason;
     :9. Refresh attendance roster;
 
     |Lecturer|
-    :10. View updated Late status;
+    :10. View updated status;
   endif
 endif
 
@@ -675,7 +667,7 @@ The following business rules use stable IDs so that later Analysis, Design, and 
 | **BR-10** | Each study session can have at most one active attendance session, and only the assigned lecturer can manage it.                                                                                                       |
 | **BR-11** | Catalog identifiers, including student identifiers and class section identifiers, must be unique across the system.                                                                                                    |
 | **BR-12** | Time checks for QR validity and PIN validity use the official system time.                                                                                                                               |
-| **BR-13** | `Late` can be assigned only after a finalized attendance result is reopened, and only by changing an `Absent` record with a lecturer-provided reason.                                                                                |
+| **BR-13** | Manual attendance edits are allowed only on the scheduled session date, only by the assigned lecturer, and require a lecturer-provided reason.                                                                                |
 
 ---
 
@@ -684,7 +676,7 @@ The following business rules use stable IDs so that later Analysis, Design, and 
 | **Source Requirement**             | **Feature(s)** | **Use Case(s)**  | **Business Rule(s)** |
 | :--------------------------------- | :------------- | :--------------- | :------------------- |
 | Dynamic QR attendance              | F03, F07       | UC02, UC05       | BR-02, BR-12         |
-| Reopened late adjustment           | F07, F09       | UC05, UC07       | BR-13                |
+| Same-day manual adjustment         | F09            | UC07             | BR-13                |
 | Location reference capture         | F03, F04       | UC02, UC04       | BR-03                |
 | Biometric or selfie verification   | F02, F03, F04  | UC02, UC04       | BR-04                |
 | Device ID evidence                 | F03, F04       | UC02, UC04       | BR-05                |
@@ -748,7 +740,7 @@ This section keeps only the data dictionary needed for Requirement Modeling. Ent
 | QRRefreshedAt               | Date/Time     | Exact timestamp when the QR attendance code was last refreshed.                                                                                                      |
 | PINCode                     | Text          | 6-digit backup fallback attendance code.                                                                                                                             |
 | PINRefreshedAt              | Date/Time     | Exact timestamp when the PIN code was last refreshed.                                                                                                                |
-| SessionStatus               | Text          | Indicates whether the attendance session is not started, active, finalized, or reopened for late adjustment.                                                         |
+| SessionStatus               | Text          | Indicates whether the attendance session is not started, active, or finalized.                                                         |
 | **Configuration** |               | **Configurable attendance parameters**                                                                                                                               |
 | QRRefreshSeconds            | Number        | Number of seconds between QR code refreshes; also the validity window of each QR code.                                                                               |
 | PINRefreshSeconds           | Number        | Number of seconds between backup PIN refreshes.                                                                                                                      |
