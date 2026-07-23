@@ -20,13 +20,13 @@ Design decisions are intentionally limited to what is required by the project st
 
 ### **III.1.2 Architecture Decision**
 
-### **Decision: Modular Monolith with Client Applications, Cache, Realtime Notification, and Database Wrappers**
+### **Decision: Modular Monolith with Client Applications, Cache, Polling Monitor, and Database Wrappers**
 
 **Quality Attribute Priority:** Performance, modifiability, testability, and traceability.
 
-**Chosen Option:** A modular monolith backend with separate client applications for students and staff, one owned relational persistence boundary, a cache wrapper for short-lived QR/PIN values, and a realtime notification adapter for lecturer monitoring.
+**Chosen Option:** A modular monolith backend with separate client applications for students and staff, one owned relational persistence boundary, a cache wrapper for short-lived QR/PIN values, and a near-real-time polling endpoint for lecturer monitoring.
 
-**Reason:** AFAS has clear internal modules but does not require independently deployable services. The peak classroom load in NF-01 justifies a cache wrapper for active attendance codes, and UC06 justifies a realtime notification channel. Splitting the backend into separately deployed services would add deployment and consistency complexity without direct requirement support.
+**Reason:** AFAS has clear internal modules but does not require independently deployable services. The peak classroom load in NF-01 justifies a cache wrapper for active attendance codes, and UC06 can be satisfied by a lightweight staff polling endpoint with a maximum 5-second refresh delay. Splitting the backend into separately deployed services or maintaining a persistent realtime channel would add deployment complexity beyond MVP needs.
 
 **Trade-off:** The backend modules deploy together, so independent scaling by business module is limited. This is accepted because the project scope values maintainability and traceability over independent service operations.
 
@@ -34,16 +34,21 @@ Design decisions are intentionally limited to what is required by the project st
 
 ### **III.1.3 Technology Mapping**
 
-| **Design Area**                   | **Selected Mechanism**                                                         | **Justification**                                                                                                    | **Traceability**          |
-| :-------------------------------- | :----------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------- | :------------------------ |
-| Student client                    | Mobile-first client application                                                | Supports QR scanning, PIN, biometric/selfie proof, GPS, and device evidence collection.                              | UC02, UC03, UC04          |
-| Staff client                      | Web portal                                                                     | Supports lecturer and administrator workflows on desktop screens.                                                    | UC05-UC09                 |
-| Backend architecture              | Modular monolith with Presentation, Application, Domain, Infrastructure layers | Keeps COMET controls, rules, entities, and wrappers separated while avoiding unnecessary service distribution.       | All UC; NF-06             |
-| University identity confirmation  | External identity-system wrapper                                               | AFAS relies on the existing University Identity System for identity confirmation and keeps only local role profiles. | UC01, BR-01               |
-| Persistence                       | Relational database accessed through `«database wrapper»` repositories         | Entity relationships in Figure II-1 map naturally to tables and constraints.                                         | Section II.1.1; UC01-UC09 |
-| Short-lived attendance code store | Cache wrapper for active QR/PIN values                                         | Reduces repeated database reads during peak check-in bursts.                                                         | UC02, UC04, UC05; NF-01   |
-| Realtime lecturer monitor         | Subscription/notification channel                                              | Lecturer view must update after accepted check-ins.                                                                  | UC06; NF-01               |
-| Report file generation            | Report generator adapter                                                       | Isolates spreadsheet file formatting from attendance rules.                                                          | UC08, BR-08               |
+The AFAS design uses React Native for the student mobile app, React for the staff web app, and a .NET-based stack for the backend and supporting services.
+
+| **Component**                   | **Specific Stack**                                   | **Reason**                                                                 |
+| :------------------------------ | :--------------------------------------------------- | :------------------------------------------------------------------------- |
+| Student mobile app              | React Native                                         | Supports cross-platform mobile UI with camera, biometric, GPS, and device evidence access. |
+| Lecturer/Admin web portal       | React 18 + TypeScript                                | Supports reusable staff UI components and integrates cleanly with REST polling. |
+| Backend API                     | ASP.NET Core 8 Web API                               | Provides HTTPS REST endpoints for mobile and web clients.                  |
+| Application and domain services | .NET 8 modular monolith with dependency injection    | Keeps use case services and business rules separated without microservice complexity. |
+| Identity integration            | ASP.NET Core OpenID Connect/JWT Bearer               | Uses a standard secure boundary for university identity confirmation.       |
+| Database access                 | Entity Framework Core 8 + Npgsql                     | Maps domain entities to PostgreSQL with transactions and constraints.       |
+| Relational database             | PostgreSQL 16                                        | Fits attendance, catalog, class, and enrollment relationships.              |
+| Attendance code cache           | Redis 7 + StackExchange.Redis                        | Validates short-lived QR/PIN values quickly during check-in bursts.         |
+| Near-real-time monitor          | ASP.NET Core REST short polling every 5 seconds      | Keeps lecturer screens current with bounded delay and simpler deployment than a persistent realtime channel. |
+| Report export                   | ClosedXML                                            | Generates `.xlsx` attendance reports on the backend.                       |
+| Deployment runtime              | Docker containers, Kestrel, Nginx reverse proxy      | Gives reproducible deployment and routes HTTPS REST traffic cleanly.        |
 
 ---
 
@@ -169,9 +174,9 @@ CatalogControl --> ClassSection : UC09 maintain class sections
 | `University Identity System Interface`                                      | `UniversityIdentityAdapter` `«external system wrapper»`               | External identity confirmation is isolated from AFAS application and domain rules.                            | UC01, BR-01      |
 | `Mobile Device Sensor Interface`                                            | `MobileDeviceEvidenceAdapter` `«hardware wrapper»` on the client side | Hardware access is isolated behind a wrapper for biometric, camera, location, and device evidence collection. | UC02, UC04       |
 | `Authentication Control`, `Check-in Control`, `Session Control`, etc.       | Application use case services                                         | Coordinators become application services that orchestrate rules, entities, and wrappers.                      | UC01-UC09        |
-| Business logic and algorithm objects                                        | Domain services and strategy classes                                  | Rules become replaceable policy classes; the distance algorithm becomes a strategy.                           | Section I.6      |
+| Business logic and algorithm objects                                        | Domain services and policy classes                                    | Rules become replaceable policy classes; captured location remains informational evidence and location comparison never gates attendance. | Section I.6      |
 | `«entity»` classes                                                          | Domain data abstraction classes plus database wrapper repositories    | Each persistent analysis entity maps to a domain class and repository interface/implementation.               | Section II.1.1   |
-| `Monitor Control`                                                           | Notification publisher plus lecturer monitor subscriber               | Accepted check-ins are published to the lecturer monitor using subscription/notification.                     | UC06, NF-01      |
+| `Monitor Control`                                                           | Lecturer monitor polling endpoint and roster snapshot reader          | Lecturer screens poll the latest attendance snapshot every 5 seconds.                                      | UC06, NF-01      |
 
 ---
 
@@ -194,7 +199,7 @@ package "Access and Profile Management\n«service subsystem»" as Access
 package "Attendance Coordination\n«coordinator subsystem»" as AttendanceCoord
 package "Attendance Validation\n«service subsystem»" as Validation
 package "Session Lifecycle\n«control subsystem»" as SessionLife
-package "Monitoring and Notification\n«service subsystem»" as Monitoring
+package "Monitoring and Polling\n«service subsystem»" as Monitoring
 package "Administrative Management\n«service subsystem»" as Administration
 package "Reporting\n«service subsystem»" as Reporting
 package "Persistence and Technical Adapters\n«service subsystem»" as Adapters
@@ -205,11 +210,10 @@ StaffClient --> Presentation : synchronous with reply
 Presentation --> Access : synchronous with reply
 Presentation --> AttendanceCoord : synchronous with reply
 Presentation --> SessionLife : synchronous with reply
-Presentation --> Monitoring : subscription/notification
+Presentation --> Monitoring : periodic synchronous with reply
 Presentation --> Administration : synchronous with reply
 Presentation --> Reporting : synchronous with reply
 AttendanceCoord --> Validation : synchronous with reply
-AttendanceCoord --> Monitoring : subscription/notification
 AttendanceCoord --> Adapters : synchronous with reply
 SessionLife --> Adapters : synchronous with reply
 Monitoring --> Adapters : synchronous with reply
@@ -228,13 +232,13 @@ Access --> Adapters : synchronous with reply
 | Device Evidence Access             | `«input/output subsystem»`     | Access device biometric, camera/selfie, GPS, and device identifier.                                                       | Mobile Device Hardware; UC02, UC04       |
 | Presentation Boundary              | `«user interaction subsystem»` | Receives client requests, validates request shape, maps to application services, returns results.                         | UC01-UC09                                |
 | Access and Profile Management      | `«service subsystem»`          | University identity confirmation, role checks, and AFAS profile lookup.                                                   | UC01, BR-01                              |
-| Attendance Coordination            | `«coordinator subsystem»`      | Orchestrates QR/PIN check-in, evidence validation, attendance record upsert, official result creation, and monitor notification. | UC02, UC04                               |
+| Attendance Coordination            | `«coordinator subsystem»`      | Orchestrates QR/PIN check-in, evidence validation, attendance record upsert, and official result creation. | UC02, UC04                               |
 | Attendance Validation              | `«service subsystem»`          | Validates identity evidence and active QR/PIN code, and classifies Present/Late; captured location is stored as evidence only and never gates the result. | UC02, UC04, BR-02, BR-04, BR-05, BR-07, BR-12 |
 | Session Lifecycle                  | `«control subsystem»`          | Governs not-started, active, and finalized attendance-session states.                                     | UC05, BR-08, BR-10                       |
-| Monitoring and Notification        | `«service subsystem»`          | Pushes accepted check-in status and retrieves live roster state.                                                          | UC06, NF-01                              |
+| Monitoring and Polling             | `«service subsystem»`          | Serves near-real-time roster snapshots for staff polling every 5 seconds.                                                | UC06, NF-01                              |
 | Administrative Management          | `«service subsystem»`          | Maintains catalog configuration.                                                                                          | UC09                                     |
 | Reporting                          | `«service subsystem»`          | Generates finalized attendance reports.                                                                                   | UC08, BR-08                              |
-| Persistence and Technical Adapters | `«service subsystem»`          | Implements database, cache, realtime, report file, and hardware wrappers.                                                 | All UC; NF-01, NF-04, NF-06              |
+| Persistence and Technical Adapters | `«service subsystem»`          | Implements database, cache, report file, and hardware wrappers.                                                          | All UC; NF-01, NF-04, NF-06              |
 
 ---
 
@@ -285,7 +289,6 @@ package "Infrastructure Layer" {
   component "Repository Adapters\n«database wrapper»" as Repositories
   component "UniversityIdentityAdapter\n«external system wrapper»" as UniversityIdentityAdapter
   component "AttendanceCodeCacheAdapter\n«data abstraction»" as CodeCache
-  component "RealtimeNotificationAdapter\n«external system wrapper»" as Realtime
   component "ReportFileAdapter\n«external system wrapper»" as ReportFile
   database "AFAS Relational Database" as Database
   collections "Short-lived Attendance Code Cache" as Cache
@@ -320,12 +323,9 @@ AuthenticationService --> Repositories
 AuthenticationService --> UniversityIdentityAdapter
 CheckInService --> Repositories
 CheckInService --> CodeCache
-CheckInService --> Realtime
 SessionService --> Repositories
 SessionService --> CodeCache
-SessionService --> Realtime
 MonitorService --> Repositories
-MonitorService --> Realtime
 CatalogService --> Repositories
 ReportService --> Repositories
 ReportService --> ReportFile
@@ -356,7 +356,6 @@ participant "AttendanceCodePolicy\n«business logic»" as CodePolicy
 participant "AttendanceStatusPolicy\n«business logic»" as StatusPolicy
 participant "AttendanceCodeCacheAdapter\n«data abstraction»" as CodeCache
 participant "Repository Adapters\n«database wrapper»" as Repository
-participant "RealtimeNotificationAdapter\n«external system wrapper»" as Realtime
 
 Student -> StudentApp : choose QR scan or PIN
 StudentApp -> DeviceAdapter : collect biometric or selfie proof
@@ -382,7 +381,6 @@ else code valid
   CheckInService -> StatusPolicy : classify Present or Late
   StatusPolicy --> CheckInService : official status
   CheckInService -> Repository : save AttendanceRecord with check-in evidence and official status (submitted coordinates stored as evidence)
-  CheckInService -> Realtime : publish attendance accepted notification
   CheckInService --> CheckInEndpoint : accepted result
   CheckInEndpoint --> StudentApp : show Present or Late result
 end
@@ -391,7 +389,7 @@ end
 
 ### **III.4.3 Deployment View**
 
-The deployment view keeps AFAS as one backend application runtime with separate client devices, a database node, and a cache node. The realtime channel is hosted by the backend runtime.
+The deployment view keeps AFAS as one ASP.NET Core backend application runtime with separate React Native and React clients, a PostgreSQL database node, and a Redis cache node. Nginx terminates HTTPS/TLS and forwards REST traffic to the backend runtime.
 
 #### **Figure III-5 Deployment View**
 
@@ -400,39 +398,44 @@ The deployment view keeps AFAS as one backend application runtime with separate 
 skinparam style strictuml
 
 node "Student Mobile Device" as StudentDevice {
-  artifact "Student Client App"
+  artifact "React Native Student Client App"
   artifact "MobileDeviceEvidenceAdapter"
 }
 
 node "Lecturer/Admin Workstation" as StaffDevice {
-  artifact "Staff Web Portal"
+  artifact "React Staff Web Portal"
+}
+
+node "Reverse Proxy" as ReverseProxy {
+  artifact "Nginx HTTPS/TLS Gateway"
 }
 
 node "Application Server" as AppServer {
-  artifact "AFAS Backend Runtime" {
-    artifact "Presentation Boundary"
+  artifact "ASP.NET Core AFAS Backend Runtime" {
+    artifact "REST Presentation Controllers"
     artifact "Application Services"
     artifact "Domain Rules and Entities"
-    artifact "Repository Adapters"
-    artifact "Cache Adapter"
-    artifact "Realtime Notification Adapter"
-    artifact "Report File Adapter"
+    artifact "EF Core Repository Adapters"
+    artifact "Redis Cache Adapter"
+    artifact "Polling Monitor Endpoint"
+    artifact "ClosedXML Report File Adapter"
   }
 }
 
 node "Data Server" as DataServer {
-  database "AFAS Relational Database"
+  database "PostgreSQL AFAS Database"
 }
 
 node "Cache Server" as CacheServer {
-  collections "Short-lived Attendance Code Cache"
+  collections "Redis Short-lived Attendance Code Cache"
 }
 
-StudentDevice --> AppServer : synchronous with reply; HTTPS
-StaffDevice --> AppServer : synchronous with reply; HTTPS
-StaffDevice --> AppServer : subscription/notification; realtime channel
-AppServer --> DataServer : synchronous with reply; database connection
-AppServer --> CacheServer : synchronous with reply; cache connection
+StudentDevice --> ReverseProxy : synchronous with reply; HTTPS REST
+StaffDevice --> ReverseProxy : synchronous with reply; HTTPS REST
+StaffDevice --> ReverseProxy : periodic polling; HTTPS REST every 5 seconds
+ReverseProxy --> AppServer : routes REST
+AppServer --> DataServer : synchronous with reply; Npgsql/EF Core connection
+AppServer --> CacheServer : synchronous with reply; Redis client connection
 @enduml
 ```
 
@@ -461,7 +464,6 @@ component "Administration Component" as AdminComponent
 component "Reporting Component" as ReportingComponent
 component "Persistence Component\n«database wrapper»" as Persistence
 component "Attendance Code Cache\n«data abstraction»" as Cache
-component "Realtime Notification Adapter\n«external system wrapper»" as Realtime
 component "Report File Adapter\n«external system wrapper»" as ReportFile
 
 interface "IDeviceEvidence" as IDeviceEvidence
@@ -473,7 +475,6 @@ interface "IAdminUseCases" as IAdminUseCases
 interface "IReportUseCases" as IReportUseCases
 interface "IRepositoryOperations" as IRepositoryOperations
 interface "IAttendanceCodeStore" as IAttendanceCodeStore
-interface "IAttendanceNotifications" as IAttendanceNotifications
 interface "IReportFileWriter" as IReportFileWriter
 
 StudentApp ..> IDeviceEvidence : requires; synchronous with reply
@@ -483,7 +484,7 @@ StudentApp ..> ICheckInUseCases : requires; synchronous with reply
 StudentApp ..> IMonitorUseCases : requires; synchronous with reply
 StaffPortal ..> IAuthUseCases : requires; synchronous with reply
 StaffPortal ..> ISessionUseCases : requires; synchronous with reply
-StaffPortal ..> IMonitorUseCases : requires; subscription/notification
+StaffPortal ..> IMonitorUseCases : requires; periodic synchronous with reply
 StaffPortal ..> IAdminUseCases : requires; synchronous with reply
 StaffPortal ..> IReportUseCases : requires; synchronous with reply
 
@@ -504,60 +505,59 @@ Presentation --> ReportingComponent
 AuthComponent ..> IRepositoryOperations : requires
 AttendanceComponent ..> IRepositoryOperations : requires
 AttendanceComponent ..> IAttendanceCodeStore : requires
-AttendanceComponent ..> IAttendanceNotifications : requires
 SessionComponent ..> IRepositoryOperations : requires
 SessionComponent ..> IAttendanceCodeStore : requires
-SessionComponent ..> IAttendanceNotifications : requires
 MonitoringComponent ..> IRepositoryOperations : requires
-MonitoringComponent ..> IAttendanceNotifications : requires
 AdminComponent ..> IRepositoryOperations : requires
 ReportingComponent ..> IRepositoryOperations : requires
 ReportingComponent ..> IReportFileWriter : requires
 
 Persistence - IRepositoryOperations
 Cache - IAttendanceCodeStore
-Realtime - IAttendanceNotifications
 ReportFile - IReportFileWriter
 @enduml
 ```
 
 ### **III.5.2 Communication Pattern Specification**
 
-| **Connector**                                       | **COMET Communication Pattern**              | **Technology Mapping**      | **Buffering**                                                                                                                                  | **Traceability**  |
-| :-------------------------------------------------- | :------------------------------------------- | :-------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------- | :---------------- |
-| Student Client -> Check-in use case                 | Synchronous message communication with reply | HTTPS request/response      | No queue; client retries only after receiving an error.                                                                                        | UC02, UC04        |
-| Staff Web Portal -> Session use case                | Synchronous message communication with reply | HTTPS request/response      | No queue; command is idempotent by session state check.                                                                                        | UC05              |
-| Check-in Component -> Code Cache                    | Synchronous message communication with reply | Cache client call           | No durable buffer; cache miss falls back to stored attendance-session state.                                                                   | UC02, UC04, NF-01 |
-| Check-in Component -> Realtime Notification Adapter | Subscription/notification                    | Realtime channel event      | In-memory bounded connection buffer per lecturer session; if full, drop stale monitor refresh event and let the next snapshot repair the view. | UC06, NF-01       |
-| Reporting Component -> Report File Adapter          | Synchronous message communication with reply | Server-side file generation | No queue in MVP; report generation returns success or failure to lecturer.                                                                     | UC08              |
+| **Connector**                                       | **COMET Communication Pattern**              | **Technology Mapping**                    | **Buffering**                                                                                                                                  | **Traceability**  |
+| :-------------------------------------------------- | :------------------------------------------- | :---------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------- | :---------------- |
+| Student Client -> Check-in use case                 | Synchronous message communication with reply | React Native client sends HTTPS REST request | No queue; client retries only after receiving an error.                                                                                        | UC02, UC04        |
+| Staff Web Portal -> Session use case                | Synchronous message communication with reply | React client sends HTTPS REST request     | No queue; command is idempotent by session state check.                                                                                        | UC05              |
+| Check-in Component -> Code Cache                    | Synchronous message communication with reply | StackExchange.Redis client call           | No durable buffer; cache miss falls back to stored attendance-session state.                                                                   | UC02, UC04, NF-01 |
+| Staff Web Portal -> Monitor use case                | Periodic synchronous message with reply      | HTTPS REST short polling every 5 seconds  | No event buffer; each response returns the latest roster snapshot or changes since the last poll.                                             | UC06, NF-01       |
+| Reporting Component -> Report File Adapter          | Synchronous message communication with reply | ClosedXML server-side `.xlsx` generation  | No queue in MVP; report generation returns success or failure to lecturer.                                                                     | UC08              |
 
-### **III.5.3 Message Specification for Realtime Attendance Notification**
+### **III.5.3 Polling Specification for Near-Real-Time Attendance Monitor**
 
-### **Message: AttendanceAcceptedNotification**
+### **Polling Endpoint: AttendanceMonitorSnapshot**
 
-**Producer:** Attendance Component.
+**Producer:** Monitoring Component.
 
-**Consumer:** Monitoring Component and Staff Web Portal subscribers.
+**Consumer:** Staff Web Portal.
 
-**COMET Communication Pattern:** Subscription/notification.
+**COMET Communication Pattern:** Periodic synchronous message with reply.
 
-**Technology Mapping:** Realtime event channel hosted by the backend runtime.
+**Technology Mapping:** ASP.NET Core REST endpoint polled by the React staff web portal every 5 seconds.
 
-**Delivery:** Multicast to lecturer sessions subscribed to the same study session.
+**Delivery:** Staff Web Portal sends `GET /api/sessions/{sessionId}/attendance-monitor?since={lastSeenAt}` while the monitor screen is open.
 
-**Buffering:** Bounded per-connection buffer. If the buffer overflows, stale row-level events may be dropped and the client must request the latest roster snapshot through `getLiveRoster`.
+**Buffering:** No server-side event buffer. The backend reads the latest persisted attendance records; if `since` is absent or stale, it returns the full current roster snapshot.
 
 **Payload:**
 
 - `sessionId: Text` - scheduled session receiving the update.
-- `studentId: Text` - student whose official result changed.
-- `attendanceStatus: Text` - `Present` or `Late`.
-- `checkedInAt: DateTime` - official check-in timestamp.
-- `checkInMethod: Text` - `QR` or `PIN`.
+- `serverTime: DateTime` - backend timestamp used as the next `since` value.
+- `refreshAfterSeconds: Number` - expected polling interval, default 5 seconds.
+- `rosterItems: List<AttendanceMonitorItem>` - current or changed student attendance rows.
+- `AttendanceMonitorItem.studentId: Text` - roster student.
+- `AttendanceMonitorItem.attendanceStatus: Text` - `Present`, `Late`, `Absent`, or not yet set.
+- `AttendanceMonitorItem.checkedInAt: DateTime` - official check-in timestamp when available.
+- `AttendanceMonitorItem.checkInMethod: Text` - `QR`, `PIN`, `Manual`, or empty when not yet checked in.
 
-**Ordering:** Required per `sessionId` and `studentId`.
+**Freshness:** Lecturer monitor may be delayed by up to 5 seconds.
 
-**Failure Handling:** If delivery fails, the official attendance result remains saved; lecturer UI recovers by fetching the latest roster snapshot.
+**Failure Handling:** If a poll fails, the lecturer UI keeps the last successful snapshot and retries on the next 5-second interval. Official attendance results remain saved independently of monitor refresh.
 
 **Traceability:** UC02, UC04, UC06; Monitor Control; NF-01.
 
@@ -570,10 +570,10 @@ ReportFile - IReportFileWriter
 | **Task/Object**               | **Active or Passive** | **Activation**                              | **Communication Pattern**                            | **Traceability** |
 | :---------------------------- | :-------------------- | :------------------------------------------ | :--------------------------------------------------- | :--------------- |
 | Student Interaction Task      | Active                | Event-driven by student actions             | Synchronous with reply                               | UC01-UC04        |
-| Staff Interaction Task        | Active                | Event-driven by lecturer/admin actions      | Synchronous with reply and subscription/notification | UC05-UC09        |
-| Attendance Check-in Task      | Active                | Demand-driven by submitted check-in command | Synchronous with reply; publishes notification       | UC02, UC04, UC06 |
+| Staff Interaction Task        | Active                | Event-driven by lecturer/admin actions      | Synchronous with reply and periodic polling          | UC05-UC09        |
+| Attendance Check-in Task      | Active                | Demand-driven by submitted check-in command | Synchronous with reply                               | UC02, UC04       |
 | QR/PIN Refresh Task           | Active                | Periodic while attendance session is active | Writes active code to cache and session state        | UC05, BR-02      |
-| Realtime Notification Task    | Active                | Event-driven by accepted attendance result  | Subscription/notification                            | UC06, NF-01      |
+| Monitor Polling Task          | Active                | Periodic every 5 seconds while monitor is open | Synchronous request/reply                         | UC06, NF-01      |
 | Report Generation Task        | Active                | Demand-driven by lecturer export request    | Synchronous with reply                               | UC08             |
 | Domain entities and rules     | Passive               | Run on caller task                          | In-process calls                                     | All UC           |
 | Repository and cache wrappers | Passive               | Run on caller task                          | Synchronous with reply                               | All UC           |
@@ -588,19 +588,19 @@ ReportFile - IReportFileWriter
 
 **Provided Interface:** `processCheckIn(command: CheckInCommand): CheckInResult`
 
-**Required Interface:** `IAttendanceCodeStore`, `IRepositoryOperations`, `IAttendanceNotifications`
+**Required Interface:** `IAttendanceCodeStore`, `IRepositoryOperations`
 
 **Input Messages/Data:** `CheckInCommand` with student ID, session ID, submitted code or PIN, check-in method, identity evidence result, optional submitted location (informational; may be absent when GPS is unavailable), device identifier, device display name, and submission time.
 
 **Output Messages/Data:** `CheckInResult` with accepted/rejected/blocked status, official attendance status when accepted, and user-visible reason when rejected.
 
-**Communication Pattern:** Synchronous with reply to the student client; subscription/notification to lecturer monitor after accepted result.
+**Communication Pattern:** Synchronous with reply to the student client. Lecturer monitor observes the saved result on the next polling interval.
 
-**Technology Mapping:** HTTPS request/response plus backend realtime event channel.
+**Technology Mapping:** HTTPS REST request/response.
 
-**Buffering:** No command queue in MVP; notification buffering follows `AttendanceAcceptedNotification`.
+**Buffering:** No command queue in MVP; monitor refresh uses persisted attendance state.
 
-**Traceability:** UC02, UC04, UC06; Check-in Control; Monitor Control.
+**Traceability:** UC02, UC04; Check-in Control.
 
 ### **Task Behavior Specification: Attendance Check-in Task**
 
@@ -615,8 +615,7 @@ ReportFile - IReportFileWriter
 5. Read configuration through repositories.
 6. Classify Present/Late when accepted; store submitted location coordinates as evidence only.
 7. Upsert the `AttendanceRecord` for `(StudentId, SessionId)`: save check-in evidence and official status when accepted, or record the latest rejection reason when rejected.
-8. Publish `AttendanceAcceptedNotification` for accepted official results.
-9. Return check-in result to the student client.
+8. Return check-in result to the student client.
 
 **Exception Behavior:** Expired code records the latest rejection reason. Missing or out-of-range location never blocks or rejects the check-in; it is recorded as informational evidence.
 
@@ -632,15 +631,15 @@ ReportFile - IReportFileWriter
 
 **Provided Interface:** `startRefresh(sessionId)`, `stopRefresh(sessionId)`
 
-**Required Interface:** `IAttendanceCodeStore`, `IRepositoryOperations`, `IAttendanceNotifications`
+**Required Interface:** `IAttendanceCodeStore`, `IRepositoryOperations`
 
 **Input Messages/Data:** Session ID, QR refresh seconds, PIN refresh seconds.
 
 **Output Messages/Data:** Active QR token, backup PIN, refreshed timestamps, countdown update.
 
-**Communication Pattern:** Periodic internal update and subscription/notification to staff portal projector view.
+**Communication Pattern:** Periodic internal update; staff portal reads the latest QR/PIN display state through polling.
 
-**Technology Mapping:** Backend timer plus cache write and realtime event channel.
+**Technology Mapping:** ASP.NET Core hosted background service plus Redis cache write and HTTPS REST polling.
 
 **Buffering:** Keep only latest QR/PIN value per active attendance session; older values expire based on configuration.
 
@@ -657,7 +656,7 @@ ReportFile - IReportFileWriter
 3. Generate a new QR token every configured QR refresh interval.
 4. Generate a new backup PIN every configured PIN refresh interval.
 5. Save latest values to cache and attendance-session state.
-6. Notify projector view subscribers of the latest display value and countdown.
+6. Store latest display value and countdown state for the staff portal polling endpoint.
 7. Stop when lecturer finalizes the session.
 
 **Exception Behavior:** If cache write fails, persist latest active value in attendance-session state and allow check-in validation to read from persistent state until cache recovers.
@@ -768,11 +767,11 @@ ReportFile - IReportFileWriter
 
 ### **Pattern: Adapter**
 
-**Context:** Database, cache, realtime notification, report file generation, and mobile device evidence access.
+**Context:** Database, cache, monitor polling, report file generation, and mobile device evidence access.
 
 **Problem Solved:** Technical dependencies should not leak into domain rules or application services.
 
-**Design Elements:** Repository Adapters `«database wrapper»`, `AttendanceCodeCacheAdapter`, `RealtimeNotificationAdapter`, `ReportFileAdapter`, `MobileDeviceEvidenceAdapter`.
+**Design Elements:** Repository Adapters `«database wrapper»`, `AttendanceCodeCacheAdapter`, `MonitorEndpoint`, `ReportFileAdapter`, `MobileDeviceEvidenceAdapter`.
 
 **Quality Attribute Impact:** Improves modifiability, testability, and replaceability of infrastructure.
 
@@ -780,17 +779,17 @@ ReportFile - IReportFileWriter
 
 **Traceability:** UC02, UC04-UC08; NF-01, NF-04, NF-06.
 
-### **Pattern: Observer**
+### **Pattern: Polling**
 
-**Context:** Lecturer live monitor after accepted check-ins.
+**Context:** Lecturer near-real-time monitor after accepted check-ins.
 
-**Problem Solved:** Attendance processing should not directly depend on each open lecturer UI instance.
+**Problem Solved:** Attendance processing should not maintain a persistent connection to each open lecturer UI instance.
 
-**Design Elements:** `AttendanceAcceptedNotification`, `RealtimeNotificationAdapter`, `MonitorService`, Staff Web Portal subscriber.
+**Design Elements:** `AttendanceMonitorSnapshot`, `MonitorEndpoint`, `MonitorService`, Staff Web Portal polling client.
 
-**Quality Attribute Impact:** Supports responsiveness under NF-01 and reduces coupling.
+**Quality Attribute Impact:** Supports near-real-time visibility under NF-01 with simpler deployment.
 
-**Trade-off:** UI may temporarily miss row-level events, so it needs snapshot recovery.
+**Trade-off:** Lecturer view may be delayed by up to 5 seconds and repeated polling adds predictable read traffic.
 
 **Traceability:** UC06, NF-01.
 
@@ -892,15 +891,15 @@ RoomRepo --> Room
 | **Requirement / UC**                  | **Actor**                                            | **Analysis Objects**                                                                                                                                                                                                                                                                               | **Design Elements**                                                                                                                                | **Design Diagrams / Contracts**                                   |
 | :------------------------------------ | :--------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------- |
 | UC01 Authenticate User                | Student, Lecturer, Admin, University Identity System | UserInterface, University Identity System Interface, Authentication Control, Authentication Rules, Account                                                                                                                                                                                       | Access and Profile Management, AuthenticationService, UniversityIdentityAdapter, AuthEndpoint, Account repository                                  | Figures III-1, III-3, III-6; AuthenticationService contract       |
-| UC02 Check In via Dynamic QR Code     | Student                                              | Student Mobile Interface, Mobile Device Sensor Interface, Check-in Control, Identity Evidence Rules, Attendance Code Rules, Attendance Status Calculation, AttendanceSession, Session, ClassSectionStudent, AttendanceRecord, Monitor Control | Student Client, Device Evidence Adapter, Attendance Component, Validation policies, Code Cache, Repository Adapters, Realtime Notification Adapter | Figures III-1, III-4, III-6; CheckInService, IAttendanceCodeStore |
+| UC02 Check In via Dynamic QR Code     | Student                                              | Student Mobile Interface, Mobile Device Sensor Interface, Check-in Control, Identity Evidence Rules, Attendance Code Rules, Attendance Status Calculation, AttendanceSession, Session, ClassSectionStudent, AttendanceRecord, Monitor Control | Student Client, Device Evidence Adapter, Attendance Component, Validation policies, Code Cache, Repository Adapters, Monitor polling read model | Figures III-1, III-4, III-6; CheckInService, IAttendanceCodeStore |
 | UC03 View Personal Attendance History | Student                                              | Student Mobile Interface, Attendance History Control, Authentication Rules, ClassSectionStudent, AttendanceRecord                                                                                                                                                                                  | Student Client, Presentation Boundary, repository read operations                                                                                  | Figures III-1, III-3, III-6                                       |
 | UC04 Check In via PIN                 | Student                                              | Student Mobile Interface, Mobile Device Sensor Interface, Check-in Control, Identity Evidence Rules, Attendance Code Rules, Attendance Status Calculation, AttendanceSession, Session, ClassSectionStudent, AttendanceRecord, Monitor Control | Same as UC02 with `checkInMethod = PIN` and PIN refresh values                                                                                     | Figures III-1, III-4, III-6; CheckInService, QR/PIN Refresh Task  |
 | UC05 Manage Attendance Session        | Lecturer                                             | Lecturer Web Interface, Session Control, Session Rules, Attendance Code Rules, Configuration, Session, ClassSectionStudent, AttendanceSession, AttendanceRecord                                                                                                                          | Staff Web Client, Session Lifecycle, SessionService, QR/PIN Refresh Task, Code Cache                                                               | Figures III-1, III-2, III-6; SessionService contract              |
-| UC06 Monitor Attendance in Real Time  | Lecturer                                             | Lecturer Web Interface, Monitor Control, AttendanceSession, ClassSectionStudent, AttendanceRecord                                                                                                                                                                                                  | Monitoring and Notification subsystem, Realtime Notification Adapter, AttendanceAcceptedNotification                                               | Figures III-1, III-6; message specification                       |
+| UC06 Monitor Attendance in Real Time  | Lecturer                                             | Lecturer Web Interface, Monitor Control, AttendanceSession, ClassSectionStudent, AttendanceRecord                                                                                                                                                                                                  | Monitoring and Polling subsystem, MonitorEndpoint, AttendanceMonitorSnapshot                                                                       | Figures III-1, III-6; polling specification                       |
 | UC07 Adjust Attendance Manually       | Lecturer                                             | Lecturer Web Interface, Adjustment Control, Session Rules, Session, ClassSectionStudent, AttendanceRecord                                                                                                                                                                         | AdjustmentService, Repository Adapters                                                                                                             | Figures III-1, III-6; AdjustmentService contract                  |
 | UC08 Export Attendance Report         | Lecturer                                             | Lecturer Web Interface, Report Control, Report Eligibility Rules, ClassSectionStudent, Session, AttendanceRecord                                                                                                                                                                   | Reporting subsystem, ReportService, ReportFileAdapter                                                                                              | Figures III-1, III-6; ReportService contract                      |
 | UC09 Manage System Catalog            | Admin                                                | Admin Web Interface, Catalog Control, Catalog Uniqueness Rules, Account, Student, Lecturer, Subject, ClassSection                                                                                                                                                                                  | Administrative Management, CatalogService, Repository Adapters                                                                                     | Figures III-1, III-6; persistence mapping                         |
-| NF-01 Performance and concurrency     | Student, Lecturer                                    | Attendance Code Rules, Monitor Control, AttendanceSession                                                                                                                                                                                                                                          | Attendance Code Cache, QR/PIN Refresh Task, Realtime Notification Adapter                                                                          | Figures III-3, III-5, III-6; TIS/TBS                              |
+| NF-01 Performance and concurrency     | Student, Lecturer                                    | Attendance Code Rules, Monitor Control, AttendanceSession                                                                                                                                                                                                                                          | Attendance Code Cache, QR/PIN Refresh Task, Monitor polling endpoint                                                                               | Figures III-3, III-5, III-6; TIS/TBS                              |
 | NF-06 Configurability                 | Student, Lecturer                                    | Configuration, Attendance Code Rules, Attendance Status Calculation                                                                                                                                                         | `configurations`, SessionService, policy classes                                                                                         | Figures III-1, III-3; persistence mapping                         |
 
 ---
@@ -912,10 +911,10 @@ RoomRepo --> Room
 | Integrated communication diagram is produced before subsystem partitioning.                   | Pass       | Section III.2 precedes Section III.3.                                                                                                                                                                                   |
 | Design elements trace backward to analysis objects and use cases.                             | Pass       | Figure III-1, Section III.2.1, Section III.11.                                                                                                                                                                          |
 | Subsystems use COMET subsystem stereotypes.                                                   | Pass       | Figure III-2.                                                                                                                                                                                                           |
-| Architecture complexity is justified by NFRs.                                                 | Pass       | Section III.1 and Section III.10 justify cache and realtime notification using NF-01/NF-07.                                                                                                                             |
+| Architecture complexity is justified by NFRs.                                                 | Pass       | Section III.1 and Section III.10 justify cache and 5-second monitor polling using NF-01/NF-07.                                                                                                             |
 | COMET communication patterns are selected before or with technology mapping.                  | Pass       | Section III.5.2 and deployment connectors.                                                                                                                                                                              |
 | Active/passive tasks are explicit and active tasks include TIS/TBS.                           | Pass       | Section III.6.                                                                                                                                                                                                          |
-| Distributed asynchronous or notification communication defines message and buffering.         | Pass       | Section III.5.3.                                                                                                                                                                                                        |
+| Near-real-time monitor polling defines refresh interval, payload, and failure handling.       | Pass       | Section III.5.3.                                                                                                                                                                                                        |
 | Interfaces include operation, parameters, return, precondition, postcondition, and invariant. | Pass       | Section III.7.                                                                                                                                                                                                          |
 | Database and technical dependencies are isolated through wrappers.                            | Pass       | Figures III-3, III-6, and III-9.2.                                                                                                                                                                                      |
 | Persistence mapping preserves Phase 2 entity names and business meanings.                     | Pass       | Section III.9 maps all entity classes from Figure II-1.                                                                                                                                                                 |
