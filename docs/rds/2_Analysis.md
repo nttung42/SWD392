@@ -8,7 +8,7 @@ This section realizes the AFAS requirements from Section I through COMET analysi
 
 ### **II.1.1 Entity class diagram**
 
-The following entity classes are derived from the Data Requirements in Section I.8 and the configurability requirement in NF-06, and are used by the interaction diagrams in Section II.2.
+The following entity classes are derived from the Data Dictionary in Section II.1.2 and the configurability requirement in NF-06, and are used by the interaction diagrams in Section II.2.
 
 #### **Figure II-1 Entity class diagram for AFAS**
 
@@ -126,7 +126,82 @@ Additional static constraints:
 
 - `Account` is associated with either `Student` or `Lecturer` according to `Role`; administrative accounts have no student or lecturer mapping.
 
-### **II.1.2 Contextual Boundary Diagram**
+### **II.1.2 Data dictionary**
+
+The data dictionary below details every entity class, attribute name, data type, and description derived from domain requirements.
+
+#### **Table II-1: Data Description (Data dictionary)**
+
+| **Name**                    | **Data Type** | **Description**                                                                                                                                                      |
+| :-------------------------- | :------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Account**                 |               | **AFAS user role profile data**                                                                                                                                      |
+| Id                          | Text          | Unique account identifier.                                                                                                                                           |
+| UniversityIdentityCode      | Text          | Identifier of the user's identity in the University Identity System.                                                                                                 |
+| Email                       | Text          | Registered FPT school email address received from or aligned with the university identity.                                                                           |
+| FullName                    | Text          | Full display name of the user.                                                                                                                                       |
+| Role                        | Text          | System access role. Must be one of: `Student`, `Lecturer`, `Admin`.                                                                                                  |
+| RegistrationDate            | Date/Time     | Date and time the account was registered.                                                                                                                            |
+| **Student**                 |               | **Student profile mapping**                                                                                                                                          |
+| StudentId                   | Text          | Unique student roll number (e.g. `SE170123`).                                                                                                                        |
+| AccountId                   | Text          | Links the student profile to their account.                                                                                                                          |
+| **Lecturer**                |               | **Lecturer profile mapping**                                                                                                                                         |
+| LecturerId                  | Text          | Assigned school lecturer ID (e.g. `HueCTM`).                                                                                                                         |
+| AccountId                   | Text          | Links the lecturer profile to their account.                                                                                                                         |
+| DepartmentName              | Text          | Faculty department name.                                                                                                                                             |
+| **Room**                    |               | **Classroom geo catalog**                                                                                                                                            |
+| RoomId                      | Text          | Physical classroom code (e.g., `AL-L402`).                                                                                                                           |
+| RoomName                    | Text          | Easy-to-read room display name.                                                                                                                                      |
+| Latitude                    | Decimal       | Classroom center point latitude, kept as reference location information.                                                                                             |
+| Longitude                   | Decimal       | Classroom center point longitude, kept as reference location information.                                                                                            |
+| **Subject**                 |               | **University subject catalog**                                                                                                                                       |
+| SubjectCode                 | Text          | Subject code identifier (e.g., `SWD392`).                                                                                                                            |
+| SubjectName                 | Text          | Detailed subject name.                                                                                                                                               |
+| Credits                     | Number        | Credit value of the course (must be greater than 0).                                                                                                                 |
+| **ClassSection**            |               | **Assigned course class section**                                                                                                                                    |
+| ClassSectionId              | Text          | Class section code (e.g., `SWD392_SU26_SE1701`).                                                                                                                     |
+| ClassSectionName            | Text          | Friendly class segment name.                                                                                                                                         |
+| SubjectCode                 | Text          | Reference subject code.                                                                                                                                              |
+| LecturerId                  | Text          | Lecturer assigned to teach.                                                                                                                                          |
+| Semester                    | Text          | Academic semester name.                                                                                                                                              |
+| **ClassSectionStudent**     |               | **Course class roster map**                                                                                                                                          |
+| ClassSectionId              | Text          | Reference class section ID.                                                                                                                                          |
+| StudentId                   | Text          | Enrolled student roll number.                                                                                                                                        |
+| **Session**                 |               | **Scheduled study session date/time**                                                                                                                                |
+| SessionId                   | Text          | Scheduled session unique ID.                                                                                                                                         |
+| ClassSectionId              | Text          | Belongs to class section code.                                                                                                                                       |
+| RoomId                      | Text          | Physical room location of the session.                                                                                                                               |
+| SessionDate                 | Date          | Scheduled calendar date.                                                                                                                                             |
+| StartTime                   | Time          | Scheduled class start hour.                                                                                                                                          |
+| EndTime                     | Time          | Scheduled class end hour.                                                                                                                                            |
+| **AttendanceSession**       |               | **Dynamic QR/PIN attendance session**                                                                                                                                |
+| SessionId                   | Text          | Ties the attendance session to a specific scheduled study session.                                                                                                   |
+| DynamicToken                | Text          | Current active attendance code represented in the QR for verification.                                                                                               |
+| QRRefreshedAt               | Date/Time     | Exact timestamp when the QR attendance code was last refreshed.                                                                                                      |
+| PINCode                     | Text          | 6-digit backup fallback attendance code.                                                                                                                             |
+| PINRefreshedAt              | Date/Time     | Exact timestamp when the PIN code was last refreshed.                                                                                                                |
+| SessionStatus               | Text          | Indicates whether the attendance session is not started, active, or finalized.                                                         |
+| **Configuration**           |               | **Configurable attendance parameters**                                                                                                                               |
+| QRRefreshSeconds            | Number        | Number of seconds between QR code refreshes; also the validity window of each QR code.                                                                               |
+| PINRefreshSeconds           | Number        | Number of seconds between backup PIN refreshes.                                                                                                                      |
+| CampusBoundary              | Text          | Defined campus area boundary used as a reference for attendance location evidence.                                                                                   |
+| **AttendanceRecord**        |               | **Attendance result and check-in evidence for one student in one study session (one row per `{StudentId, SessionId}`)**                                               |
+| AttendanceRecordId          | Text          | Unique identifier for the attendance record.                                                                                                                         |
+| StudentId                   | Text          | Referencing the student.                                                                                                                                             |
+| SessionId                   | Text          | Referencing the study session.                                                                                                                                       |
+| CheckInMethod               | Text          | Student check-in method that produced the result: `QR` or `PIN` (nullable when the result comes from absent assignment or manual adjustment).                         |
+| SubmittedAt                 | Date/Time     | Timestamp when the accepted check-in evidence was submitted (nullable when no check-in was accepted).                                                                 |
+| SubmittedLatitude           | Decimal       | Latitude submitted by the student's device, when available (nullable; captured for information only).                                                                |
+| SubmittedLongitude          | Decimal       | Longitude submitted by the student's device, when available (nullable; captured for information only).                                                               |
+| LocationAccuracyMeters      | Decimal       | Accuracy estimate reported with the submitted location, when available (nullable).                                                                                   |
+| DeviceIdentifier            | Text          | Device identifier captured as attendance evidence (nullable).                                                                                                        |
+| DeviceDisplayName           | Text          | Device display name used during check-in (nullable).                                                                                                                 |
+| FaceEvidenceReference       | Text          | Reference to face verification proof when fallback identity verification is used (nullable).                                                                          |
+| AttendanceStatus            | Text          | Attendance record status: `Not Yet`, `Present`, `Absent`, or `Late`. New records are created as `Not Yet` when the attendance session starts.                        |
+| ResultSource                | Text          | Source of the official attendance result: accepted `QR`/`PIN` check-in, `absent assignment`, or lecturer `manual adjustment`.                                         |
+| RejectionReason             | Text          | Reason of the most recent rejected check-in for this student and study session, such as `ExpiredCode` (nullable; location is never a rejection reason). |
+| FinalizedAt                 | Date/Time     | Timestamp when the result became part of the finalized attendance sheet.                                                                                             |
+
+### **II.1.3 Contextual Boundary Diagram**
 
 This view defines the boundary between the Anti-Fraud Attendance System (AFAS) and its external environment. AFAS is treated as a black box: the diagram shows only the system, external users, external systems, and external devices that interact with it. Internal analysis objects are intentionally excluded and are modeled in the object structuring and interaction diagrams.
 
@@ -166,7 +241,7 @@ AFAS --> UIS : request identity confirmation
 | Mobile Device Hardware `«external device»`     | AFAS <-> Mobile Device Hardware     | Provides identity verification result, current location, device identifier, and camera evidence when requested by the user flow.                             | UC02, UC04, BR-04, BR-05       |
 | University Identity System `«external system»` | AFAS <-> University Identity System | Confirms whether the requesting user has a valid university identity for AFAS access.                                                                       | UC01, BR-01                    |
 
-### **II.1.3 Object Structure Criteria**
+### **II.1.4 Object Structure Criteria**
 
 The object structure criteria below group analysis objects by COMET responsibilities and support traceability from the interaction diagrams. Objects are grouped by cohesive analysis responsibility rather than by one object per use case step, so the model avoids unnecessary fragmentation while preserving UC traceability.
 
@@ -237,7 +312,7 @@ The collaboration criteria for these objects are:
 | Configuration                                                | `«entity»`                  | Stores configurable attendance parameters required by maintainability requirements, including refresh timing values and the campus boundary reference used for location evidence context.                                                                                                                                                                                                                                                                                                                  | UC02, UC04, UC05, NF-06                                   |
 | AttendanceSession, AttendanceRecord                                    | `«entity»`                  | Store attendance session lifecycle, check-in evidence, and official result information.                                                                                                                                                                                                                                                                                                                                                             | UC02-UC08                                                 |
 
-### **II.1.4 Interface wireframes**
+### **II.1.5 Interface wireframes**
 
 The following analysis-level wireframes identify the user interface surfaces required by the use cases. They do not introduce implementation technology; they only show the business information and actions visible at the system boundary.
 
@@ -1165,7 +1240,7 @@ Late --> [*]
 | Static data structure is isolated from behavior views                                                                                                     | Pass       | Figure II-1 contains only entity classes and relationships; Figure II-2 contains only the contextual boundary; Section II.2 provides use-case-specific behavior diagrams                                                      |
 | Mobile device hardware is represented consistently across context and interaction views                                                                   | Pass       | Figure II-2 represents Mobile Device Hardware as an external device; Figure II-5, Figure II-6, Figure II-9, and Figure II-10 use MobileDeviceInterface as the internal device I/O boundary object |
 | Entity relationships distinguish lifecycle ownership where appropriate                                                                                    | Pass       | Figure II-1 uses composition for study-session-owned attendance lifecycle data and association for room location membership                                                                                            |
-| Interface wireframes are included for key actor workflows                                                                                                 | Pass       | Section II.1.4 covers Student, Lecturer, and Admin wireframes with UC trace notes                                                                                                                                             |
+| Interface wireframes are included for key actor workflows                                                                                                 | Pass       | Section II.1.5 covers Student, Lecturer, and Admin wireframes with UC trace notes                                                                                                                                             |
 | NF-06 configurable attendance parameters are represented in Analysis                                                                                      | Pass       | Configuration appears in Figure II-1 and is used by CheckInRules and AttendanceSessionRules                                                                                                                     |
 | QR/PIN check-in changes an initialized `NotYet` record to `Present` after identity and code checks; location is informational and never blocks check-in   | Pass       | Figures II-5, II-9, and II-24                                                                                                                                                                                                  |
 | Attendance records are initialized as `NotYet` when the attendance session starts                                                                          | Pass       | Figure II-11 and Figure II-24                                                                                                                                                                                                  |

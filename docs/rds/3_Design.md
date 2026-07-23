@@ -30,7 +30,7 @@ Design decisions are intentionally limited to what is required by the project st
 
 **Trade-off:** The backend modules deploy together, so independent scaling by business module is limited. This is accepted because the project scope values maintainability and traceability over independent service operations.
 
-**Traceability:** UC01-UC09; NF-01, NF-04, NF-06, NF-07; analysis controls from Section II.1.3.
+**Traceability:** UC01-UC09; NF-01, NF-04, NF-06, NF-07; analysis controls from Section II.1.4.
 
 ### **III.1.3 Technology Mapping**
 
