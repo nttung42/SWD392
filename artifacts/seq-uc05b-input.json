@@ -1,0 +1,28 @@
+{
+  "title": "UC05b - Finalize Attendance Session",
+  "participants": [
+    {"id": "lecturer", "label": "Lecturer", "actor": true},
+    {"id": "lecturerui", "label": "LecturerInterface"},
+    {"id": "sessioncontrol", "label": "AttendanceSessionControl"},
+    {"id": "sessionrules", "label": "AttendanceSessionRules"},
+    {"id": "classsecstudent", "label": "ClassSectionStudent"},
+    {"id": "attsession", "label": "AttendanceSession"},
+    {"id": "attrecord", "label": "AttendanceRecord"}
+  ],
+  "messages": [
+    {"note": "context: session is Active (started via UC05a); UC02/UC04 check-ins may already have changed some records from NotYet to Present; lecturer may be using UC06 to monitor", "over": "attsession"},
+    {"from": "lecturer", "to": "lecturerui", "label": "click Finalize Attendance"},
+    {"from": "lecturerui", "to": "sessioncontrol", "label": "request finalization"},
+    {"from": "sessioncontrol", "to": "sessionrules", "label": "stop accepting check-ins and validate finalization rules"},
+    {"from": "sessionrules", "to": "attsession", "label": "mark session stopped for new check-ins"},
+    {"from": "sessionrules", "to": "classsecstudent", "label": "read enrolled students"},
+    {"from": "classsecstudent", "to": "sessionrules", "label": "enrolled students", "return": true},
+    {"from": "sessionrules", "to": "attrecord", "label": "change remaining NotYet records to Absent"},
+    {"from": "attrecord", "to": "sessionrules", "label": "completed attendance list", "return": true},
+    {"from": "sessionrules", "to": "attrecord", "label": "mark results finalized"},
+    {"from": "sessionrules", "to": "attsession", "label": "mark session finalized"},
+    {"from": "sessionrules", "to": "sessioncontrol", "label": "attendance finalized", "return": true},
+    {"from": "sessioncontrol", "to": "lecturerui", "label": "attendance finalized", "return": true, "deactivate": true},
+    {"note": "opt: same-day manual edit needed -> UC07 lecturer manually edits one attendance record with reason on the scheduled session date", "over": "lecturerui"}
+  ]
+}

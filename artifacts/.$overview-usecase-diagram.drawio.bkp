@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" version="30.4.1">
+  <diagram name="Overview Use Case Diagram">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1560" pageHeight="560" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- System boundary -->
+        <mxCell id="boundary" value="Anti-Fraud Attendance System" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=center;fontStyle=1;fillColor=none;strokeColor=#2E86C1;fontColor=#2E86C1;spacingTop=14;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="200" y="0" width="1080" height="490" as="geometry" />
+        </mxCell>
+
+        <!-- Actors -->
+        <mxCell id="student" value="Student" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#F9F9F9;strokeColor=#2E86C1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="140" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="lecturer" value="Lecturer" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#F9F9F9;strokeColor=#2E86C1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="270" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="admin" value="Admin" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#F9F9F9;strokeColor=#2E86C1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="410" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uis" value="University Identity System&lt;br&gt;&lt;i&gt;«external system»&lt;/i&gt;" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#F9F9F9;strokeColor=#2E86C1;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="40" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="mdh" value="Mobile Device Hardware&lt;br&gt;&lt;i&gt;«external I/O device»&lt;/i&gt;" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#F9F9F9;strokeColor=#2E86C1;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="180" width="30" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Row 0: shared -->
+        <mxCell id="uc01" value="UC01: Authenticate User" style="ellipse;whiteSpace=wrap;html=1;fillColor=#AED6F1;strokeColor=#2E86C1;" vertex="1" parent="1">
+          <mxGeometry x="640" y="40" width="180" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Row 1: Student -->
+        <mxCell id="uc02" value="UC02: Check In via Dynamic QR Code" style="ellipse;whiteSpace=wrap;html=1;fillColor=#AED6F1;strokeColor=#2E86C1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="150" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="uc03" value="UC03: View Personal Attendance History" style="ellipse;whiteSpace=wrap;html=1;fillColor=#AED6F1;strokeColor=#2E86C1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="150" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04" value="UC04: Check In via PIN" style="ellipse;whiteSpace=wrap;html=1;fillColor=#AED6F1;strokeColor=#2E86C1;" vertex="1" parent="1">
+          <mxGeometry x="660" y="150" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Row 2: Lecturer -->
+        <mxCell id="uc05a" value="UC05a: Start Attendance Session" style="ellipse;whiteSpace=wrap;html=1;fillColor=#AED6F1;strokeColor=#2E86C1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="280" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05b" value="UC05b: Finalize Attendance Session" style="ellipse;whiteSpace=wrap;html=1;fillColor=#AED6F1;strokeColor=#2E86C1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="280" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="uc06" value="UC06: Monitor Attendance in Real Time" style="ellipse;whiteSpace=wrap;html=1;fillColor=#AED6F1;strokeColor=#2E86C1;" vertex="1" parent="1">
+          <mxGeometry x="620" y="280" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="uc07" value="UC07: Adjust Attendance Manually" style="ellipse;whiteSpace=wrap;html=1;fillColor=#AED6F1;strokeColor=#2E86C1;" vertex="1" parent="1">
+          <mxGeometry x="810" y="280" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="uc08" value="UC08: Export Attendance Report" style="ellipse;whiteSpace=wrap;html=1;fillColor=#AED6F1;strokeColor=#2E86C1;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="280" width="170" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Row 3: Admin -->
+        <mxCell id="uc09a" value="UC09a: Manage User Accounts" style="ellipse;whiteSpace=wrap;html=1;fillColor=#AED6F1;strokeColor=#2E86C1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="410" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09b" value="UC09b: Manage Academic Catalog" style="ellipse;whiteSpace=wrap;html=1;fillColor=#AED6F1;strokeColor=#2E86C1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="410" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09c" value="UC09c: Manage Class Roster" style="ellipse;whiteSpace=wrap;html=1;fillColor=#AED6F1;strokeColor=#2E86C1;" vertex="1" parent="1">
+          <mxGeometry x="660" y="410" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09d" value="UC09d: Schedule Class Sessions" style="ellipse;whiteSpace=wrap;html=1;fillColor=#AED6F1;strokeColor=#2E86C1;" vertex="1" parent="1">
+          <mxGeometry x="870" y="410" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Student associations -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#2E86C1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.2;entryDx=0;entryDy=0;" edge="1" parent="1" source="student" target="uc01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="180" y="155" />
+              <mxPoint x="180" y="55" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#2E86C1;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="student" target="uc02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="100" y="130" />
+              <mxPoint x="330" y="130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#2E86C1;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="student" target="uc03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="100" y="130" />
+              <mxPoint x="540" y="130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#2E86C1;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="student" target="uc04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="100" y="130" />
+              <mxPoint x="750" y="130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Lecturer associations -->
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#2E86C1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lecturer" target="uc01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="190" y="285" />
+              <mxPoint x="190" y="70" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#2E86C1;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="lecturer" target="uc05a">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="100" y="260" />
+              <mxPoint x="325" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#2E86C1;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="lecturer" target="uc05b">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="100" y="260" />
+              <mxPoint x="515" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#2E86C1;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="lecturer" target="uc06">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="100" y="260" />
+              <mxPoint x="705" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#2E86C1;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="lecturer" target="uc07">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="100" y="260" />
+              <mxPoint x="895" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#2E86C1;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="lecturer" target="uc08">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="100" y="260" />
+              <mxPoint x="1085" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Admin associations -->
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#2E86C1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.8;entryDx=0;entryDy=0;" edge="1" parent="1" source="admin" target="uc01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="200" y="425" />
+              <mxPoint x="200" y="85" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#2E86C1;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="admin" target="uc09a">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="100" y="390" />
+              <mxPoint x="330" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#2E86C1;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="admin" target="uc09b">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="100" y="390" />
+              <mxPoint x="540" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e14" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#2E86C1;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="admin" target="uc09c">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="100" y="390" />
+              <mxPoint x="750" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e15" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#2E86C1;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="admin" target="uc09d">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="100" y="390" />
+              <mxPoint x="960" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- External system associations -->
+        <mxCell id="e16" style="html=1;endArrow=open;endFill=1;strokeColor=#2E86C1;" edge="1" parent="1" source="uc01" target="uis">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e17" style="html=1;endArrow=open;endFill=1;strokeColor=#2E86C1;" edge="1" parent="1" source="uc02" target="mdh">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" style="html=1;endArrow=open;endFill=1;strokeColor=#2E86C1;" edge="1" parent="1" source="uc04" target="mdh">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
