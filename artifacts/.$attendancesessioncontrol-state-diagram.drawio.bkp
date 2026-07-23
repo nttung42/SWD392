@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" version="30.4.1">
+  <diagram name="AttendanceSessionControl State">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="380" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Initial state -->
+        <mxCell id="initial" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="160" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- NotStarted -->
+        <mxCell id="notstarted" value="&lt;b&gt;NotStarted&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="150" y="140" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Active -->
+        <mxCell id="active" value="&lt;b&gt;Active&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="570" y="140" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Finalized -->
+        <mxCell id="finalized" value="&lt;b&gt;Finalized&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="900" y="140" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Final state (ring + dot) -->
+        <mxCell id="finalouter" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="160" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="finalinner" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1177" y="167" width="16" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- initial -> NotStarted -->
+        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="initial" target="notstarted">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- NotStarted self-loop -->
+        <mxCell id="e2" value="startAttendance [outside scheduled window or active session already exists]" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="notstarted" target="notstarted">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="205" y="90" />
+              <mxPoint x="315" y="90" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- NotStarted -> Active -->
+        <mxCell id="e3" value="startAttendance [within scheduled window and no other active session]" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="notstarted" target="active">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="35" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Active self-loop -->
+        <mxCell id="e4" value="refreshQRCode / refreshPIN" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="active" target="active">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="615" y="90" />
+              <mxPoint x="705" y="90" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Active -> Finalized -->
+        <mxCell id="e5" value="finalizeAttendance" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="active" target="finalized">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Finalized -> final -->
+        <mxCell id="e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="finalized" target="finalouter">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

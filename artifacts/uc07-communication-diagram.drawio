@@ -1,0 +1,79 @@
+<mxfile host="Electron">
+  <diagram name="UC07 Communication Diagram" id="0">
+    <mxGraphModel dx="3835" dy="1294" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1660" pageHeight="660" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="lecturer" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;arcSize=8;" value="&lt;i&gt;&amp;laquo;external user&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Lecturer&lt;/b&gt;" vertex="1">
+          <mxGeometry height="70" width="180" x="80" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="lecturerui" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;arcSize=8;" value="&lt;i&gt;&amp;laquo;user interface&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;LecturerInterface&lt;/b&gt;" vertex="1">
+          <mxGeometry height="70" width="200" x="70" y="295" as="geometry" />
+        </mxCell>
+        <mxCell id="adjustcontrol" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;arcSize=8;" value="&lt;i&gt;&amp;laquo;coordinator&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;AttendanceCoordinator&lt;/b&gt;" vertex="1">
+          <mxGeometry height="70" width="220" x="60" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="sessionrules" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;arcSize=8;" value="&lt;i&gt;&amp;laquo;business logic&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;AttendanceSessionRules&lt;/b&gt;" vertex="1">
+          <mxGeometry height="70" width="220" x="60" y="630" as="geometry" />
+        </mxCell>
+        <mxCell id="session" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;arcSize=8;" value="&lt;i&gt;&amp;laquo;entity&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Session&lt;/b&gt;" vertex="1">
+          <mxGeometry height="70" width="200" x="-50" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="classsecstudent" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;arcSize=8;" value="&lt;i&gt;&amp;laquo;entity&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;ClassSectionStudent&lt;/b&gt;" vertex="1">
+          <mxGeometry height="70" width="200" x="210" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="attrecord" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;arcSize=8;" value="&lt;i&gt;&amp;laquo;entity&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;AttendanceRecord&lt;/b&gt;" vertex="1">
+          <mxGeometry height="70" width="200" x="470" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="lecturer" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;" target="lecturerui" value="1: select student and save manual edit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="lecturerui" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;" target="adjustcontrol" value="1.1: request context / submit adjustment">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="120" y="460" />
+              <mxPoint x="120" y="460" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="adjustcontrol" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;" target="lecturerui" value="2: show success, missing reason, or rejected adjustment">
+          <mxGeometry relative="1" x="0.44" y="-100" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="240" y="430" />
+              <mxPoint x="240" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="adjustcontrol" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;" target="sessionrules" value="1.1.1: verify lecturer permission, session date, and roster entry">
+          <mxGeometry relative="1" x="-0.0732" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="sessionrules" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;" target="session" value="1.1.1.1: read scheduled date and assigned lecturer">
+          <mxGeometry relative="1" x="-0.5" y="-100" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="80" y="710" />
+              <mxPoint x="80" y="710" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="sessionrules" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;" target="classsecstudent" value="1.1.1.2: verify roster entry">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="sessionrules" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;" target="attrecord" value="1.1.1.3: read status and evidence, then update official status with reason">
+          <mxGeometry relative="1" x="-0.0952" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="570" y="690" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

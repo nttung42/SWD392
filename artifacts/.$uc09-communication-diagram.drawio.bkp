@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" version="30.4.1">
+  <diagram name="UC09 Communication Diagram">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1560" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Admin «external user» -->
+        <mxCell id="admin" value="&lt;i&gt;&amp;laquo;external user&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Admin&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F9F9F9;strokeColor=#2E86C1;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="60" y="140" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- AdminInterface «user interface» -->
+        <mxCell id="adminui" value="&lt;i&gt;&amp;laquo;user interface&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;AdminInterface&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="340" y="140" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- CatalogManagementCoordinator «coordinator» -->
+        <mxCell id="catalogcontrol" value="&lt;i&gt;&amp;laquo;coordinator&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;CatalogManagementCoordinator&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="660" y="140" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- CatalogManagementRules «business logic» -->
+        <mxCell id="catalogrules" value="&lt;i&gt;&amp;laquo;business logic&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;CatalogManagementRules&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="140" width="240" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- 7 entities fanned out below -->
+        <mxCell id="account" value="&lt;i&gt;&amp;laquo;entity&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Account&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="60" y="400" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="student" value="&lt;i&gt;&amp;laquo;entity&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Student&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="260" y="400" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="lecturerentity" value="&lt;i&gt;&amp;laquo;entity&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Lecturer&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="460" y="400" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="subject" value="&lt;i&gt;&amp;laquo;entity&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Subject&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="660" y="400" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="classsection" value="&lt;i&gt;&amp;laquo;entity&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;ClassSection&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="860" y="400" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="classsecstudent" value="&lt;i&gt;&amp;laquo;entity&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;ClassSectionStudent&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="400" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="session" value="&lt;i&gt;&amp;laquo;entity&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Session&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="400" width="170" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- 1 Admin -> AdminInterface -->
+        <mxCell id="e1" value="1: manage catalog" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="admin" target="adminui">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 1.1 AdminInterface -> CatalogManagementCoordinator (bow above the row) -->
+        <mxCell id="e2" value="1.1: view/add/edit/delete/import records" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.7;exitY=0;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="adminui" target="catalogcontrol">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="618" y="90" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 2 CatalogManagementCoordinator -> AdminInterface (bow below the row) -->
+        <mxCell id="e3" value="2: return updated grid or validation error" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.7;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogcontrol" target="adminui">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="618" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 1.1.1 CatalogManagementCoordinator -> CatalogManagementRules -->
+        <mxCell id="e4" value="1.1.1: retrieve, validate, and record catalog changes" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogcontrol" target="catalogrules">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="-45" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 1.1.1.1 -> Account -->
+        <mxCell id="e5" value="1.1.1.1: read or record account change" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.05;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogrules" target="account">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="-45" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 1.1.1.2 -> Student -->
+        <mxCell id="e6" value="1.1.1.2: read or record student change" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogrules" target="student">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="-15" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 1.1.1.3 -> Lecturer -->
+        <mxCell id="e7" value="1.1.1.3: read or record lecturer change" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.35;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogrules" target="lecturerentity">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="15" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 1.1.1.4 -> Subject -->
+        <mxCell id="e8" value="1.1.1.4: read or record subject change" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogrules" target="subject">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="45" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 1.1.1.5 -> ClassSection -->
+        <mxCell id="e9" value="1.1.1.5: read or record class section change" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.65;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogrules" target="classsection">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="-45" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 1.1.1.6 -> ClassSectionStudent -->
+        <mxCell id="e10" value="1.1.1.6: read or record roster change" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.8;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogrules" target="classsecstudent">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="-15" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 1.1.1.7 -> Session -->
+        <mxCell id="e11" value="1.1.1.7: read or record scheduled session change" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.95;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="catalogrules" target="session">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="15" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend" value="Legend" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;verticalAlign=top;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="540" width="220" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=0;html=1;fillColor=#F9F9F9;strokeColor=#2E86C1;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="28" width="30" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1t" value="External user" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="26" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=0;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="52" width="30" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2t" value="User interface (boundary)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="50" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3" value="" style="rounded=0;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="76" width="30" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3t" value="Coordinator (control)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="74" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4" value="" style="rounded=0;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="100" width="30" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4t" value="Business logic" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="98" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5" value="" style="rounded=0;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="124" width="30" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5t" value="Entity" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="122" width="160" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

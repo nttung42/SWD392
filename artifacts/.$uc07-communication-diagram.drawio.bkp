@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" version="30.4.1">
+  <diagram name="UC07 Communication Diagram">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1660" pageHeight="660" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Lecturer «external user» -->
+        <mxCell id="lecturer" value="&lt;i&gt;&amp;laquo;external user&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Lecturer&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#F9F9F9;strokeColor=#2E86C1;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="80" y="140" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- LecturerInterface «user interface» -->
+        <mxCell id="lecturerui" value="&lt;i&gt;&amp;laquo;user interface&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;LecturerInterface&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="410" y="140" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- AttendanceCoordinator «coordinator» -->
+        <mxCell id="adjustcontrol" value="&lt;i&gt;&amp;laquo;coordinator&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;AttendanceCoordinator&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="760" y="140" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- AttendanceSessionRules «business logic» -->
+        <mxCell id="sessionrules" value="&lt;i&gt;&amp;laquo;business logic&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;AttendanceSessionRules&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="140" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Session «entity» -->
+        <mxCell id="session" value="&lt;i&gt;&amp;laquo;entity&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Session&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="900" y="380" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ClassSectionStudent «entity» -->
+        <mxCell id="classsecstudent" value="&lt;i&gt;&amp;laquo;entity&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;ClassSectionStudent&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="380" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- AttendanceRecord «entity» -->
+        <mxCell id="attrecord" value="&lt;i&gt;&amp;laquo;entity&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;AttendanceRecord&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="380" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- 1 Lecturer -> LecturerInterface -->
+        <mxCell id="e1" value="1: select student and save manual edit" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lecturer" target="lecturerui">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 1.1 LecturerInterface -> AttendanceCoordinator (bow above the row) -->
+        <mxCell id="e2" value="1.1: request context / submit adjustment" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.7;exitY=0;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="lecturerui" target="adjustcontrol">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="688" y="90" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 2 AttendanceCoordinator -> LecturerInterface (bow below the row) -->
+        <mxCell id="e3" value="2: show success, missing reason, or rejected adjustment" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.7;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="adjustcontrol" target="lecturerui">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="688" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 1.1.1 AttendanceCoordinator -> AttendanceSessionRules -->
+        <mxCell id="e4" value="1.1.1: verify lecturer permission, session date, and roster entry" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="adjustcontrol" target="sessionrules">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="-45" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 1.1.1.1 AttendanceSessionRules -> Session -->
+        <mxCell id="e5" value="1.1.1.1: read scheduled date and assigned lecturer" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="sessionrules" target="session">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="-35" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 1.1.1.2 AttendanceSessionRules -> ClassSectionStudent -->
+        <mxCell id="e6" value="1.1.1.2: verify roster entry" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="sessionrules" target="classsecstudent">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="0" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 1.1.1.3 AttendanceSessionRules -> AttendanceRecord -->
+        <mxCell id="e7" value="1.1.1.3: read status and evidence, then update official status with reason" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E86C1;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.8;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="sessionrules" target="attrecord">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="35" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend" value="Legend" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;verticalAlign=top;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="490" width="220" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=0;html=1;fillColor=#F9F9F9;strokeColor=#2E86C1;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="28" width="30" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1t" value="External user" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="26" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=0;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="52" width="30" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2t" value="User interface (boundary)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="50" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3" value="" style="rounded=0;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="76" width="30" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3t" value="Coordinator (control)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="74" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4" value="" style="rounded=0;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="100" width="30" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4t" value="Business logic" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="98" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5" value="" style="rounded=0;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="124" width="30" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5t" value="Entity" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="122" width="160" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

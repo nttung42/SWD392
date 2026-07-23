@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" version="30.4.1">
+  <diagram name="UC09c Communication Diagram">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="500" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="admin" value="&lt;i&gt;&amp;laquo;external user&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Admin&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="80" y="140" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="adminui" value="&lt;i&gt;&amp;laquo;user interface&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;AdminInterface&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="410" y="140" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rostercontrol" value="&lt;i&gt;&amp;laquo;coordinator&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;ClassRosterCoordinator&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="760" y="140" width="240" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rosterrules" value="&lt;i&gt;&amp;laquo;business logic&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;ClassRosterRules&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="140" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="classsecstudent" value="&lt;i&gt;&amp;laquo;entity&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;ClassSectionStudent&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="380" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="student" value="&lt;i&gt;&amp;laquo;entity&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Student&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="380" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" value="1: manage class roster" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="admin" target="adminui">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e2" value="1.1: view/enroll/remove/import roster entries" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.7;exitY=0;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="adminui" target="rostercontrol">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="688" y="90" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e3" value="2: return updated roster or validation error" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.7;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="rostercontrol" target="adminui">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="688" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e4" value="1.1.1: retrieve, validate, and record roster changes" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="rostercontrol" target="rosterrules">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="-45" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e5" value="1.1.1.1: read or record roster change" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rosterrules" target="classsecstudent">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="-20" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e6" value="1.1.1.2: verify referenced student" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.7;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rosterrules" target="student">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="20" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
