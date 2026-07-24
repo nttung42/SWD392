@@ -1,0 +1,84 @@
+<mxfile host="Electron">
+  <diagram name="UC09d Communication Diagram" id="0">
+    <mxGraphModel dx="4231" dy="1529" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1660" pageHeight="560" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="admin" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;arcSize=8;" value="&lt;i&gt;&amp;laquo;external user&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Admin&lt;/b&gt;" vertex="1">
+          <mxGeometry height="70" width="180" x="80" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="adminui" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;arcSize=8;" value="&lt;i&gt;&amp;laquo;user interface&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;AdminInterface&lt;/b&gt;" vertex="1">
+          <mxGeometry height="70" width="200" x="70" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="schedulecontrol" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;arcSize=8;" value="&lt;i&gt;&amp;laquo;coordinator&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;SessionSchedulingCoordinator&lt;/b&gt;" vertex="1">
+          <mxGeometry height="70" width="260" x="30" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="schedulerules" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;arcSize=8;" value="&lt;i&gt;&amp;laquo;business logic&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;SessionSchedulingRules&lt;/b&gt;" vertex="1">
+          <mxGeometry height="70" width="240" x="40" y="630" as="geometry" />
+        </mxCell>
+        <mxCell id="session" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;arcSize=8;" value="&lt;i&gt;&amp;laquo;entity&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Session&lt;/b&gt;" vertex="1">
+          <mxGeometry height="70" width="200" x="-100" y="830" as="geometry" />
+        </mxCell>
+        <mxCell id="room" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;arcSize=8;" value="&lt;i&gt;&amp;laquo;entity&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Room&lt;/b&gt;" vertex="1">
+          <mxGeometry height="70" width="200" x="120" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="classsection" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;arcSize=8;" value="&lt;i&gt;&amp;laquo;entity&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;ClassSection&lt;/b&gt;" vertex="1">
+          <mxGeometry height="70" width="200" x="370" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="admin" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;" target="adminui" value="1: schedule class sessions">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="adminui" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;" target="schedulecontrol" value="1.1: view/add/edit/delete/import sessions and rooms">
+          <mxGeometry relative="1" x="-0.1111" y="-20" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="120" y="480" />
+              <mxPoint x="120" y="480" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="schedulecontrol" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;" target="adminui" value="2: return updated grid or validation error">
+          <mxGeometry relative="1" x="-0.5556" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="240" y="480" />
+              <mxPoint x="240" y="480" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="schedulecontrol" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;" target="schedulerules" value="1.1.1: retrieve, validate, and record schedule changes">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="schedulerules" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;" target="session" value="1.1.1.1: read or record scheduled session change">
+          <mxGeometry relative="1" x="0.0005" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="80" y="740.05" />
+              <mxPoint x="10" y="740.05" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="schedulerules" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;" target="room" value="1.1.1.2: read or record room change">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="160" y="770.05" />
+              <mxPoint x="220" y="770.05" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="schedulerules" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#000000;fontSize=10;labelBackgroundColor=#ffffff;" target="classsection" value="1.1.1.3: verify referenced class section">
+          <mxGeometry relative="1" x="-0.0053" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="232" y="730.05" />
+              <mxPoint x="470" y="730.05" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
