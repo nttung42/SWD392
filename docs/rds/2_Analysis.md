@@ -400,6 +400,7 @@ Sequence diagrams are kept to validate detailed main and alternative flows. Comm
 
 ```plantuml
 @startuml
+skinparam style strictuml
 autonumber
 actor "User\n«external user»" as User
 boundary "UserInterface\n«user interface»" as AccessUI
