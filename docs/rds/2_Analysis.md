@@ -1,6 +1,6 @@
 ## **II. Analysis models**
 
-This section realizes the AFAS requirements from Section I through COMET analysis objects. The source requirements are the 13 use cases (UC01-UC04, UC05a-UC05b, UC06-UC08, UC09a-UC09d) and business rules BR-01-BR-13 in [1_Requirement.md](1_Requirement.md). No solution-domain technical decisions are introduced in this phase.
+This section realizes the AFAS requirements from Section I through COMET analysis objects. The source requirements are the 13 use cases (UC01-UC04, UC05a-UC05b, UC06-UC08, UC09a-UC09d) and business rules BR-01-BR-15 in [1_Requirement.md](1_Requirement.md). No solution-domain technical decisions are introduced in this phase.
 
 ---
 
@@ -211,35 +211,48 @@ This view defines the boundary between the Anti-Fraud Attendance System (AFAS) a
 @startuml
 skinparam style strictuml
 hide circle
-
-class "Anti-Fraud Attendance System" as AFAS <<software system>>
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 80
+skinparam ranksep 70
+skinparam class {
+  BackgroundColor White
+  BorderColor Black
+  FontColor Black
+}
 
 class "Student" as Student <<external user>>
 class "Lecturer" as Lecturer <<external user>>
 class "Admin" as Admin <<external user>>
-class "Mobile Device Hardware" as MobileHardware <<external device>>
-class "University Identity System" as UIS <<external system>>
+class "Anti-Fraud Attendance System\n(AFAS)" as AFAS <<software system>>
+class "Mobile Device\nHardware" as MobileHardware <<external device>>
+class "University Identity\nSystem" as UIS <<external system>>
 
-Student --> AFAS : authenticate, check in, view history
-Lecturer --> AFAS : manage session, monitor, adjust, export
-Admin --> AFAS : manage catalog and room location
-AFAS --> MobileHardware : request identity, location, device, and camera evidence
-AFAS --> UIS : request identity confirmation
+Student "1" -right- "1" AFAS : Communicates with >
+Lecturer "1" -right- "1" AFAS : Communicates with >
+Admin "1" -right- "1" AFAS : Communicates with >
+AFAS "1" -right- "1" MobileHardware : Communicates with >
+AFAS "1" -down- "1" UIS : Communicates with >
+
+Student -[hidden]down- Lecturer
+Lecturer -[hidden]down- Admin
 @enduml
 ```
 
 **Boundary Communication Description:**
 
-| **External participant**                       | **Direction**                       | **Boundary communication**                                                                                                                                  | **Trace source**               |
+| **External participant**                       | **Direction**                       | **Boundary data**                                                                                                                    | **Trace source**               |
 | :--------------------------------------------- | :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------- |
-| Student `«external user»`                      | Student -> AFAS                     | Sends authentication requests, QR/PIN check-in evidence, and attendance history requests.                                                                   | UC01, UC02, UC03, UC04         |
-| Student `«external user»`                      | AFAS -> Student                     | Returns access result, check-in acceptance or rejection, and personal attendance history.                                                                   | UC01, UC02, UC03, UC04         |
-| Lecturer `«external user»`                     | Lecturer -> AFAS                    | Sends session management actions, live monitoring requests, manual adjustment decisions, and report export requests.                                        | UC01, UC05a, UC05b, UC06, UC07, UC08   |
-| Lecturer `«external user»`                     | AFAS -> Lecturer                    | Returns assigned sessions, attendance session status, live attendance progress, adjustment result, and finalized report content.                            | UC05a, UC05b, UC06, UC07, UC08         |
-| Admin `«external user»`                        | Admin -> AFAS                       | Sends catalog management actions.                                                                                                                           | UC01, UC09a, UC09b, UC09c, UC09d                     |
-| Admin `«external user»`                        | AFAS -> Admin                       | Returns catalog validation results.                                                                                                                         | UC09a, UC09b, UC09c, UC09d                          |
-| Mobile Device Hardware `«external device»`     | AFAS <-> Mobile Device Hardware     | Provides identity verification result, current location, device identifier, and camera evidence when requested by the user flow.                             | UC02, UC04, BR-04, BR-05       |
-| University Identity System `«external system»` | AFAS <-> University Identity System | Confirms whether the requesting user has a valid university identity for AFAS access.                                                                       | UC01, BR-01                    |
+| Student `«external user»`                      | Student -> AFAS                     | Authentication data; QR/PIN check-in evidence; attendance history query data.                                                      | UC01, UC02, UC03, UC04         |
+| Student `«external user»`                      | AFAS -> Student                     | Access result; check-in result; personal attendance history data.                                                                  | UC01, UC02, UC03, UC04         |
+| Lecturer `«external user»`                     | Lecturer -> AFAS                    | Session command data; monitor request data; adjustment data; report request data.                                                   | UC01, UC05a, UC05b, UC06, UC07, UC08   |
+| Lecturer `«external user»`                     | AFAS -> Lecturer                    | Assigned session data; attendance status data; monitor snapshot data; adjustment result data; report file data.                     | UC05a, UC05b, UC06, UC07, UC08         |
+| Admin `«external user»`                        | Admin -> AFAS                       | Account data; academic catalog data; roster data; schedule data; room data.                                                        | UC01, UC09a, UC09b, UC09c, UC09d                     |
+| Admin `«external user»`                        | AFAS -> Admin                       | Validation result data; catalog update result data.                                                                                | UC09a, UC09b, UC09c, UC09d                          |
+| Mobile Device Hardware `«external device»`     | AFAS -> Mobile Device Hardware      | Evidence request data.                                                                                                             | UC02, UC04, BR-04, BR-05       |
+| Mobile Device Hardware `«external device»`     | Mobile Device Hardware -> AFAS      | Identity evidence; location data; device data; camera evidence.                                                                    | UC02, UC04, BR-04, BR-05       |
+| University Identity System `«external system»` | AFAS -> University Identity System  | Identity verification data.                                                                                                        | UC01, BR-01                    |
+| University Identity System `«external system»` | University Identity System -> AFAS  | Identity confirmation result.                                                                                                      | UC01, BR-01                    |
 
 ### **II.1.4 Object Structure Criteria**
 
@@ -310,15 +323,15 @@ The collaboration criteria for these objects are:
 | AttendanceSessionControl                                               | `«state dependent control»` | Coordinates attendance session lifecycle transitions: not started, active, and finalized; delegates transition eligibility rules to attendance session policy logic.                                                                                                                                                                                                                                                             | UC05a, UC05b, BR-02, BR-08, BR-10, BR-12                   |
 | AccountManagementCoordinator                                           | `«coordinator»`             | Coordinates administrator account management flows (Student/Lecturer profiles, incl. batch import) and delegates evaluation to account validation logic.                                                                                                                                                                                                                                                                          | UC09a, BR-01, BR-11                                       |
 | AcademicCatalogCoordinator                                             | `«coordinator»`             | Coordinates administrator academic catalog flows (Subject, Class Section) and delegates evaluation to catalog validation logic.                                                                                                                                                                                                                                                                                                    | UC09b, BR-11                                              |
-| ClassRosterCoordinator                                                 | `«coordinator»`             | Coordinates administrator class roster enrollment/removal flows and delegates evaluation to roster validation logic.                                                                                                                                                                                                                                                                                                               | UC09c                                                      |
-| SessionSchedulingCoordinator                                           | `«coordinator»`             | Coordinates administrator scheduled-session and room catalog flows and delegates evaluation to scheduling validation logic.                                                                                                                                                                                                                                                                                                        | UC09d                                                      |
+| ClassRosterCoordinator                                                 | `«coordinator»`             | Coordinates administrator class roster enrollment/removal flows and delegates evaluation to roster validation logic.                                                                                                                                                                                                                                                                                                               | UC09c, BR-14                                               |
+| SessionSchedulingCoordinator                                           | `«coordinator»`             | Coordinates administrator scheduled-session and room catalog flows and delegates evaluation to scheduling validation logic.                                                                                                                                                                                                                                                                                                        | UC09d, BR-15                                               |
 | AuthenticationRules                                                  | `«business logic»`          | Encapsulates role-access rules by locating the AFAS role profile for a confirmed university identity and checking whether the requested role is allowed.                                                                                                                                                                                                                                                                           | UC01, UC03, BR-01                                         |
 | CheckInRules                                                         | `«business logic»`          | Encapsulates rules for a submitted student check-in by reading the required session, configuration, room, and attendance record facts, then checking QR/PIN validity, identity evidence, session match, and whether the student's record is still `NotYet` before changing it to `Present` using official system time. Submitted location coordinates are captured and stored for information only; they never affect acceptance and are not required.                                                                                | UC02, UC04, BR-02, BR-04, BR-12, NF-06      |
 | AttendanceSessionRules                                               | `«business logic»`          | Encapsulates attendance history, attendance session lifecycle, and lecturer-operation policies by reading the required schedule, lecturer, session, roster, check-in, configuration, and official attendance facts, then checking scheduled time window, assigned lecturer, active session uniqueness, QR/PIN refresh policy, `NotYet` record initialization, absent assignment, finalization, report eligibility, same-day edit eligibility, and manual edit reason requirements. | UC03, UC05a, UC05b, UC07, UC08, BR-02, BR-08, BR-10, BR-12, BR-13, NF-06 |
 | AccountManagementRules                                                 | `«business logic»`          | Encapsulates account rules by reading account/student/lecturer facts, then checking field validity and identifier uniqueness.                                                                                                                                                                                                                                                                                                      | UC09a, BR-01, BR-11                                       |
 | AcademicCatalogRules                                                   | `«business logic»`          | Encapsulates catalog rules by reading subject/class-section facts, then checking field validity, identifier uniqueness, and subject/lecturer reference existence.                                                                                                                                                                                                                                                                  | UC09b, BR-11                                              |
-| ClassRosterRules                                                       | `«business logic»`          | Encapsulates roster rules by reading class-section-student facts, then checking the student is not already enrolled in the class section.                                                                                                                                                                                                                                                                                         | UC09c                                                      |
-| SessionSchedulingRules                                                 | `«business logic»`          | Encapsulates scheduling rules by reading session/room facts, then checking field validity and class-section/room reference existence.                                                                                                                                                                                                                                                                                              | UC09d                                                      |
+| ClassRosterRules                                                       | `«business logic»`          | Encapsulates roster rules by checking student and class-section existence and preventing duplicate enrollment in the same class section.                                                                                                                                                                                                                                                                                          | UC09c, BR-14                                               |
+| SessionSchedulingRules                                                 | `«business logic»`          | Encapsulates scheduling rules by checking field validity, class-section and room existence, and that session start time is earlier than end time.                                                                                                                                                                                                                                                                                | UC09d, BR-15                                               |
 | Account, Student, Lecturer                                             | `«entity»`                  | Store AFAS role profile information linked to university identity.                                                                                                                                                                                                                                                                                                                                                                 | UC01 (read); UC09a (write)                                |
 | Subject, ClassSection                                                  | `«entity»`                  | Store academic catalog information (subjects and class sections).                                                                                                                                                                                                                                                                                                                                                                  | UC09b (write); read by UC03, UC05a, UC06, UC08            |
 | ClassSectionStudent                                                    | `«entity»`                  | Stores class section roster enrollment.                                                                                                                                                                                                                                                                                                                                                                                            | UC09c (write); read by UC03, UC05a, UC06, UC08            |
@@ -817,8 +830,8 @@ else activation allowed
   end
 
   ref over SessionControl, SessionRules
-    UC02 and UC04: students submit check-ins while the attendance session is active;
-    UC06: lecturer may monitor live progress; UC05b finalizes the session later
+    students submit check-in evidence while the attendance session is active;
+    lecturer may monitor live progress; finalization occurs later
   end ref
 end
 @enduml
@@ -869,8 +882,8 @@ participant "AttendanceSession\n«entity»" as AttendanceSession
 participant "AttendanceRecord\n«entity»" as AttendanceRecord
 
 ref over Lecturer, AttendanceSession
-  UC05a: attendance session is Active; UC02/UC04 check-ins may already have
-  changed some records from NotYet to Present; lecturer may be using UC06 to monitor
+  attendance session is Active; accepted check-ins may already have
+  changed some records from NotYet to Present; lecturer may be monitoring progress
 end ref
 
 Lecturer -> LecturerUI : click Finalize Attendance
@@ -888,7 +901,7 @@ SessionControl --> LecturerUI : attendance finalized
 
 opt same-day manual edit needed
   ref over LecturerUI, SessionControl, SessionRules
-    UC07: lecturer manually edits one attendance record with reason on the scheduled session date
+    lecturer manually edits one attendance record with reason on the scheduled session date
   end ref
 end
 @enduml
@@ -953,7 +966,7 @@ else session is active
   LecturerUI --> Lecturer : show live grid
 
   alt live updates available
-    loop attendanceResultChanged events from UC02 or UC04
+    loop attendanceResultChanged events from accepted check-ins
       MonitorControl -> SessionRules : get changed official attendance result
       SessionRules -> AttendanceRecord : read changed official result
       AttendanceRecord --> SessionRules : latest Present status
@@ -1368,9 +1381,10 @@ ScheduleControl --> AdminUI : searchable schedule grid
 AdminUI --> Admin : show add, edit, and delete actions
 Admin -> AdminUI : input session or room details and submit
 AdminUI -> ScheduleControl : submit schedule change
-ScheduleControl -> ScheduleRules : validate fields and references
+ScheduleControl -> ScheduleRules : validate fields, references, and session time range
 ScheduleRules -> ClassSection : check referenced class section exists
 ScheduleRules -> Room : check referenced room exists
+ScheduleRules -> Session : check start time is earlier than end time
 
 alt batch import selected
   Admin -> AdminUI : upload structured schedule data
@@ -1478,8 +1492,8 @@ Late --> [*]
 | UC08 Export Attendance Report            | Lecturer                                             | LecturerInterface, AttendanceCoordinator, AttendanceSessionRules, ClassSectionStudent, Session, AttendanceRecord                                                                                                       | Figure II-17, Figure II-18, Figure II-24                          | BR-08                                                                       |
 | UC09a Manage User Accounts               | Admin                                                | AdminInterface, AccountManagementCoordinator, AccountManagementRules, Account, Student, Lecturer                                                                                  | Figure II-19a, Figure II-20a                                        | BR-01, BR-11                                                                       |
 | UC09b Manage Academic Catalog            | Admin                                                | AdminInterface, AcademicCatalogCoordinator, AcademicCatalogRules, Subject, ClassSection, Lecturer                                                                                  | Figure II-19b, Figure II-20b                                        | BR-11                                                                       |
-| UC09c Manage Class Roster                | Admin                                                | AdminInterface, ClassRosterCoordinator, ClassRosterRules, ClassSectionStudent, Student                                                                                  | Figure II-19c, Figure II-20c                                        | None                                                                       |
-| UC09d Schedule Class Sessions            | Admin                                                | AdminInterface, SessionSchedulingCoordinator, SessionSchedulingRules, Session, Room, ClassSection                                                                                  | Figure II-19d, Figure II-20d                                        | None                                                                       |
+| UC09c Manage Class Roster                | Admin                                                | AdminInterface, ClassRosterCoordinator, ClassRosterRules, ClassSectionStudent, Student                                                                                  | Figure II-19c, Figure II-20c                                        | BR-14                                                                      |
+| UC09d Schedule Class Sessions            | Admin                                                | AdminInterface, SessionSchedulingCoordinator, SessionSchedulingRules, Session, Room, ClassSection                                                                                  | Figure II-19d, Figure II-20d                                        | BR-15                                                                      |
 | NF-06 Configurable attendance parameters | Student, Lecturer                                    | Configuration, CheckInRules, AttendanceSessionRules                                                                                                                                                                           | Figure II-1, Figure II-5, Figure II-9, Figure II-11a              | NF-06                                                                       |
 
 ---

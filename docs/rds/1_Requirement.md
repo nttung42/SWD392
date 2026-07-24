@@ -87,33 +87,48 @@ The system comprises three main portals: Student Mobile App, Lecturer Web Portal
 
 ## **I.3 System context**
 
-The system context diagram models the boundary between the Anti-Fraud Attendance System (AFAS) and the external actors or devices involved in the attendance process.
+The system context diagram shows the Anti-Fraud Attendance System (AFAS), its actors and external systems, and the data exchanged across the system boundary.
 
 ```plantuml
-@startuml System_Context_Class_Diagram
-skinparam ClassBackgroundColor #F9F9F9
-skinparam ClassBorderColor #2E86C1
+@startuml System_Context_Diagram
+top to bottom direction
+skinparam RectangleBackgroundColor #F9F9F9
+skinparam RectangleBorderColor #2E86C1
 skinparam ArrowColor #2E86C1
-skinparam ClassFontSize 12
+skinparam DefaultFontSize 12
+skinparam ArrowFontSize 11
+skinparam linetype ortho
+skinparam nodesep 180
+skinparam ranksep 140
 
-class "Anti-Fraud Attendance System" as Anti_Fraud_Attendance_System <<software system>>
+actor Student
+actor Lecturer
+actor Admin
+rectangle "Mobile Device Hardware" as MobileDeviceHardware
+rectangle "University Identity System" as UniversityIdentitySystem
+circle "Anti-Fraud\nAttendance System" as AFAS
 
-class Student <<external user>>
+Student -down-> AFAS : Attendance data
+AFAS -up-> Student : Attendance result
 
-class Lecturer <<external user>>
+Lecturer -right-> AFAS : Class and attendance data
+AFAS -left-> Lecturer : Attendance records
 
-class Admin <<external user>>
+AFAS -right-> Admin : System data
+Admin -left-> AFAS : Account and academic data
 
-class "Mobile Device Hardware" as MobileDeviceHardware <<external I/O device>>
+MobileDeviceHardware -up-> AFAS : Biometric and location data
+AFAS -down-> MobileDeviceHardware : Verification request
 
-class "University Identity System" as UniversityIdentitySystem <<external system>>
+UniversityIdentitySystem -up-> AFAS : Identity confirmation
+AFAS -down-> UniversityIdentitySystem : Identity data
 
-Student "1..*" --> "1" Anti_Fraud_Attendance_System : Interacts with >
-Lecturer "1..*" --> "1" Anti_Fraud_Attendance_System : Interacts with >
-Admin "1..*" --> "1" Anti_Fraud_Attendance_System : Interacts with >
-
-Anti_Fraud_Attendance_System "1" --> "1..*" MobileDeviceHardware : Communicates with >
-Anti_Fraud_Attendance_System "1" --> "1" UniversityIdentitySystem : Requests identity confirmation >
+Student -[hidden]down-> AFAS
+Lecturer -[hidden]right-> AFAS
+AFAS -[hidden]right-> Admin
+Lecturer -[hidden]down-> MobileDeviceHardware
+Admin -[hidden]down-> UniversityIdentitySystem
+MobileDeviceHardware -[hidden]right-> UniversityIdentitySystem
 @enduml
 ```
 
@@ -248,10 +263,10 @@ Below are the detailed descriptions for all **9 Use Cases** of the AFAS system:
 | **Description:**       | Student scans the active dynamic QR code on the projector screen and submits identity and device evidence, together with location when available, to record attendance. Location is captured for information only and is not required.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | **Trigger:**           | The student selects "Scan QR" from the dashboard.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | **Preconditions:**     | - Student is logged in (UC01).<br>- Dynamic QR session is active (UC05a).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| **Postconditions:**    | **POST-1 Success:** The student's attendance record for the study session changes from `Not Yet` to `Present`, and the lecturer screen is updated in real time.<br>**POST-2 Failure:** The check-in is rejected and its reason is retained on the student's attendance record for lecturer review, while the attendance status remains `Not Yet` unless another accepted check-in has already changed it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| **Normal Flow:**       | 1. Student taps "Scan QR Check-in" on the mobile app.<br>2. App prompts for student identity verification.<br>3. Student successfully completes identity verification.<br>4. App displays the camera view.<br>5. Student scans the active QR code on the screen.<br>6. App collects the student's current location and device identifier.<br>7. App submits the check-in evidence to the system.<br>8. System verifies that the scanned attendance code is active and matches the current attendance session. (See E8.1)<br>9. System records the submitted location for information only; this step never blocks or rejects the check-in.<br>10. System saves the accepted check-in evidence on the student's attendance record.<br>11. System registers the official attendance result as `Present` for the student's initialized `Not Yet` attendance record.<br>12. System updates the Lecturer portal immediately.                                                                                                                                                                                                                               |
-| **Alternative Flows:** | **A3.1 Identity verification unavailable:** If biometric verification is not supported by the device, the student captures a face selfie as fallback proof.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| **Exceptions:**        | **E8.1 Attendance code expired:** If the attendance code has expired, the system rejects the check-in and returns "QR expired". No valid attendance result is created. |
+| **Postconditions:**    | **POST-1 Success:** The student's attendance record for the study session changes from `Not Yet` to `Present`, the accepted attempt and evidence are recorded, and the lecturer screen is updated in real time.<br>**POST-2 Failure:** The rejected attempt and its reason are recorded for lecturer review, while the attendance status remains `Not Yet` unless another accepted check-in has already changed it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| **Normal Flow:**       | 1. Student selects "Scan QR Check-in".<br>2. App checks whether biometric verification is available on the device.<br>3. App requests biometric verification, and Student successfully completes it.<br>4. App opens the camera, and Student scans the displayed dynamic QR code.<br>5. App reads the attendance code and collects the device identifier and location, when available.<br>6. App submits the attendance code, biometric verification result, device identifier, and optional location to AFAS.<br>7. AFAS verifies that the attendance session is active, the QR code belongs to that session and has not expired, the student is enrolled in the session roster, and the attendance status is `Not Yet`. (See E7.1)<br>8. AFAS records the accepted attempt and submitted evidence, then atomically changes the attendance status from `Not Yet` to `Present`.<br>9. AFAS updates the Lecturer portal and returns a successful check-in result to the App.<br>10. App displays the successful check-in result. |
+| **Alternative Flows:** | **A2.1 Biometric verification unavailable:** If biometric verification is not supported or unavailable on the device, App requests a face selfie. Student captures the selfie as fallback proof, then the flow continues at step 4. |
+| **Exceptions:**        | **E3.1 Biometric verification failed or cancelled:** App displays the failure and stops the check-in. Selfie fallback is not used when an available biometric check fails or is cancelled.<br>**E4.1 Selfie not captured:** In A2.1, if Student cannot or does not capture the required selfie, App stops the check-in.<br>**E4.2 Camera or QR reading unavailable:** If the camera is unavailable, permission is denied, or the QR code cannot be read, App informs Student and offers PIN check-in through UC04.<br>**E6.1 Submission failed:** If the request cannot reach AFAS, App reports the submission failure and does not show a successful check-in result.<br>**E7.1 Check-in rejected:** If the attendance session is inactive or finalized, the QR code does not belong to the session or has expired, the student is not enrolled in the session roster, or attendance has already been recorded, AFAS records the rejected attempt and corresponding reason, returns that reason, and does not change the current attendance status. |
 | **Priority:**          | High                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | **Business Rules:**    | BR-02, BR-03, BR-04, BR-05, BR-12                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 
@@ -286,9 +301,9 @@ Below are the detailed descriptions for all **9 Use Cases** of the AFAS system:
 | **Trigger:**           | The student selects the "PIN Check-in" option on the App.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | **Preconditions:**     | - Student is logged in (UC01).<br>- Dynamic QR/PIN session is active (UC05a).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | **Postconditions:**    | **POST-1 Success:** The student's attendance record changes from `Not Yet` to `Present`, and the check-in evidence is recorded.<br>**POST-2 Failure:** The PIN check-in is rejected and its reason is retained on the student's attendance record for lecturer review when relevant, while the attendance status remains `Not Yet` unless another accepted check-in has already changed it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| **Normal Flow:**       | 1. Student selects "PIN Check-in" on the App.<br>2. App prompts for student identity verification.<br>3. Student successfully completes identity verification.<br>4. App displays an input screen with 6 digit slots.<br>5. Student types the active 6-digit PIN displayed on the projector screen.<br>6. App collects the student's current location and device identifier.<br>7. System verifies that the PIN code is active. (See E7.1)<br>8. System records the submitted location for information only; this step never blocks or rejects the check-in.<br>9. System saves the accepted check-in evidence on the student's attendance record.<br>10. System records the official attendance result as `Present` for the student's initialized `Not Yet` attendance record.                                                                                                                                                                                                                                                                                                                                           |
-| **Alternative Flows:** | **A3.1 Identity verification unavailable:** If biometric verification is not supported by the device, the student captures a face selfie as fallback proof.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| **Exceptions:**        | **E7.1 PIN Expired:** If the student enters a PIN that has expired, the system rejects it. No valid attendance result is created. |
+| **Normal Flow:**       | 1. Student selects "PIN Check-in".<br>2. App requests biometric verification.<br>3. Student successfully completes biometric verification.<br>4. App displays the PIN input screen.<br>5. Student enters the displayed 6-digit PIN.<br>6. App collects the device identifier and location, when available.<br>7. App submits the PIN and check-in evidence to AFAS.<br>8. AFAS verifies the active attendance session, PIN validity, student eligibility, and current attendance status. (See E8.1)<br>9. AFAS records the accepted evidence and changes the attendance status from `Not Yet` to `Present`.<br>10. AFAS updates the Lecturer portal and returns a successful check-in result to the App.<br>11. App displays the successful check-in result. |
+| **Alternative Flows:** | **A3.1 Biometric verification unavailable:** If biometric verification is not supported by the device, the student captures a face selfie as fallback proof, then the flow continues at step 4. |
+| **Exceptions:**        | **E8.1 PIN check-in invalid:** If the attendance session is inactive, the PIN has expired, the student is not eligible for the session, or attendance has already been recorded, AFAS rejects the check-in and returns the corresponding reason. No new attendance result is created. |
 | **Priority:**          | High                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | **Business Rules:**    | BR-02, BR-03, BR-04, BR-05, BR-07, BR-12                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
@@ -304,7 +319,7 @@ Below are the detailed descriptions for all **9 Use Cases** of the AFAS system:
 | **Trigger:**           | The lecturer selects a scheduled session and clicks "Start Attendance".                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | **Preconditions:**     | Lecturer is logged in (UC01) and currently within the scheduled session time window.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | **Postconditions:**    | **POST-1 Success:** The attendance session becomes `Active`, one `Not Yet` attendance record is created per enrolled student, and the dynamic QR/PIN codes begin refreshing.<br>**POST-2 Failure:** The attendance session is not started, and an error is displayed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| **Normal Flow:**       | 1. Lecturer navigates to "My Scheduled Classes" on Web Portal.<br>2. System displays assigned classes and scheduled sessions.<br>3. Lecturer selects the current session and clicks "Start Attendance".<br>4. System validates that the current time is within the session's scheduled window.<br>5. System marks the attendance session as active and creates one `Not Yet` attendance record for each enrolled student in the session roster.<br>6. System begins displaying a QR attendance code refreshed every 10 seconds and a PIN code refreshed every 30 seconds.<br>7. Web Portal displays the projector view with the dynamic QR, PIN, and attendance progress, ready to accept check-ins (UC02, UC04) and live monitoring (UC06). |
+| **Normal Flow:**       | 1. Lecturer navigates to "My Scheduled Classes" on Web Portal.<br>2. System displays assigned classes and scheduled sessions.<br>3. Lecturer selects the current session and clicks "Start Attendance".<br>4. System validates that the current time is within the session's scheduled window.<br>5. System marks the attendance session as active and creates one `Not Yet` attendance record for each enrolled student in the session roster.<br>6. System begins displaying a QR attendance code refreshed every 10 seconds and a PIN code refreshed every 30 seconds.<br>7. Web Portal displays the projector view with the dynamic QR code, PIN, and live attendance progress, ready to accept check-ins. |
 | **Alternative Flows:** | None.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | **Exceptions:**        | **E4.1 Outside scheduled hours:** If lecturer tries to start session outside the class time slot, system denies activation.<br>**E5.1 Session already active:** If the selected study session already has an active attendance session, system denies creating another active session.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | **Priority:**          | High                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
@@ -322,7 +337,7 @@ Below are the detailed descriptions for all **9 Use Cases** of the AFAS system:
 | **Trigger:**           | The lecturer clicks "Finalize Attendance" on an active attendance session.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | **Preconditions:**     | Lecturer is logged in (UC01), is assigned to the session, and the attendance session is currently `Active` (started via UC05a).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | **Postconditions:**    | **POST-1 Success:** Attendance result is finalized and ready for report export (UC08) or manual adjustment (UC07).<br>**POST-2 Failure:** The finalize action is not completed, and an error is displayed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| **Normal Flow:**       | 1. While the session is active, students submit check-ins through UC02 or UC04; accepted check-ins change the student's record from `Not Yet` to `Present`, and the lecturer may monitor live progress (UC06).<br>2. Lecturer clicks "Finalize Attendance".<br>3. System stops accepting new QR/PIN check-ins.<br>4. System changes all remaining `Not Yet` records to `Absent`.<br>5. System marks the attendance result as finalized and closes the projector view. |
+| **Normal Flow:**       | 1. Lecturer reviews the live attendance progress for the active session.<br>2. Students' accepted QR or PIN check-ins appear as `Present` while unchecked students remain `Not Yet`.<br>3. Lecturer clicks "Finalize Attendance".<br>4. System stops accepting new QR and PIN check-ins.<br>5. System changes all remaining `Not Yet` records to `Absent`.<br>6. System marks the attendance result as finalized and closes the projector view. |
 | **Alternative Flows:** | None. Manual edits to individual attendance records are handled by UC07 and are limited to the scheduled session date, regardless of whether the session has been finalized.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | **Exceptions:**        | None.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | **Priority:**          | High                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
@@ -340,7 +355,7 @@ Below are the detailed descriptions for all **9 Use Cases** of the AFAS system:
 | **Trigger:**           | The lecturer opens the live attendance monitor for an active attendance session.                                                                                                                                                                                                                                                                                                                                                                                                  |
 | **Preconditions:**     | Attendance session must be active.                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | **Postconditions:**    | Lecturer has real-time visualization of class attendance.                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| **Normal Flow:**       | 1. Lecturer opens the attendance monitor for the active session.<br>2. System displays a grid representing all students enrolled in the class section with `Not Yet` records.<br>3. As a student successfully submits a check-in through UC02 or UC04, System processes and validates it.<br>4. System updates the student's displayed attendance status from `Not Yet` to `Present`.<br>5. The lecturer's web interface changes the student's tile to green (`Present`).<br>6. Attendance count updates dynamically. |
+| **Normal Flow:**       | 1. Lecturer opens the attendance monitor for the active session.<br>2. System displays all enrolled students and their current attendance statuses.<br>3. System receives an accepted QR or PIN check-in.<br>4. System updates the student's displayed attendance status from `Not Yet` to `Present`.<br>5. Web Portal changes the student's tile to green (`Present`).<br>6. System updates the attendance count dynamically. |
 | **Alternative Flows:** | None.                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | **Exceptions:**        | **E5.1 Connection Interrupted:** If live updates are interrupted, Web Portal displays a warning and allows the lecturer to refresh the monitor.                                                                                                                                                                                                                                                                                                                                   |
 | **Priority:**          | High                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
@@ -430,11 +445,11 @@ Below are the detailed descriptions for all **9 Use Cases** of the AFAS system:
 | **Trigger:**           | Admin opens the roster tab of a class section.                                                                                                                                                                                                                  |
 | **Preconditions:**     | Admin is logged in (UC01). The class section (UC09b) and the target student (UC09a) already exist.                                                                                                                                                             |
 | **Postconditions:**    | The class section roster is updated; enrolled students become eligible for UC02, UC03, UC04, UC05a, UC06, and UC08 within that class section.                                                                                                                   |
-| **Normal Flow:**       | 1. Admin opens the roster tab for a class section.<br>2. System displays currently enrolled students with add/remove actions.<br>3. Admin selects a student to enroll and submits, or selects an enrolled student to remove.<br>4. System validates the enrollment and records the roster change. |
+| **Normal Flow:**       | 1. Admin opens the roster tab for a class section.<br>2. System displays currently enrolled students with add/remove actions.<br>3. Admin selects a student to enroll and submits, or selects an enrolled student to remove.<br>4. System validates the student, class section, and enrollment status, then records the roster change. |
 | **Alternative Flows:** | **A3.1 Batch Import:** Admin uploads a roster file listing student-to-class-section assignments. System parses the file, validates the entries, and imports the valid roster records.                                                                          |
-| **Exceptions:**        | **E4.1 Duplicate enrollment:** If the student is already enrolled in the class section, system rejects the change with "Student already enrolled".                                                                                                             |
+| **Exceptions:**        | **E4.1 Invalid roster entry:** If the student or class section does not exist, or the student is already enrolled in the class section, System rejects the change and returns the corresponding reason. |
 | **Priority:**          | Medium                                                                                                                                                                                                                                                           |
-| **Business Rules:**    | None beyond the composite primary key (ClassSectionId, StudentId), which prevents duplicate enrollment.                                                                                                                                                          |
+| **Business Rules:**    | BR-14 |
 
 ---
 
@@ -448,17 +463,17 @@ Below are the detailed descriptions for all **9 Use Cases** of the AFAS system:
 | **Trigger:**           | Admin clicks "Sessions" or "Rooms" in the Admin Portal menu.                                                                                                                                                                                                     |
 | **Preconditions:**     | Admin is logged in (UC01). For a Session, the referenced Class Section (UC09b) and Room must already exist.                                                                                                                                                     |
 | **Postconditions:**    | Session or Room records are updated; scheduled sessions become available for UC05a (Start Attendance Session).                                                                                                                                                  |
-| **Normal Flow:**       | 1. Admin opens the "Sessions" or "Rooms" menu.<br>2. System displays a grid with search/add/edit/delete actions.<br>3. Admin inputs session details (class section, room, date, start/end time) or room details (room code, name, latitude/longitude) and submits.<br>4. System validates the input and references, and records the change. |
+| **Normal Flow:**       | 1. Admin opens the "Sessions" or "Rooms" menu.<br>2. System displays a grid with search/add/edit/delete actions.<br>3. Admin inputs session details (class section, room, date, start/end time) or room details (room code, name, latitude/longitude) and submits.<br>4. System validates the input, references, and session time range, then records the change. |
 | **Alternative Flows:** | **A4.1 Batch Import:** Admin uploads a structured data file containing session or room records. System parses the file, validates the data, and imports the new records into the system.                                                                       |
-| **Exceptions:**        | **E5.1 Invalid reference:** If the referenced Class Section or Room does not exist, system rejects the change.                                                                                                                                                  |
+| **Exceptions:**        | **E4.1 Invalid session:** If the referenced class section or room does not exist, or the start time is not earlier than the end time, System rejects the change and returns the corresponding reason. |
 | **Priority:**          | Medium                                                                                                                                                                                                                                                           |
-| **Business Rules:**    | None currently defined; this use case fills a pre-existing gap where the `Room` and `Session` entities had data-dictionary fields but no owning use case.                                                                                                       |
+| **Business Rules:**    | BR-15 |
 
 ---
 
 ### **I.5.3 Activity diagrams**
 
-Below are the activity diagrams modeling the end-to-end attendance process and the key event flows of check-in, session management, and manual adjustment.
+The following activity diagram presents the happy-path, end-to-end attendance process across the related use cases. Detailed normal, alternative, and exception flows are specified in the corresponding use case descriptions.
 
 #### **Figure I-11: Overall activity diagram for attendance process**
 
@@ -473,261 +488,35 @@ skinparam ActivityFontSize 12
 skinparam swimlaneBorderColor #2E86C1
 skinparam swimlaneHeaderFontStyle bold
 
-|Admin|
-start
-:1. Maintain users, subjects,\nand class sections;
-
-|Lecturer|
-:2. Open assigned class session;
-:3. Start attendance session;
-
-|System|
-:4. Create Not Yet attendance records\nfor enrolled students;
-:5. Display dynamic QR code\nand backup PIN;
-
-|Student|
-:6. Scan QR code\nor enter PIN;
-:7. Complete biometric verification\nor provide face selfie proof;
-
-|System|
-:8. Check attendance code validity;
-:9. Record submitted location\n(informational, never rejects);
-
-if (Check-in accepted?) then ([Yes])
-  :10. Change attendance record\nfrom Not Yet to Present;
-  |Lecturer|
-  :11. Monitor live attendance status;
-else ([No])
-  |System|
-  :10a. Record latest rejection\nreason on attendance record;
-  |Lecturer|
-  :11a. Review rejection reason;
-endif
-
-|Lecturer|
-:12. Finalize attendance result;
-|System|
-:13. Change remaining Not Yet records\nto Absent and lock the finalized result;
-
-|Lecturer|
-if (Manual edit needed?) then ([Yes])
-  :14. Use UC07 to edit attendance\nwithin the session date;
-  |System|
-  :15. Save corrected status\nand adjustment reason;
-else ([No])
-endif
-|Lecturer|
-:16. Export attendance report;
-stop
-@enduml
-```
-
----
-
-#### **Figure I-12: Activity diagram for UC02 - Check In via Dynamic QR Code**
-
-```plantuml
-@startuml UC02_Activity_Swimlane
-skinparam ActivityBackgroundColor #AED6F1
-skinparam ActivityBorderColor #2E86C1
-skinparam ActivityDiamondBackgroundColor #AED6F1
-skinparam ActivityDiamondBorderColor #2E86C1
-skinparam ArrowColor #2E86C1
-skinparam ActivityFontSize 12
-skinparam swimlaneBorderColor #2E86C1
-skinparam swimlaneHeaderFontStyle bold
-
-|Student|
-start
-:1. Tap "Scan QR Check-in" button;
-
-|System|
-:2. Request student identity verification;
-
-|Student|
-:3. Perform identity verification;
-
-|System|
-if (Identity verified successfully?) then ([No / Fallback])
-  :A3.1 Prompt face selfie capture\nas fallback proof;
-  |Student|
-  :Capture face selfie;
-else ([Yes])
-endif
-
-|System|
-:4. Open camera for scanning;
-
-|Student|
-:5. Point camera at projector QR code;
-
-|System|
-:6. Read scanned attendance code;
-:7. Collect student's location,\ndevice evidence, and current time;
-:8. Submit check-in evidence to system;
-
-if (Is the QR attendance code active and valid?) then ([No])
-  :E8.1 Reject - QR code expired;
-  :Show expired session error alert;
-else ([Yes])
-  :9. Record submitted location\n(informational, never rejects);
-  :10. Save accepted check-in\non attendance record\nwith official system time;
-  :11. Change attendance record\nfrom Not Yet to Present;
-  :12. Update Lecturer Monitor;
-  :13. Display "Check-in Successful" message;
-endif
-
-stop
-@enduml
-```
-
----
-
-#### **Figure I-13: Activity diagram for UC05a/UC05b - Start and Finalize Attendance Session**
-
-*Note: this activity diagram models the combined lifecycle now split into UC05a (steps 1-9, up to the active check-in loop) and UC05b (steps 10-16, from "Finalize Attendance" onward).*
-
-```plantuml
-@startuml UC05_Activity_Swimlane
-skinparam ActivityBackgroundColor #AED6F1
-skinparam ActivityBorderColor #2E86C1
-skinparam ActivityDiamondBackgroundColor #AED6F1
-skinparam ActivityDiamondBorderColor #2E86C1
-skinparam ArrowColor #2E86C1
-skinparam ActivityFontSize 12
-skinparam swimlaneBorderColor #2E86C1
-skinparam swimlaneHeaderFontStyle bold
-
 |Lecturer|
 start
-:1. Navigate to assigned classes list;
-:2. Select class section and current scheduled session;
-:3. Click "Start Attendance" button;
+:Open assigned scheduled session;
+:Start attendance session;
 
 |System|
-if (Is the request within the scheduled class time window?) then ([No])
-  :E4.1 Reject - outside scheduled time window;
-  |Lecturer|
-  :View attendance session\ncannot be started;
-else ([Yes])
+:Activate attendance session;
+:Create Not Yet attendance records;
+:Display dynamic QR, backup PIN,\nand live attendance progress;
 
-  |System|
-  if (Is another attendance session already active?) then ([Yes])
-    :E5.1 Reject - session already active;
-    |Lecturer|
-    :View attendance session\ncannot be duplicated;
-  else ([No])
+|Student|
+:Check in via QR or PIN\nduring the active session;
 
-    |System|
-    :5. Activate the attendance session;
-    :6. Create Not Yet attendance records\nfor enrolled students;
-    :7. Start refreshing dynamic QR code\nand backup PIN;
-
-    |System|
-    :8. Display projector view (QR code + PIN + countdown);
-
-    |Lecturer|
-    :9. Project screen for students to scan;
-
-    repeat
-
-      |System|
-      :Refresh dynamic QR code (every 10s)\nand backup PIN (every 30s);
-
-      |System|
-      :Update displayed QR and PIN on the screen;
-      :Refresh live list of checked-in students;
-
-      |Lecturer|
-      :Monitor real-time class check-in progress;
-
-    repeat while (Continue receiving check-ins?) is ([Yes])
-    -> [Lecturer clicks Finalize Attendance];
-
-    |Lecturer|
-    :10. Click "Finalize Attendance";
-
-    |System|
-    :11. Stop accepting new QR/PIN check-ins;
-    :12. Change remaining Not Yet records\nto Absent;
-    :13. Mark attendance result as finalized;
-
-    |Lecturer|
-    if (Need manual edit?) then ([Yes])
-      :14. Use UC07 to edit attendance\nwithin the session date;
-      |System|
-      :15. Save corrected status\nand adjustment reason;
-    else ([No])
-    endif
-
-    |System|
-    :16. Close projector view and return to session dashboard;
-  endif
-endif
-
-stop
-@enduml
-```
-
----
-
-#### **Figure I-14: Activity diagram for UC07 - Adjust Attendance Manually**
-
-```plantuml
-@startuml UC07_Activity_Swimlane
-skinparam ActivityBackgroundColor #AED6F1
-skinparam ActivityBorderColor #2E86C1
-skinparam ActivityDiamondBackgroundColor #AED6F1
-skinparam ActivityDiamondBorderColor #2E86C1
-skinparam ArrowColor #2E86C1
-skinparam ActivityFontSize 12
-skinparam swimlaneBorderColor #2E86C1
-skinparam swimlaneHeaderFontStyle bold
+|System|
+:Validate and record\naccepted check-ins;
+:Change attendance statuses\nfrom Not Yet to Present;
+:Update live attendance progress;
 
 |Lecturer|
-start
-:1. Open attendance roster\nfor the scheduled session;
-:2. Select a student record;
-:3. Click "Edit Attendance";
+:Monitor attendance until\nready to finalize;
+:Finalize attendance session;
 
 |System|
-if (Is current date the scheduled\nsession date?) then ([No])
-  :E5.2 Reject manual edit;
-  |Lecturer|
-  :View outside-session-date message;
-else ([Yes])
-  |System|
-  if (Is lecturer assigned and\nstudent in roster?) then ([No])
-    :E5.3 Reject manual edit;
-    |Lecturer|
-    :View unauthorized or invalid roster message;
-  else ([Yes])
-    |System|
-    :4. Display current status,\nevidence summary, latest rejection reason,\nstatus choices, and reason field;
+:Stop accepting new check-ins;
+:Change remaining Not Yet records\nto Absent;
+:Mark attendance result as Finalized;
 
-    |Lecturer|
-    :5. Select corrected status\nand enter adjustment reason;
-    :6. Click "Save";
-
-    |System|
-    if (Is reason provided?) then ([No])
-      :E5.1 Reject save and request reason;
-      |Lecturer|
-      :Enter required reason;
-      :Click "Save";
-    else ([Yes])
-    endif
-
-    |System|
-    :7. Update official attendance status;
-    :8. Save adjustment reason;
-    :9. Refresh attendance roster;
-
-    |Lecturer|
-    :10. View updated status;
-  endif
-endif
-
+|Lecturer|
+:Export finalized attendance report;
 stop
 @enduml
 ```
@@ -751,6 +540,8 @@ The following business rules use stable IDs so that later Analysis, Design, and 
 | **BR-11** | Catalog identifiers, including student identifiers and class section identifiers, must be unique across the system.                                                                                                    |
 | **BR-12** | Time checks for QR validity and PIN validity use the official system time.                                                                                                                               |
 | **BR-13** | Manual attendance edits are allowed only on the scheduled session date, only by the assigned lecturer, and require a lecturer-provided reason.                                                                                |
+| **BR-14** | A class roster entry must reference an existing student and class section, and a student may be enrolled at most once in the same class section. |
+| **BR-15** | A scheduled session must reference an existing class section and room, and its start time must be earlier than its end time. |
 
 ---
 
@@ -766,83 +557,6 @@ The following business rules use stable IDs so that later Analysis, Design, and 
 | Real-time lecturer monitoring      | F08            | UC06             | NF-01                |
 | Manual adjustment and finalization | F07, F09       | UC05b, UC07       | BR-08, BR-10         |
 | Excel/spreadsheet export           | F10            | UC08             | BR-08                |
-| System catalog management          | F11            | UC09a-d            | BR-11                |
-
----
-
-## **I.8 Data Requirements**
-
-This section keeps only the data dictionary needed for Requirement Modeling. Entity class diagrams and object relationships belong to Analysis Modeling.
-
-### **Table I-10: Data Description (Data dictionary)**
-
-| **Name**                    | **Data Type** | **Description**                                                                                                                                                      |
-| :-------------------------- | :------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Account**                 |               | **AFAS user role profile data**                                                                                                                                      |
-| Id                          | Text          | Unique account identifier.                                                                                                                                           |
-| UniversityIdentityCode      | Text          | Identifier of the user's identity in the University Identity System.                                                                                                 |
-| Email                       | Text          | Registered FPT school email address received from or aligned with the university identity.                                                                           |
-| FullName                    | Text          | Full display name of the user.                                                                                                                                       |
-| Role                        | Text          | System access role. Must be one of: `Student`, `Lecturer`, `Admin`.                                                                                                  |
-| RegistrationDate            | Date/Time     | Date and time the account was registered.                                                                                                                            |
-| **Student**                 |               | **Student profile mapping**                                                                                                                                          |
-| StudentId                   | Text          | Unique student roll number (e.g. `SE170123`).                                                                                                                        |
-| AccountId                   | Text          | Links the student profile to their account.                                                                                                                          |
-| **Lecturer**                |               | **Lecturer profile mapping**                                                                                                                                         |
-| LecturerId                  | Text          | Assigned school lecturer ID (e.g. `HueCTM`).                                                                                                                         |
-| AccountId                   | Text          | Links the lecturer profile to their account.                                                                                                                         |
-| DepartmentName              | Text          | Faculty department name.                                                                                                                                             |
-| **Room**                    |               | **Classroom geo catalog**                                                                                                                                            |
-| RoomId                      | Text          | Physical classroom code (e.g., `AL-L402`).                                                                                                                           |
-| RoomName                    | Text          | Easy-to-read room display name.                                                                                                                                      |
-| Latitude                    | Decimal       | Classroom center point latitude, kept as reference location information.                                                                                             |
-| Longitude                   | Decimal       | Classroom center point longitude, kept as reference location information.                                                                                            |
-| **Subject**                 |               | **University subject catalog**                                                                                                                                       |
-| SubjectCode                 | Text          | Subject code identifier (e.g., `SWD392`).                                                                                                                            |
-| SubjectName                 | Text          | Detailed subject name.                                                                                                                                               |
-| Credits                     | Number        | Credit value of the course (must be greater than 0).                                                                                                                 |
-| **ClassSection**            |               | **Assigned course class section**                                                                                                                                    |
-| ClassSectionId              | Text          | Class section code (e.g., `SWD392_SU26_SE1701`).                                                                                                                     |
-| ClassSectionName            | Text          | Friendly class segment name.                                                                                                                                         |
-| SubjectCode                 | Text          | Reference subject code.                                                                                                                                              |
-| LecturerId                  | Text          | Lecturer assigned to teach.                                                                                                                                          |
-| Semester                    | Text          | Academic semester name.                                                                                                                                              |
-| **ClassSectionStudent**     |               | **Course class roster map**                                                                                                                                          |
-| ClassSectionId              | Text          | Reference class section ID.                                                                                                                                          |
-| StudentId                   | Text          | Enrolled student roll number.                                                                                                                                        |
-| **Session**                 |               | **Scheduled study session date/time**                                                                                                                                |
-| SessionId                   | Text          | Scheduled session unique ID.                                                                                                                                         |
-| ClassSectionId              | Text          | Belongs to class section code.                                                                                                                                       |
-| RoomId                      | Text          | Physical room location of the session.                                                                                                                               |
-| SessionDate                 | Date          | Scheduled calendar date.                                                                                                                                             |
-| StartTime                   | Time          | Scheduled class start hour.                                                                                                                                          |
-| EndTime                     | Time          | Scheduled class end hour.                                                                                                                                            |
-| **AttendanceSession**       |               | **Dynamic QR/PIN attendance session**                                                                                                                                |
-| SessionId                   | Text          | Ties the attendance session to a specific scheduled study session.                                                                                                   |
-| DynamicToken                | Text          | Current active attendance code represented in the QR for verification.                                                                                               |
-| QRRefreshedAt               | Date/Time     | Exact timestamp when the QR attendance code was last refreshed.                                                                                                      |
-| PINCode                     | Text          | 6-digit backup fallback attendance code.                                                                                                                             |
-| PINRefreshedAt              | Date/Time     | Exact timestamp when the PIN code was last refreshed.                                                                                                                |
-| SessionStatus               | Text          | Indicates whether the attendance session is not started, active, or finalized.                                                         |
-| **Configuration** |               | **Configurable attendance parameters**                                                                                                                               |
-| QRRefreshSeconds            | Number        | Number of seconds between QR code refreshes; also the validity window of each QR code.                                                                               |
-| PINRefreshSeconds           | Number        | Number of seconds between backup PIN refreshes.                                                                                                                      |
-| CampusBoundary              | Text          | Defined campus area boundary used as a reference for attendance location evidence.                                                                                   |
-| **AttendanceRecord**        |               | **Attendance result and check-in evidence for one student in one study session (one row per `{StudentId, SessionId}`)**                                               |
-| AttendanceRecordId          | Text          | Unique identifier for the attendance record.                                                                                                                         |
-| StudentId                   | Text          | Referencing the student.                                                                                                                                             |
-| SessionId                   | Text          | Referencing the study session.                                                                                                                                       |
-| CheckInMethod               | Text          | Student check-in method that produced the result: `QR` or `PIN` (nullable when the result comes from absent assignment or manual adjustment).                         |
-| SubmittedAt                 | Date/Time     | Timestamp when the accepted check-in evidence was submitted (nullable when no check-in was accepted).                                                                 |
-| SubmittedLatitude           | Decimal       | Latitude submitted by the student's device, when available (nullable; captured for information only).                                                                |
-| SubmittedLongitude          | Decimal       | Longitude submitted by the student's device, when available (nullable; captured for information only).                                                               |
-| LocationAccuracyMeters      | Decimal       | Accuracy estimate reported with the submitted location, when available (nullable).                                                                                   |
-| DeviceIdentifier            | Text          | Device identifier captured as attendance evidence (nullable).                                                                                                        |
-| DeviceDisplayName           | Text          | Device display name used during check-in (nullable).                                                                                                                 |
-| FaceEvidenceReference       | Text          | Reference to face verification proof when fallback identity verification is used (nullable).                                                                          |
-| AttendanceStatus            | Text          | Attendance record status: `Not Yet`, `Present`, `Absent`, or `Late`. New records are created as `Not Yet` when the attendance session starts.                        |
-| ResultSource                | Text          | Source of the official attendance result: accepted `QR`/`PIN` check-in, `absent assignment`, or lecturer `manual adjustment`.                                         |
-| RejectionReason             | Text          | Reason of the most recent rejected check-in for this student and study session, such as `ExpiredCode` (nullable; location is never a rejection reason). |
-| FinalizedAt                 | Date/Time     | Timestamp when the result became part of the finalized attendance sheet.                                                                                             |
-
----
+| System catalog management          | F11            | UC09a, UC09b     | BR-11                |
+| Class roster management            | F11            | UC09c            | BR-14                |
+| Class session scheduling           | F11            | UC09d            | BR-15                |
