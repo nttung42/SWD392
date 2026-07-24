@@ -61,107 +61,96 @@ The integrated communication diagram merges the communication diagrams from Phas
 ```plantuml
 @startuml
 skinparam style strictuml
+skinparam linetype ortho
+skinparam nodesep 90
+skinparam ranksep 95
+skinparam ArrowFontSize 10
+skinparam object {
+  BackgroundColor White
+  BorderColor Black
+  FontColor Black
+}
 
-object "Student\n«actor»" as Student
-object "Lecturer\n«actor»" as Lecturer
-object "Admin\n«actor»" as Admin
-object "Mobile Device Hardware\n«actor»" as MobileHardware
+top to bottom direction
+
+object "Student\n«external user»" as Student
+object "Lecturer\n«external user»" as Lecturer
+object "Admin\n«external user»" as Admin
+object "Mobile Device Hardware\n«external input device»" as MobileHardware
 object "University Identity System\n«external system»" as UIS
 
-object "Student Mobile Interface\n«user interaction»" as StudentUI
-object "Lecturer Web Interface\n«user interaction»" as LecturerUI
-object "Admin Web Interface\n«user interaction»" as AdminUI
-object "Mobile Device Sensor Interface\n«device I/O»" as MobileSensor
-object "University Identity System Interface\n«external system interface»" as UISInterface
+frame "AFAS System" as AFAS {
+  object "UniversityIdentityAdapter\n«external system wrapper»" as UniversityIdentityAdapter
+  object "StudentInterface\n«user interface»" as StudentInterface
+  object "LecturerInterface\n«user interface»" as LecturerInterface
+  object "AdminInterface\n«user interface»" as AdminInterface
+  object "MobileDeviceInterface\n«device I/O»" as MobileDeviceInterface
 
-object "Authentication Control\n«coordinator»" as AuthControl
-object "Check-in Control\n«coordinator»" as CheckInControl
-object "Session Control\n«state dependent control»" as SessionControl
-object "Attendance History Control\n«coordinator»" as HistoryControl
-object "Monitor Control\n«coordinator»" as MonitorControl
-object "Adjustment Control\n«coordinator»" as AdjustmentControl
-object "Report Control\n«coordinator»" as ReportControl
-object "Catalog Control\n«coordinator»" as CatalogControl
+  object "AuthenticationCoordinator\n«coordinator»" as AuthenticationCoordinator
+  object "AttendanceCoordinator\n«coordinator»" as AttendanceCoordinator
+  object "AttendanceSessionControl\n«state dependent control»" as AttendanceSessionControl
+  object "CatalogManagementCoordinator\n«coordinator»" as CatalogManagementCoordinator
 
-object "Authentication Rules\n«business logic»" as AuthRules
-object "Attendance Code Rules\n«business logic»" as CodeRules
-object "Identity Evidence Rules\n«business logic»" as IdentityRules
-object "Session Rules\n«business logic»" as SessionRules
-object "Attendance Status Calculation\n«business logic»" as StatusRules
-object "Report Eligibility Rules\n«business logic»" as ReportRules
-object "Catalog Uniqueness Rules\n«business logic»" as CatalogRules
+  object "AuthenticationRules\n«business logic»" as AuthenticationRules
+  object "CheckInRules\n«business logic»" as CheckInRules
+  object "AttendanceSessionRules\n«business logic»" as AttendanceSessionRules
+  object "CatalogManagementRules\n«business logic»" as CatalogManagementRules
 
-object "Account\n«entity»" as Account
-object "Student\n«entity»" as StudentEntity
-object "Lecturer\n«entity»" as LecturerEntity
-object "Subject\n«entity»" as Subject
-object "ClassSection\n«entity»" as ClassSection
-object "ClassSectionStudent\n«entity»" as ClassSectionStudent
-object "Session\n«entity»" as Session
-object "Room\n«entity»" as Room
-object "Configuration\n«entity»" as Configuration
-object "AttendanceSession\n«entity»" as AttendanceSession
-object "AttendanceRecord\n«entity»" as AttendanceRecord
-Student --> StudentUI : UC01, UC02, UC03, UC04
-Lecturer --> LecturerUI : UC01, UC05, UC06, UC07, UC08
-Admin --> AdminUI : UC01, UC09
-MobileHardware --> MobileSensor : UC02, UC04
-UIS --> UISInterface : UC01
+  object "Role Profile Records\n«entity»\nAccount\nStudent\nLecturer" as RoleRecords
+  object "Academic Catalog Records\n«entity»\nSubject\nClassSection\nClassSectionStudent\nSession\nRoom" as CatalogRecords
+  object "Attendance Records\n«entity»\nConfiguration\nAttendanceSession\nAttendanceRecord" as AttendanceRecords
 
-StudentUI --> AuthControl : UC01 request authentication
-LecturerUI --> AuthControl : UC01 request authentication
-AdminUI --> AuthControl : UC01 request authentication
-AuthControl --> UISInterface : UC01 confirm university identity
-UISInterface --> UIS : UC01 request identity confirmation
-AuthControl --> Account : UC01 read AFAS role profile
-AuthControl --> AuthRules : UC01 validate role access
+  UniversityIdentityAdapter -[hidden]right- LecturerInterface
+  LecturerInterface -[hidden]right- AdminInterface
+  StudentInterface -[hidden]down- MobileDeviceInterface
+  StudentInterface -[hidden]right- AuthenticationCoordinator
+  AuthenticationCoordinator -[hidden]right- AttendanceCoordinator
+  AttendanceCoordinator -[hidden]right- AttendanceSessionControl
+  AttendanceSessionControl -[hidden]right- CatalogManagementCoordinator
+  AuthenticationRules -[hidden]right- CheckInRules
+  CheckInRules -[hidden]right- AttendanceSessionRules
+  AttendanceSessionRules -[hidden]right- CatalogManagementRules
+  RoleRecords -[hidden]right- CatalogRecords
+  CatalogRecords -[hidden]right- AttendanceRecords
+}
 
-StudentUI --> CheckInControl : UC02/UC04 submit QR or PIN check-in
-CheckInControl --> MobileSensor : UC02/UC04 collect identity, location, and device evidence
-CheckInControl --> IdentityRules : UC02/UC04 validate local biometric result or selfie proof
-CheckInControl --> AttendanceSession : UC02/UC04 read active attendance session
-CheckInControl --> CodeRules : UC02/UC04 verify active code
-CodeRules --> Configuration : UC02/UC04 read refresh parameters
-CheckInControl --> Session : UC02/UC04 read class section and scheduled start time
-CheckInControl --> StatusRules : UC02/UC04 classify Present or Late from official time
-CheckInControl --> AttendanceRecord : UC02/UC04 save check-in evidence and set official result, or record rejection reason
-CheckInControl --> MonitorControl : UC02/UC04 attendanceResultChanged
+Student --> StudentInterface : student action
+Lecturer --> LecturerInterface : lecturer action
+Admin --> AdminInterface : admin action
+MobileHardware --> MobileDeviceInterface : device evidence
+UIS <-- UniversityIdentityAdapter : identity result
 
-StudentUI --> HistoryControl : UC03 request attendance history
-HistoryControl --> AuthRules : UC03 check access
-HistoryControl --> ClassSectionStudent : UC03 read enrolled classes
-HistoryControl --> AttendanceRecord : UC03 read official results
+StudentInterface --> AuthenticationCoordinator : login
+LecturerInterface --> AuthenticationCoordinator : login
+AdminInterface --> AuthenticationCoordinator : login
+AuthenticationCoordinator --> UniversityIdentityAdapter : verify identity
+AuthenticationCoordinator --> AuthenticationRules : authorize
+AuthenticationRules --> RoleRecords : profile
 
-LecturerUI --> SessionControl : UC05 start, finalize session
-SessionControl --> SessionRules : UC05 validate lifecycle
-SessionControl --> Session : UC05 read scheduled session
-SessionControl --> ClassSectionStudent : UC05 read roster
-SessionControl --> AttendanceSession : UC05 update session status and active code
-SessionControl --> Configuration : UC05 read refresh intervals
-SessionControl --> AttendanceRecord : UC05 assign Absent and finalize
+StudentInterface --> AttendanceCoordinator : attendance request
+AttendanceCoordinator --> MobileDeviceInterface : collect evidence
+AttendanceCoordinator --> CheckInRules : apply check-in rules
+CheckInRules --> AttendanceRecords : attendance data
+CheckInRules --> CatalogRecords : schedule data
+AttendanceCoordinator --> AuthenticationRules : access check
+AttendanceCoordinator --> CatalogRecords : roster data
+AttendanceCoordinator --> AttendanceRecords : result data
 
-LecturerUI --> MonitorControl : UC06 view live progress
-MonitorControl --> AttendanceSession : UC06 read session state
-MonitorControl --> ClassSectionStudent : UC06 read roster
-MonitorControl --> AttendanceRecord : UC06 read current official results
+LecturerInterface --> AttendanceSessionControl : session command
+AttendanceSessionControl --> AttendanceSessionRules : apply session rules
+AttendanceSessionRules --> CatalogRecords : session roster
+AttendanceSessionRules --> AttendanceRecords : session data
+AttendanceSessionControl --> AttendanceRecords : state update
 
-LecturerUI --> AdjustmentControl : UC07 adjust attendance status
-AdjustmentControl --> SessionRules : UC07 check assigned lecturer and scheduled session date
-AdjustmentControl --> AttendanceRecord : UC07 read evidence and update or create official result
+LecturerInterface --> AttendanceCoordinator : lecturer request
+AttendanceCoordinator --> AttendanceSessionRules : apply lecturer rules
 
-LecturerUI --> ReportControl : UC08 export finalized report
-ReportControl --> ReportRules : UC08 verify finalized results
-ReportControl --> ClassSectionStudent : UC08 read roster
-ReportControl --> Session : UC08 read sessions
-ReportControl --> AttendanceRecord : UC08 read official result matrix with modes and rejection reasons
-
-AdminUI --> CatalogControl : UC09 manage catalog
-CatalogControl --> CatalogRules : UC09 validate uniqueness
-CatalogControl --> Account : UC09 maintain accounts
-CatalogControl --> StudentEntity : UC09 maintain students
-CatalogControl --> LecturerEntity : UC09 maintain lecturers
-CatalogControl --> Subject : UC09 maintain subjects
-CatalogControl --> ClassSection : UC09 maintain class sections
+AdminInterface --> CatalogManagementCoordinator : catalog command
+CatalogManagementCoordinator --> CatalogManagementRules : apply catalog rules
+CatalogManagementRules --> RoleRecords : role IDs
+CatalogManagementRules --> CatalogRecords : catalog IDs
+CatalogManagementCoordinator --> RoleRecords : role data
+CatalogManagementCoordinator --> CatalogRecords : catalog data
 
 @enduml
 ```
@@ -170,228 +159,183 @@ CatalogControl --> ClassSection : UC09 maintain class sections
 
 | **Analysis Element**                                                        | **Design Element**                                                    | **Transformation Rule**                                                                                       | **Traceability** |
 | :-------------------------------------------------------------------------- | :-------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------ | :--------------- |
-| `Student Mobile Interface`, `Lecturer Web Interface`, `Admin Web Interface` | Client UI components and Presentation endpoints                       | Analysis interface objects become client screens and server-side boundary endpoints.                          | UC01-UC09        |
-| `University Identity System Interface`                                      | `UniversityIdentityAdapter` `«external system wrapper»`               | External identity confirmation is isolated from AFAS application and domain rules.                            | UC01, BR-01      |
-| `Mobile Device Sensor Interface`                                            | `MobileDeviceEvidenceAdapter` `«hardware wrapper»` on the client side | Hardware access is isolated behind a wrapper for biometric, camera, location, and device evidence collection. | UC02, UC04       |
-| `Authentication Control`, `Check-in Control`, `Session Control`, etc.       | Application use case services                                         | Coordinators become application services that orchestrate rules, entities, and wrappers.                      | UC01-UC09        |
+| `StudentInterface`, `LecturerInterface`, `AdminInterface`                   | Client UI components and Presentation endpoints                       | Analysis interface objects become client screens and server-side boundary endpoints.                          | UC01-UC09        |
+| `IdentitySystemProxy`                                                       | `UniversityIdentityAdapter` `«external system wrapper»`               | External identity confirmation is isolated from AFAS application and domain rules.                            | UC01, BR-01      |
+| `MobileDeviceInterface`                                                     | `MobileDeviceEvidenceAdapter` `«hardware wrapper»` on the client side | Hardware access is isolated behind a wrapper for biometric, camera, location, and device evidence collection. | UC02, UC04       |
+| `AuthenticationCoordinator`, `AttendanceCoordinator`, `AttendanceSessionControl`, `CatalogManagementCoordinator` | Application use case services                                         | Coordinators and state-dependent controls become application services that orchestrate rules, entities, and wrappers. | UC01-UC09        |
 | Business logic and algorithm objects                                        | Domain services and policy classes                                    | Rules become replaceable policy classes; captured location remains informational evidence and location comparison never gates attendance. | Section I.6      |
 | `«entity»` classes                                                          | Domain data abstraction classes plus database wrapper repositories    | Each persistent analysis entity maps to a domain class and repository interface/implementation.               | Section II.1.1   |
-| `Monitor Control`                                                           | Lecturer monitor polling endpoint and roster snapshot reader          | Lecturer screens poll the latest attendance snapshot every 5 seconds.                                      | UC06, NF-01      |
+| `AttendanceCoordinator`                                                     | Lecturer monitor polling endpoint and roster snapshot reader          | Lecturer screens poll the latest attendance snapshot every 5 seconds.                                      | UC06, NF-01      |
 
 ---
 
-## **III.3 Subsystem Structuring**
+## **III.3 Static View**
 
-Subsystem boundaries are derived from the integrated communication diagram using separation of concerns and interaction density. The backend remains one deployable system, but the internal subsystems are explicit.
+The static view is derived from the integrated communication diagram in Figure III-1. Analysis objects are grouped into aggregate subsystem classes by COMET subsystem structuring criteria: external boundary ownership, cohesive control responsibility, cohesive business-rule responsibility, shared persistent data ownership, interaction density, and isolation of technical adapters. This view hides internal classes and shows only subsystem-level structural associations, interface names, and multiplicities.
 
-#### **Figure III-2 Subsystem Diagram**
+### **III.3.1 Subsystem Structuring Criteria**
+
+| **Criterion** | **How it is applied to Figure III-1** | **Resulting Subsystems** |
+| :------------ | :------------------------------------ | :----------------------- |
+| External boundary ownership | Actor-facing objects are separated from internal coordination objects. | Student Client, Staff Web Client, Presentation Boundary, Device Evidence Access |
+| Control cohesion | Coordinators that own related attendance flows are grouped with their lifecycle and monitor responsibilities. | Attendance Management, Administrative Management |
+| Business-rule cohesion | Rule objects that make the same kind of domain decision are grouped with the subsystem that owns the related use cases. | Access and Profile Management, Attendance Management |
+| Data ownership and adapter isolation | Entity access and technical wrappers are isolated from user-facing and rule subsystems. | Persistence and Technical Adapters |
+| Interaction density | Objects that exchange frequent attendance request/reply messages are kept inside one aggregate subsystem; low-frequency report generation is separated. | Attendance Management, Reporting |
+| Traceability | Each subsystem retains the UC labels from the source communication diagrams. | UC01-UC09 coverage in Section III.3.2 |
+
+#### **Figure III-2 Static View - Subsystem Class Diagram**
 
 ```plantuml
 @startuml
 skinparam style strictuml
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam nodesep 80
+skinparam ranksep 90
+skinparam ArrowFontSize 10
+skinparam class {
+  BackgroundColor White
+  BorderColor Black
+  FontColor Black
+}
 
-package "Student Client\n«client subsystem»" as StudentClient
-package "Staff Web Client\n«client subsystem»" as StaffClient
-package "Device Evidence Access\n«input/output subsystem»" as DeviceIO
+left to right direction
 
-package "Presentation Boundary\n«user interaction subsystem»" as Presentation
-package "Access and Profile Management\n«service subsystem»" as Access
-package "Attendance Coordination\n«coordinator subsystem»" as AttendanceCoord
-package "Attendance Validation\n«service subsystem»" as Validation
-package "Session Lifecycle\n«control subsystem»" as SessionLife
-package "Monitoring and Polling\n«service subsystem»" as Monitoring
-package "Administrative Management\n«service subsystem»" as Administration
-package "Reporting\n«service subsystem»" as Reporting
-package "Persistence and Technical Adapters\n«service subsystem»" as Adapters
+class "Student Client\n«client» «subsystem»" as StudentClient
+class "Staff Web Client\n«client» «subsystem»" as StaffClient
+class "Device Evidence Access\n«input/output» «subsystem»" as DeviceIO
 
-StudentClient --> DeviceIO : synchronous with reply
-StudentClient --> Presentation : synchronous with reply
-StaffClient --> Presentation : synchronous with reply
-Presentation --> Access : synchronous with reply
-Presentation --> AttendanceCoord : synchronous with reply
-Presentation --> SessionLife : synchronous with reply
-Presentation --> Monitoring : periodic synchronous with reply
-Presentation --> Administration : synchronous with reply
-Presentation --> Reporting : synchronous with reply
-AttendanceCoord --> Validation : synchronous with reply
-AttendanceCoord --> Adapters : synchronous with reply
-SessionLife --> Adapters : synchronous with reply
-Monitoring --> Adapters : synchronous with reply
-Administration --> Adapters : synchronous with reply
-Reporting --> Adapters : synchronous with reply
-Access --> Adapters : synchronous with reply
+class "Presentation Boundary\n«user interaction» «subsystem»" as Presentation
+
+class "Access and Profile Management\n«service» «subsystem»" as Access
+class "Attendance Management\n«service» «subsystem»" as AttendanceMgmt
+class "Administrative Management\n«service» «subsystem»" as Administration
+class "Reporting\n«service» «subsystem»" as Reporting
+class "Persistence and Technical Adapters\n«service» «subsystem»" as Adapters
+
+StudentClient -[hidden]right- StaffClient
+StaffClient -[hidden]right- DeviceIO
+
+StaffClient -[hidden]down- Presentation
+
+Access -[hidden]right- AttendanceMgmt
+AttendanceMgmt -[hidden]right- Administration
+Administration -[hidden]right- Reporting
+
+Presentation -[hidden]down- AttendanceMgmt
+AttendanceMgmt -[hidden]down- Adapters
+
+StudentClient "0..*" -right- "1" DeviceIO
+StudentClient "0..*" -down- "1" Presentation
+StaffClient "0..*" -down- "1" Presentation
+
+Presentation "1" -down- "1" Access
+Presentation "1" -down- "1" AttendanceMgmt
+Presentation "1" -down- "1" Administration
+Presentation "1" -down- "1" Reporting
+
+AttendanceMgmt "1" -right- "1" Access
+
+Access "1" -down- "1" Adapters
+AttendanceMgmt "1" -down- "1" Adapters
+Administration "1" -down- "1" Adapters
+Reporting "1" -down- "1" Adapters
 @enduml
 ```
 
-### **III.3.1 Subsystem Responsibilities**
+Static HLD view: solid associations show structural subsystem dependencies. Multiplicities show how many subsystem instances participate in each association. Internal classes and message-level details are hidden here.
+
+### **III.3.2 Subsystem Responsibilities**
 
 | **Subsystem**                      | **Primary Stereotype**         | **Responsibility**                                                                                                        | **Traceability**                         |
 | :--------------------------------- | :----------------------------- | :------------------------------------------------------------------------------------------------------------------------ | :--------------------------------------- |
-| Student Client                     | `«client subsystem»`           | Student login, QR scan, PIN, history view, and evidence submission.                                                       | Student; UC01-UC04                       |
-| Staff Web Client                   | `«client subsystem»`           | Lecturer and admin screens for session, monitor, adjustment, reports, and catalog.                                        | Lecturer, Admin; UC01, UC05-UC09         |
-| Device Evidence Access             | `«input/output subsystem»`     | Access device biometric, camera/selfie, GPS, and device identifier.                                                       | Mobile Device Hardware; UC02, UC04       |
-| Presentation Boundary              | `«user interaction subsystem»` | Receives client requests, validates request shape, maps to application services, returns results.                         | UC01-UC09                                |
-| Access and Profile Management      | `«service subsystem»`          | University identity confirmation, role checks, and AFAS profile lookup.                                                   | UC01, BR-01                              |
-| Attendance Coordination            | `«coordinator subsystem»`      | Orchestrates QR/PIN check-in, evidence validation, attendance record upsert, and official result creation. | UC02, UC04                               |
-| Attendance Validation              | `«service subsystem»`          | Validates identity evidence and active QR/PIN code, and classifies Present/Late; captured location is stored as evidence only and never gates the result. | UC02, UC04, BR-02, BR-04, BR-05, BR-07, BR-12 |
-| Session Lifecycle                  | `«control subsystem»`          | Governs not-started, active, and finalized attendance-session states.                                     | UC05, BR-08, BR-10                       |
-| Monitoring and Polling             | `«service subsystem»`          | Serves near-real-time roster snapshots for staff polling every 5 seconds.                                                | UC06, NF-01                              |
-| Administrative Management          | `«service subsystem»`          | Maintains catalog configuration.                                                                                          | UC09                                     |
-| Reporting                          | `«service subsystem»`          | Generates finalized attendance reports.                                                                                   | UC08, BR-08                              |
-| Persistence and Technical Adapters | `«service subsystem»`          | Implements database, cache, report file, and hardware wrappers.                                                          | All UC; NF-01, NF-04, NF-06              |
+| Student Client                     | `«client» «subsystem»`           | Student login, QR scan, PIN, history view, and evidence submission.                                                       | Student; UC01-UC04                       |
+| Staff Web Client                   | `«client» «subsystem»`           | Lecturer and admin screens for session, monitor, adjustment, reports, and catalog.                                        | Lecturer, Admin; UC01, UC05-UC09         |
+| Device Evidence Access             | `«input/output» «subsystem»`     | Access device biometric, camera/selfie, GPS, and device identifier.                                                       | Mobile Device Hardware; UC02, UC04       |
+| Presentation Boundary              | `«user interaction» «subsystem»` | Receives client requests, validates request shape, maps to application services, returns results.                         | UC01-UC09                                |
+| Access and Profile Management      | `«service» «subsystem»`          | University identity confirmation, role checks, and AFAS profile lookup.                                                   | UC01, BR-01                              |
+| Attendance Management              | `«service» «subsystem»`          | Orchestrates QR/PIN check-in, attendance validation, session lifecycle, same-day manual adjustment, personal history, and live monitor snapshots. Captured location is stored as evidence only and never gates the result. | UC02-UC07, BR-02, BR-04, BR-05, BR-07, BR-08, BR-10, BR-12, BR-13, NF-01 |
+| Administrative Management          | `«service» «subsystem»`          | Maintains catalog configuration.                                                                                          | UC09                                     |
+| Reporting                          | `«service» «subsystem»`          | Generates finalized attendance reports.                                                                                   | UC08, BR-08                              |
+| Persistence and Technical Adapters | `«service» «subsystem»`          | Implements database, cache, report file, and hardware wrappers.                                                          | All UC; NF-01, NF-04, NF-06              |
 
 ---
 
-## **III.4 High-Level Design Views**
+## **III.4 Dynamic View**
 
-### **III.4.1 Static View**
+The dynamic view is produced after the static subsystem class diagram. It converts the subsystem boundaries from Figure III-2 into subsystem-level communication paths, while preserving the UC flow coverage from the Phase 2 communication diagrams.
 
-The static view shows the layered modular monolith and the major components inside each layer. Domain entities and rules do not depend on technical adapters.
-
-#### **Figure III-3 Static Architecture View**
+#### **Figure III-3 Dynamic View - Subsystem Communication Diagram**
 
 ```plantuml
 @startuml
 skinparam style strictuml
-skinparam componentStyle uml2
+skinparam linetype ortho
+left to right direction
 
-package "Client Layer" {
-  component "Student Client App" as StudentApp
-  component "Staff Web Portal" as StaffPortal
-  component "MobileDeviceEvidenceAdapter\n«hardware wrapper»" as DeviceAdapter
-}
+object "Student Client\n«client» «subsystem»" as StudentClient
+object "Staff Web Client\n«client» «subsystem»" as StaffClient
+object "Device Evidence Access\n«input/output» «subsystem»" as DeviceIO
+object "Presentation Boundary\n«user interaction» «subsystem»" as Presentation
+object "Access and Profile Management\n«service» «subsystem»" as Access
+object "Attendance Management\n«service» «subsystem»" as AttendanceMgmt
+object "Administrative Management\n«service» «subsystem»" as Administration
+object "Reporting\n«service» «subsystem»" as Reporting
+object "Persistence and Technical Adapters\n«service» «subsystem»" as Adapters
 
-package "Presentation Layer" {
-  component "AuthEndpoint" as AuthEndpoint
-  component "CheckInEndpoint" as CheckInEndpoint
-  component "SessionEndpoint" as SessionEndpoint
-  component "MonitorEndpoint" as MonitorEndpoint
-  component "AdminEndpoint" as AdminEndpoint
-  component "ReportEndpoint" as ReportEndpoint
-}
+StudentClient --> DeviceIO : 1.1 UC02/UC04 collect identity, location, device evidence
+DeviceIO --> StudentClient : 1.2 evidence result
+StudentClient --> Presentation : 1.3 UC01-UC04 send student request
+StaffClient --> Presentation : 2.1 UC01, UC05-UC09 send staff request
 
-package "Application Layer" {
-  component "AuthenticationService" as AuthenticationService
-  component "CheckInService" as CheckInService
-  component "SessionService" as SessionService
-  component "MonitorService" as MonitorService
-  component "AdjustmentService" as AdjustmentService
-  component "CatalogService" as CatalogService
-  component "ReportService" as ReportService
-}
+Presentation --> Access : 3.1 UC01 authenticate and authorize user
+Access --> Adapters : 3.2 confirm university identity and role profile
+Adapters --> Access : 3.3 access result
+Access --> Presentation : 3.4 authenticated profile or rejection
 
-package "Domain Layer" {
-  component "Domain Entities\n«data abstraction»" as DomainEntities
-  component "Domain Rules and Algorithms" as DomainRules
-}
+Presentation --> AttendanceMgmt : 4.1 UC02/UC03/UC04/UC07 route attendance request
+AttendanceMgmt --> Access : 4.2 verify actor permission when required
+AttendanceMgmt --> Adapters : 4.3 read session, code, configuration, roster, and record facts
+Adapters --> AttendanceMgmt : 4.4 attendance facts
+AttendanceMgmt --> Adapters : 4.5 save official result, evidence, or adjustment reason
+AttendanceMgmt --> Presentation : 4.6 attendance response
 
-package "Infrastructure Layer" {
-  component "Repository Adapters\n«database wrapper»" as Repositories
-  component "UniversityIdentityAdapter\n«external system wrapper»" as UniversityIdentityAdapter
-  component "AttendanceCodeCacheAdapter\n«data abstraction»" as CodeCache
-  component "ReportFileAdapter\n«external system wrapper»" as ReportFile
-  database "AFAS Relational Database" as Database
-  collections "Short-lived Attendance Code Cache" as Cache
-}
+Presentation --> AttendanceMgmt : 5.1 UC05 start/finalize session
+AttendanceMgmt --> Adapters : 5.2 read schedule, roster, configuration, active code, and session state
+Adapters --> AttendanceMgmt : 5.3 lifecycle facts
+AttendanceMgmt --> Adapters : 5.4 update state, initialize records, refresh code, or finalize absences
+AttendanceMgmt --> Presentation : 5.5 lifecycle result
 
-StudentApp --> DeviceAdapter
-StudentApp --> CheckInEndpoint
-StudentApp --> AuthEndpoint
-StudentApp --> MonitorEndpoint
-StaffPortal --> AuthEndpoint
-StaffPortal --> SessionEndpoint
-StaffPortal --> MonitorEndpoint
-StaffPortal --> AdminEndpoint
-StaffPortal --> ReportEndpoint
+StaffClient --> Presentation : 6.1 UC06 poll monitor every 5 seconds
+Presentation --> AttendanceMgmt : 6.2 request current snapshot
+AttendanceMgmt --> Adapters : 6.3 read latest roster and attendance results
+Adapters --> AttendanceMgmt : 6.4 snapshot facts
+AttendanceMgmt --> Presentation : 6.5 attendance monitor snapshot
+Presentation --> StaffClient : 6.6 refreshed monitor view
 
-AuthEndpoint --> AuthenticationService
-CheckInEndpoint --> CheckInService
-SessionEndpoint --> SessionService
-MonitorEndpoint --> MonitorService
-AdminEndpoint --> CatalogService
-ReportEndpoint --> ReportService
+Presentation --> Reporting : 7.1 UC08 request finalized report
+Reporting --> Adapters : 7.2 read finalized matrix and write report file
+Adapters --> Reporting : 7.3 report file reference or failure
+Reporting --> Presentation : 7.4 export result
 
-CheckInService --> DomainRules
-CheckInService --> DomainEntities
-SessionService --> DomainRules
-SessionService --> DomainEntities
-AuthenticationService --> DomainRules
-CatalogService --> DomainRules
-ReportService --> DomainRules
-
-AuthenticationService --> Repositories
-AuthenticationService --> UniversityIdentityAdapter
-CheckInService --> Repositories
-CheckInService --> CodeCache
-SessionService --> Repositories
-SessionService --> CodeCache
-MonitorService --> Repositories
-CatalogService --> Repositories
-ReportService --> Repositories
-ReportService --> ReportFile
-
-Repositories --> Database
-CodeCache --> Cache
+Presentation --> Administration : 8.1 UC09 submit catalog change
+Administration --> Adapters : 8.2 validate and persist catalog records
+Adapters --> Administration : 8.3 catalog result
+Administration --> Presentation : 8.4 catalog response
 @enduml
 ```
 
-### **III.4.2 Dynamic View**
+---
 
-The dynamic view maps the UC02/UC04 check-in flow to design elements. It includes the main success path and the primary rejection branches required by Phase 1 and Phase 2.
-
-#### **Figure III-4 Dynamic Design View for QR/PIN Check-in**
-
-```plantuml
-@startuml
-skinparam style strictuml
-autonumber
-
-actor "Student" as Student
-participant "Student Client App\n«client subsystem»" as StudentApp
-participant "MobileDeviceEvidenceAdapter\n«hardware wrapper»" as DeviceAdapter
-participant "CheckInEndpoint\n«boundary»" as CheckInEndpoint
-participant "CheckInService\n«coordinator»" as CheckInService
-participant "IdentityEvidencePolicy\n«business logic»" as IdentityPolicy
-participant "AttendanceCodePolicy\n«business logic»" as CodePolicy
-participant "AttendanceStatusPolicy\n«business logic»" as StatusPolicy
-participant "AttendanceCodeCacheAdapter\n«data abstraction»" as CodeCache
-participant "Repository Adapters\n«database wrapper»" as Repository
-
-Student -> StudentApp : choose QR scan or PIN
-StudentApp -> DeviceAdapter : collect biometric or selfie proof
-DeviceAdapter --> StudentApp : identity evidence result
-StudentApp -> DeviceAdapter : collect location and device evidence
-DeviceAdapter --> StudentApp : location and device evidence
-StudentApp -> CheckInEndpoint : submit check-in evidence
-CheckInEndpoint -> CheckInService : processCheckIn(command)
-CheckInService -> IdentityPolicy : validate identity evidence
-IdentityPolicy --> CheckInService : identity evidence accepted
-CheckInService -> CodeCache : read active QR/PIN for session
-CodeCache --> CheckInService : active code and timestamps
-CheckInService -> CodePolicy : verify active code and session match
-
-alt code expired or mismatched
-  CodePolicy --> CheckInService : rejected
-  CheckInService -> Repository : record latest rejection reason on AttendanceRecord
-  CheckInService --> CheckInEndpoint : rejected result
-  CheckInEndpoint --> StudentApp : show expired or invalid code
-else code valid
-  CheckInService -> Repository : read Configuration
-  Repository --> CheckInService : config
-  CheckInService -> StatusPolicy : classify Present or Late
-  StatusPolicy --> CheckInService : official status
-  CheckInService -> Repository : save AttendanceRecord with check-in evidence and official status (submitted coordinates stored as evidence)
-  CheckInService --> CheckInEndpoint : accepted result
-  CheckInEndpoint --> StudentApp : show Present or Late result
-end
-@enduml
-```
-
-### **III.4.3 Deployment View**
+## **III.5 Deployment View**
 
 The deployment view keeps AFAS as one ASP.NET Core backend application runtime with separate React Native and React clients, a PostgreSQL database node, and a Redis cache node. Nginx terminates HTTPS/TLS and forwards REST traffic to the backend runtime.
 
-#### **Figure III-5 Deployment View**
+#### **Figure III-4 Deployment View**
 
 ```plantuml
 @startuml
@@ -441,11 +385,11 @@ AppServer --> CacheServer : synchronous with reply; Redis client connection
 
 ---
 
-## **III.5 Component and Interface Design**
+## **III.6 Component and Interface Design**
 
-### **III.5.1 Component Diagram**
+### **III.6.1 Component Diagram**
 
-#### **Figure III-6 Component Diagram with Provided and Required Interfaces**
+#### **Figure III-5 Component Diagram with Provided and Required Interfaces**
 
 ```plantuml
 @startuml
@@ -518,7 +462,7 @@ ReportFile - IReportFileWriter
 @enduml
 ```
 
-### **III.5.2 Communication Pattern Specification**
+### **III.6.2 Communication Pattern Specification**
 
 | **Connector**                                       | **COMET Communication Pattern**              | **Technology Mapping**                    | **Buffering**                                                                                                                                  | **Traceability**  |
 | :-------------------------------------------------- | :------------------------------------------- | :---------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------- | :---------------- |
@@ -528,7 +472,7 @@ ReportFile - IReportFileWriter
 | Staff Web Portal -> Monitor use case                | Periodic synchronous message with reply      | HTTPS REST short polling every 5 seconds  | No event buffer; each response returns the latest roster snapshot or changes since the last poll.                                             | UC06, NF-01       |
 | Reporting Component -> Report File Adapter          | Synchronous message communication with reply | ClosedXML server-side `.xlsx` generation  | No queue in MVP; report generation returns success or failure to lecturer.                                                                     | UC08              |
 
-### **III.5.3 Polling Specification for Near-Real-Time Attendance Monitor**
+### **III.6.3 Polling Specification for Near-Real-Time Attendance Monitor**
 
 ### **Polling Endpoint: AttendanceMonitorSnapshot**
 
@@ -559,13 +503,13 @@ ReportFile - IReportFileWriter
 
 **Failure Handling:** If a poll fails, the lecturer UI keeps the last successful snapshot and retries on the next 5-second interval. Official attendance results remain saved independently of monitor refresh.
 
-**Traceability:** UC02, UC04, UC06; Monitor Control; NF-01.
+**Traceability:** UC02, UC04, UC06; AttendanceCoordinator; NF-01.
 
 ---
 
-## **III.6 Concurrent Task Architecture**
+## **III.7 Concurrent Task Architecture**
 
-### **III.6.1 Active and Passive Classification**
+### **III.7.1 Active and Passive Classification**
 
 | **Task/Object**               | **Active or Passive** | **Activation**                              | **Communication Pattern**                            | **Traceability** |
 | :---------------------------- | :-------------------- | :------------------------------------------ | :--------------------------------------------------- | :--------------- |
@@ -600,7 +544,7 @@ ReportFile - IReportFileWriter
 
 **Buffering:** No command queue in MVP; monitor refresh uses persisted attendance state.
 
-**Traceability:** UC02, UC04; Check-in Control.
+**Traceability:** UC02, UC04; AttendanceCoordinator; CheckInRules.
 
 ### **Task Behavior Specification: Attendance Check-in Task**
 
@@ -663,19 +607,19 @@ ReportFile - IReportFileWriter
 
 **Termination:** Stops when the attendance session is finalized.
 
-**Concurrency Notes:** At most one refresh task is active per study session, enforced by Session Rules and attendance-session state.
+**Concurrency Notes:** At most one refresh task is active per study session, enforced by AttendanceSessionRules and attendance-session state.
 
 ---
 
-## **III.7 Detailed Class and Interface Specifications**
+## **III.8 Detailed Class and Interface Specifications**
 
-### **III.7.1 Core Interface Contracts**
+### **III.8.1 Core Interface Contracts**
 
 ### **AuthenticationService**
 
 **Responsibility:** Confirm university identity and enforce role-specific access.
 
-**Traceability:** UC01; Authentication Control; BR-01.
+**Traceability:** UC01; AuthenticationCoordinator; BR-01.
 
 | Operation         | Parameters                                                                        | Return                 | Precondition                                     | Postcondition                                                                                        | Invariant                                                  |
 | :---------------- | :-------------------------------------------------------------------------------- | :--------------------- | :----------------------------------------------- | :--------------------------------------------------------------------------------------------------- | :--------------------------------------------------------- |
@@ -686,7 +630,7 @@ ReportFile - IReportFileWriter
 
 **Responsibility:** Coordinate QR/PIN check-in from evidence submission to attendance record upsert and official result creation.
 
-**Traceability:** UC02, UC04, UC06; Check-in Control; BR-02, BR-04, BR-05, BR-07, BR-12.
+**Traceability:** UC02, UC04, UC06; AttendanceCoordinator; CheckInRules; BR-02, BR-04, BR-05, BR-07, BR-12.
 
 | Operation                   | Parameters                           | Return              | Precondition                                                                                                                          | Postcondition                                                                                                       | Invariant                                                                                                  |
 | :-------------------------- | :----------------------------------- | :------------------ | :------------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------- |
@@ -696,7 +640,7 @@ ReportFile - IReportFileWriter
 
 **Responsibility:** Control attendance-session lifecycle and QR/PIN refresh task.
 
-**Traceability:** UC05; Session Control; BR-02, BR-08, BR-10, BR-12.
+**Traceability:** UC05; AttendanceSessionControl; AttendanceSessionRules; BR-02, BR-08, BR-10, BR-12.
 
 | Operation               | Parameters                            | Return                 | Precondition                                                                                                                                 | Postcondition                                                                                 | Invariant                                                    |
 | :---------------------- | :------------------------------------ | :--------------------- | :------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------- | :----------------------------------------------------------- |
@@ -707,7 +651,7 @@ ReportFile - IReportFileWriter
 
 **Responsibility:** Apply manual lecturer adjustments to official attendance results.
 
-**Traceability:** UC07; Adjustment Control; BR-10, BR-13.
+**Traceability:** UC07; AttendanceCoordinator; AttendanceSessionRules; BR-10, BR-13.
 
 | Operation               | Parameters                                                                                    | Return             | Precondition                                                                                     | Postcondition                                                    | Invariant                                                                     |
 | :---------------------- | :-------------------------------------------------------------------------------------------- | :----------------- | :----------------------------------------------------------------------------------------------- | :--------------------------------------------------------------- | :---------------------------------------------------------------------------- |
@@ -717,13 +661,13 @@ ReportFile - IReportFileWriter
 
 **Responsibility:** Prepare finalized attendance report content and delegate file generation.
 
-**Traceability:** UC08; Report Control; BR-08.
+**Traceability:** UC08; AttendanceCoordinator; AttendanceSessionRules; BR-08.
 
 | Operation                | Parameters                                                   | Return             | Precondition                                              | Postcondition                                         | Invariant                                    |
 | :----------------------- | :----------------------------------------------------------- | :----------------- | :-------------------------------------------------------- | :---------------------------------------------------- | :------------------------------------------- |
 | `exportAttendanceReport` | `lecturerId: Text`, `classSectionId: Text`, `semester: Text` | `ReportFileResult` | Lecturer is assigned; finalized attendance results exist. | Returns generated report file or empty-state failure. | Reports use finalized official results only. |
 
-### **III.7.2 Repository and Wrapper Contracts**
+### **III.8.2 Repository and Wrapper Contracts**
 
 ### **IAttendanceCodeStore**
 
@@ -749,7 +693,7 @@ ReportFile - IReportFileWriter
 
 ---
 
-## **III.8 Design Patterns**
+## **III.9 Design Patterns**
 
 ### **Pattern: Strategy**
 
@@ -809,11 +753,11 @@ ReportFile - IReportFileWriter
 
 ---
 
-## **III.9 Persistence Design**
+## **III.10 Persistence Design**
 
 The persistence model maps the analysis entity class diagram in Figure II-1 to a relational schema. Design names preserve Phase 2 entity meaning while converting attributes to table columns and constraints.
 
-### **III.9.1 Table Mapping**
+### **III.10.1 Table Mapping**
 
 | **Table**                   | **Primary Key**                  | **Important Columns**                                                                                                                                                                                                                                                                              | **Key Constraints / Traceability**                                                                                    |
 | :-------------------------- | :------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------- |
@@ -829,7 +773,7 @@ The persistence model maps the analysis entity class diagram in Figure II-1 to a
 | `attendance_sessions`       | `session_id`                     | `dynamic_token`, `qr_refreshed_at`, `pin_code`, `pin_refreshed_at`, `session_status`                                                                                                                                                                                                               | One attendance session per scheduled session; UC05, BR-02, BR-10                                                      |
 | `attendance_records`        | `attendance_record_id`           | `student_id`, `session_id`, `check_in_method` (nullable), `submitted_at` (nullable), `submitted_latitude` (nullable), `submitted_longitude` (nullable), `location_accuracy_meters` (nullable), `device_identifier` (nullable), `device_display_name` (nullable), `face_evidence_reference` (nullable), `attendance_status` (nullable until set), `result_source`, `rejection_reason` (nullable), `finalized_at` (nullable) | Location columns are nullable and informational only (no distance computed) and never drive the result; `attendance_status` limited to `Present`, `Late`, `Absent`; UC02, UC04, UC05, UC07, UC08 |
 
-### **III.9.2 Database Wrapper Classes**
+### **III.10.2 Database Wrapper Classes**
 
 ```plantuml
 @startuml
@@ -872,7 +816,7 @@ RoomRepo --> Room
 
 ---
 
-## **III.10 Quality Attribute Trade-offs**
+## **III.11 Quality Attribute Trade-offs**
 
 | **Quality Attribute** | **Architectural Mechanism**                                                                               | **Design Evidence**                                                             | **Trade-off**                                              | **Traceability**               |
 | :-------------------- | :-------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------ | :--------------------------------------------------------- | :----------------------------- |
@@ -886,37 +830,37 @@ RoomRepo --> Room
 
 ---
 
-## **III.11 Design Traceability Matrix**
+## **III.12 Design Traceability Matrix**
 
 | **Requirement / UC**                  | **Actor**                                            | **Analysis Objects**                                                                                                                                                                                                                                                                               | **Design Elements**                                                                                                                                | **Design Diagrams / Contracts**                                   |
 | :------------------------------------ | :--------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------- |
-| UC01 Authenticate User                | Student, Lecturer, Admin, University Identity System | UserInterface, University Identity System Interface, Authentication Control, Authentication Rules, Account                                                                                                                                                                                       | Access and Profile Management, AuthenticationService, UniversityIdentityAdapter, AuthEndpoint, Account repository                                  | Figures III-1, III-3, III-6; AuthenticationService contract       |
-| UC02 Check In via Dynamic QR Code     | Student                                              | Student Mobile Interface, Mobile Device Sensor Interface, Check-in Control, Identity Evidence Rules, Attendance Code Rules, Attendance Status Calculation, AttendanceSession, Session, ClassSectionStudent, AttendanceRecord, Monitor Control | Student Client, Device Evidence Adapter, Attendance Component, Validation policies, Code Cache, Repository Adapters, Monitor polling read model | Figures III-1, III-4, III-6; CheckInService, IAttendanceCodeStore |
-| UC03 View Personal Attendance History | Student                                              | Student Mobile Interface, Attendance History Control, Authentication Rules, ClassSectionStudent, AttendanceRecord                                                                                                                                                                                  | Student Client, Presentation Boundary, repository read operations                                                                                  | Figures III-1, III-3, III-6                                       |
-| UC04 Check In via PIN                 | Student                                              | Student Mobile Interface, Mobile Device Sensor Interface, Check-in Control, Identity Evidence Rules, Attendance Code Rules, Attendance Status Calculation, AttendanceSession, Session, ClassSectionStudent, AttendanceRecord, Monitor Control | Same as UC02 with `checkInMethod = PIN` and PIN refresh values                                                                                     | Figures III-1, III-4, III-6; CheckInService, QR/PIN Refresh Task  |
-| UC05 Manage Attendance Session        | Lecturer                                             | Lecturer Web Interface, Session Control, Session Rules, Attendance Code Rules, Configuration, Session, ClassSectionStudent, AttendanceSession, AttendanceRecord                                                                                                                          | Staff Web Client, Session Lifecycle, SessionService, QR/PIN Refresh Task, Code Cache                                                               | Figures III-1, III-2, III-6; SessionService contract              |
-| UC06 Monitor Attendance in Real Time  | Lecturer                                             | Lecturer Web Interface, Monitor Control, AttendanceSession, ClassSectionStudent, AttendanceRecord                                                                                                                                                                                                  | Monitoring and Polling subsystem, MonitorEndpoint, AttendanceMonitorSnapshot                                                                       | Figures III-1, III-6; polling specification                       |
-| UC07 Adjust Attendance Manually       | Lecturer                                             | Lecturer Web Interface, Adjustment Control, Session Rules, Session, ClassSectionStudent, AttendanceRecord                                                                                                                                                                         | AdjustmentService, Repository Adapters                                                                                                             | Figures III-1, III-6; AdjustmentService contract                  |
-| UC08 Export Attendance Report         | Lecturer                                             | Lecturer Web Interface, Report Control, Report Eligibility Rules, ClassSectionStudent, Session, AttendanceRecord                                                                                                                                                                   | Reporting subsystem, ReportService, ReportFileAdapter                                                                                              | Figures III-1, III-6; ReportService contract                      |
-| UC09 Manage System Catalog            | Admin                                                | Admin Web Interface, Catalog Control, Catalog Uniqueness Rules, Account, Student, Lecturer, Subject, ClassSection                                                                                                                                                                                  | Administrative Management, CatalogService, Repository Adapters                                                                                     | Figures III-1, III-6; persistence mapping                         |
-| NF-01 Performance and concurrency     | Student, Lecturer                                    | Attendance Code Rules, Monitor Control, AttendanceSession                                                                                                                                                                                                                                          | Attendance Code Cache, QR/PIN Refresh Task, Monitor polling endpoint                                                                               | Figures III-3, III-5, III-6; TIS/TBS                              |
-| NF-06 Configurability                 | Student, Lecturer                                    | Configuration, Attendance Code Rules, Attendance Status Calculation                                                                                                                                                         | `configurations`, SessionService, policy classes                                                                                         | Figures III-1, III-3; persistence mapping                         |
+| UC01 Authenticate User                | Student, Lecturer, Admin, University Identity System | StudentInterface, LecturerInterface, AdminInterface, IdentitySystemProxy, AuthenticationCoordinator, AuthenticationRules, Account                                                                                                              | Access and Profile Management, AuthenticationService, UniversityIdentityAdapter, AuthEndpoint, Account repository                                  | Figures III-1, III-2, III-3, III-5; AuthenticationService contract |
+| UC02 Check In via Dynamic QR Code     | Student                                              | StudentInterface, LecturerInterface, MobileDeviceInterface, AttendanceCoordinator, CheckInRules, Configuration, AttendanceSession, Session, AttendanceRecord                                                                                   | Student Client, Device Evidence Access, Attendance Management, Code Cache, Repository Adapters, monitor polling read model | Figures III-1, III-2, III-3, III-5; CheckInService, IAttendanceCodeStore |
+| UC03 View Personal Attendance History | Student                                              | StudentInterface, AttendanceCoordinator, AuthenticationRules, AttendanceSessionRules, ClassSectionStudent, ClassSection, AttendanceRecord                                                                                                      | Student Client, Presentation Boundary, repository read operations                                                                                  | Figures III-1, III-2, III-3, III-5 |
+| UC04 Check In via PIN                 | Student                                              | StudentInterface, LecturerInterface, MobileDeviceInterface, AttendanceCoordinator, CheckInRules, Configuration, AttendanceSession, Session, AttendanceRecord                                                                                   | Attendance Management with `checkInMethod = PIN` and PIN refresh values                                                                            | Figures III-1, III-2, III-3, III-5; CheckInService, QR/PIN Refresh Task |
+| UC05 Manage Attendance Session        | Lecturer                                             | LecturerInterface, AttendanceSessionControl, AttendanceSessionRules, Configuration, Session, ClassSectionStudent, AttendanceSession, AttendanceRecord                                                                                          | Staff Web Client, Attendance Management, SessionService, QR/PIN Refresh Task, Code Cache                                                           | Figures III-1, III-2, III-3, III-5; SessionService contract |
+| UC06 Monitor Attendance in Real Time  | Lecturer                                             | LecturerInterface, AttendanceCoordinator, AttendanceSessionRules, AttendanceSession, ClassSectionStudent, AttendanceRecord                                                                                                                    | Attendance Management, MonitorEndpoint, AttendanceMonitorSnapshot                                                                                   | Figures III-1, III-2, III-3, III-5; polling specification |
+| UC07 Adjust Attendance Manually       | Lecturer                                             | LecturerInterface, AttendanceCoordinator, AttendanceSessionRules, Session, ClassSectionStudent, AttendanceRecord                                                                                                                          | Attendance Management, AdjustmentService, Repository Adapters                                                                                       | Figures III-1, III-2, III-3, III-5; AdjustmentService contract |
+| UC08 Export Attendance Report         | Lecturer                                             | LecturerInterface, AttendanceCoordinator, AttendanceSessionRules, ClassSectionStudent, Session, AttendanceRecord                                                                                                                         | Reporting subsystem, ReportService, ReportFileAdapter                                                                                              | Figures III-1, III-2, III-3, III-5; ReportService contract |
+| UC09 Manage System Catalog            | Admin                                                | AdminInterface, CatalogManagementCoordinator, CatalogManagementRules, Account, Student, Lecturer, Subject, ClassSection, ClassSectionStudent, Session                                                                                         | Administrative Management, CatalogService, Repository Adapters                                                                                     | Figures III-1, III-2, III-3, III-5; persistence mapping |
+| NF-01 Performance and concurrency     | Student, Lecturer                                    | CheckInRules, AttendanceCoordinator, AttendanceSession                                                                                                                                                                                       | Attendance Management, Attendance Code Cache, QR/PIN Refresh Task, Monitor polling endpoint                                                        | Figures III-3, III-4, III-5; TIS/TBS |
+| NF-06 Configurability                 | Student, Lecturer                                    | Configuration, CheckInRules, AttendanceSessionRules                                                                                                                                                                                          | `configurations`, SessionService, policy classes                                                                                         | Figures III-1, III-2; persistence mapping |
 
 ---
 
-## **III.12 Design Validation Checklist**
+## **III.13 Design Validation Checklist**
 
 | **Check item**                                                                                | **Status** | **Evidence**                                                                                                                                                                                                            |
 | :-------------------------------------------------------------------------------------------- | :--------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Integrated communication diagram is produced before subsystem partitioning.                   | Pass       | Section III.2 precedes Section III.3.                                                                                                                                                                                   |
-| Design elements trace backward to analysis objects and use cases.                             | Pass       | Figure III-1, Section III.2.1, Section III.11.                                                                                                                                                                          |
+| Design elements trace backward to analysis objects and use cases.                             | Pass       | Figure III-1, Section III.2.1, Section III.12.                                                                                                                                                                          |
 | Subsystems use COMET subsystem stereotypes.                                                   | Pass       | Figure III-2.                                                                                                                                                                                                           |
-| Architecture complexity is justified by NFRs.                                                 | Pass       | Section III.1 and Section III.10 justify cache and 5-second monitor polling using NF-01/NF-07.                                                                                                             |
-| COMET communication patterns are selected before or with technology mapping.                  | Pass       | Section III.5.2 and deployment connectors.                                                                                                                                                                              |
-| Active/passive tasks are explicit and active tasks include TIS/TBS.                           | Pass       | Section III.6.                                                                                                                                                                                                          |
-| Near-real-time monitor polling defines refresh interval, payload, and failure handling.       | Pass       | Section III.5.3.                                                                                                                                                                                                        |
-| Interfaces include operation, parameters, return, precondition, postcondition, and invariant. | Pass       | Section III.7.                                                                                                                                                                                                          |
-| Database and technical dependencies are isolated through wrappers.                            | Pass       | Figures III-3, III-6, and III-9.2.                                                                                                                                                                                      |
-| Persistence mapping preserves Phase 2 entity names and business meanings.                     | Pass       | Section III.9 maps all entity classes from Figure II-1.                                                                                                                                                                 |
+| Architecture complexity is justified by NFRs.                                                 | Pass       | Section III.1 and Section III.11 justify cache and 5-second monitor polling using NF-01/NF-07.                                                                                                             |
+| COMET communication patterns are selected before or with technology mapping.                  | Pass       | Section III.6.2 and deployment connectors.                                                                                                                                                                              |
+| Active/passive tasks are explicit and active tasks include TIS/TBS.                           | Pass       | Section III.7.                                                                                                                                                                                                          |
+| Near-real-time monitor polling defines refresh interval, payload, and failure handling.       | Pass       | Section III.6.3.                                                                                                                                                                                                        |
+| Interfaces include operation, parameters, return, precondition, postcondition, and invariant. | Pass       | Section III.8.                                                                                                                                                                                                          |
+| Database and technical dependencies are isolated through wrappers.                            | Pass       | Figures III-2, III-5, and Section III.10.2.                                                                                                                                                                             |
+| Persistence mapping preserves Phase 2 entity names and business meanings.                     | Pass       | Section III.10 maps all entity classes from Figure II-1.                                                                                                                                                                |
 | Official attendance result does not use rejected status.                                      | Pass       | CheckInService invariant and `attendance_records` constraints.                                                                                                                                                          |
 | Unsupported older design items are removed.                                                   | Pass       | Authentication uses the existing University Identity System, attendance lifecycle uses Phase 2 `AttendanceSession`, device identifier is evidence only, and location coordinates are captured as evidence only with no distance computed (informational; it does not gate check-in). |
